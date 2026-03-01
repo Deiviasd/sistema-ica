@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+
+  ms-auth:
+    build: ./backend/ms-auth
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/ms-auth/.env
+    command: npm run dev
+
+  ms-users:
+    build: ./backend/ms-users
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./backend/ms-users/.env
+    command: npm run dev
+
+  api-gateway:
+    build: ./backend/api-gateway
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/api-gateway/.env
+    command: npm run dev
+    depends_on:
+      - ms-auth
+      - ms-users
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local
+    command: npm run dev
