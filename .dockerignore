@@ -1,0 +1,6 @@
+# Reglas y configuraciones de asistentes IA (Desarrollo)
+.claude/
+CLAUDE.md
+.gemini/
+.agents/
+skills-lock.json

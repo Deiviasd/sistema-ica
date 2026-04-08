@@ -1,9 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-frontend/node_modules/
-/.pnp
+node_modules/
+**/node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -13,21 +13,23 @@ frontend/node_modules/
 
 # testing
 /coverage
+*.lcov
 
 # next.js
-/.next/
-frontend/.next/
-/out/
+.next/
+**/ .next/
+out/
+build/
 
-# production
-/build
+# production/builds
 dist/
+**/dist/
+lib/
+artifacts/
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# logs
+*.log
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -35,9 +37,34 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
-# vercel
-.vercel
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# AI & Agents
+.claude/
+.gemini/
+.agents/
+.antigravity/
 
 # typescript
 *.tsbuildinfo

@@ -24,7 +24,8 @@ function authenticateToken(req, res, next) {
         return res.status(403).json({ error: 'Token inválido' })
     }
 }
-
+console.log("AUTH_SERVICE:", process.env.AUTH_SERVICE);
+console.log("USERS_SERVICE:", process.env.USERS_SERVICE);
 // 🔁 Proxy a MS-AUTH (sin validación)
 app.use('/auth', createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
