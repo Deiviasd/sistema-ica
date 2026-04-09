@@ -10,12 +10,36 @@ services:
       - ./backend/ms-auth/.env
     command: npm run dev
 
-  ms-users:
-    build: ./backend/ms-users
+  ms-predios:
+    build: ./backend/ms-predios
     ports:
       - "4001:4001"
     env_file:
-      - ./backend/ms-users/.env
+      - ./backend/ms-predios/.env
+    command: npm run dev
+
+  ms-cultivo:
+    build: ./backend/ms-cultivo
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./backend/ms-cultivo/.env
+    command: npm run dev
+
+  ms-inspecciones:
+    build: ./backend/ms-inspecciones
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./backend/ms-inspecciones/.env
+    command: npm run dev
+
+  ms-auditoria:
+    build: ./backend/ms-auditoria
+    ports:
+      - "4004:4004"
+    env_file:
+      - ./backend/ms-auditoria/.env
     command: npm run dev
 
   api-gateway:
@@ -27,7 +51,10 @@ services:
     command: npm run dev
     depends_on:
       - ms-auth
-      - ms-users
+      - ms-predios
+      - ms-cultivo
+      - ms-inspecciones
+      - ms-auditoria
 
   frontend:
     build: ./frontend
