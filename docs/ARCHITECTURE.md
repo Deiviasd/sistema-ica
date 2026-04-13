@@ -35,7 +35,7 @@
 
 - **Predios**: No se modelan como entidad en el sistema. Su información es gestionada por un sistema externo del ICA. Se utiliza `numero_predial` como identificador externo.
 - **Certificación ICA**: El predio ya debe estar certificado por el ICA para poder recibir inspecciones fitosanitarias.
-- **Relación Productor-Predio**: Un productor pertenece a un solo predio (1:1).
+- **Relación Productor-Predio**: Un productor puede estar asociado a múltiples predios (1:N). Esto permite que un solo usuario gestione diferentes fincas o certificaciones.
 
 ---
 
@@ -173,18 +173,26 @@ module.exports = { supabase }
 ### MS Autenticación
 
 ```sql
--- Tabla: usuario
+-- Tabla: usuario (Estrategia Híbrida)
+-- Esta tabla se sincroniza automáticamente mediante triggers con Supabase Auth
 CREATE TABLE usuario (
   id_usuario SERIAL PRIMARY KEY,
-  nombre VARCHAR(100) NOT NULL,
-  documento VARCHAR(50) NOT NULL UNIQUE,
+  id_auth_supabase UUID NOT NULL UNIQUE, -- ID vinculado a auth.users de Supabase
+  nombre VARCHAR(100), -- Opcional inicialmente, se puede actualizar después
+  documento VARCHAR(50) UNIQUE,
   correo VARCHAR(100) NOT NULL UNIQUE,
-  estado VARCHAR(20) NOT NULL, -- 'activo' | 'inactivo' | 'bloqueado'
-  contraseña VARCHAR(255) NOT NULL,
-  id_region VARCHAR(50) NOT NULL,
-  id_rol VARCHAR(50) NOT NULL,
-  fecha_registro TIMESTAMP NOT NULL,
-  numero_predial INT -- NULL para técnicos
+  estado VARCHAR(20) DEFAULT 'ACTIVO', -- 'ACTIVO' | 'INACTIVO' | 'BLOQUEADO'
+  id_region VARCHAR(50),
+  id_rol VARCHAR(50) DEFAULT 'PRODUCTOR', 
+  fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla: usuario_predio (NUEVA: Soporta múltiples predios por persona)
+CREATE TABLE usuario_predio (
+  id_usuario_predio SERIAL PRIMARY KEY,
+  id_usuario INT REFERENCES usuario(id_usuario),
+  numero_predial INT NOT NULL,
+  fecha_asociacion TIMESTAMP DEFAULT NOW()
 );
 
 -- Tabla: rol
@@ -520,28 +528,15 @@ El **API Gateway actual** tiene:
 
 **Conclusión**: El API Gateway actual **no es un orquestador**, pero tiene las bases para evolucionar hacia uno.
 
-### Evolución Hacia Orquestador
-
 ```
-FASE 1: API Gateway Básico (Actual)
-├── Routing
-├── Auth JWT
-└── Proxy a microservicios
 
-FASE 2: API Gateway con Validaciones
-├── Routing
-├── Auth JWT
-├── Validaciones de referencias (API calls)
-└── Manejo de errores básico
+### Estrategia de Autenticación de Próxima Generación (Híbrida)
 
-FASE 3: Orquestador
-├── Routing
-├── Auth JWT
-├── Coordinación de flujos
-├── Manejo de transacciones distribuidas
-├── Compensaciones
-└── Event bus (RabbitMQ/Kafka)
-```
+Para garantizar la máxima seguridad y velocidad de desarrollo, el sistema utiliza un modelo híbrido:
+
+1. **Gestor de Identidad (Supabase Auth):** Maneja el almacenamiento seguro de contraseñas, hashing, MFA y emisión de JWT.
+2. **Sincronización Automática (BD Triggers):** Un trigger en el esquema `auth` de Supabase detecta nuevos registros e inserta automáticamente una fila en la tabla `config.usuario` del microservicio MS-Auth.
+3. **Orquestador (Validador):** El orquestador recibe el token de Supabase, verifica su firma con el `JWT_SECRET` y extrae el `id_auth_supabase` para realizar las validaciones de negocio en los demás microservicios.
 
 ---
 
@@ -633,23 +628,31 @@ Cada microservicio expone endpoints internos para que otros servicios puedan con
 **Servicios involucrados:** MS Autenticación + Sistema externo ICA
 
 ```
-Frontend → POST /auth/register (productor)
-
-API Gateway:
+Frontend → Supabase SDK Auth Sign-Up
+   │
+   ▼
+Supabase Auth Service:
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. Validar datos de entrada                                 │
-│                                                             │
-│ 2. Validar numero_predial con sistema externo ICA           │
-│    → Si no existe o no tiene certificación: ERROR           │
-│                                                             │
-│ 3. Llamar MS Autenticación                                  │
-│    → POST /auth/register                                    │
-│    → Crear usuario con rol PRODUCTOR                       │
-│                                                             │
-│ 4. Llamar MS Auditoría                                       │
-│    → POST /auditoria (registrar creación)                   │
-│                                                             │
-│ 5. Retornar confirmación + JWT                              │
+│ 1. Crea cuenta en esquema privado `auth.users`              │
+│ 2. Encripta contraseña y genera JWT                         │
+│ 3. Dispara DB Trigger interno                               │
+└─────────────────────────────────────────────────────────────┘
+   │
+   ▼
+MS Autenticación (Trigger):
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Recibe datos del nuevo usuario                           │
+│ 2. Ejecuta INSERT en tabla `public.usuario`                 │
+│ 3. Si incluye predial: INSERT en `public.usuario_predio`    │
+│ 4. Asigna Rol por defecto (PRODUCTOR)                       │
+└─────────────────────────────────────────────────────────────┘
+   │
+   ▼
+API Gateway / Orquestador:
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Recibe confirmación de registro                          │
+│ 2. Llama a MS Auditoría (POST /auditoria)                   │
+│ 3. Retorna éxito al Frontend                                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
