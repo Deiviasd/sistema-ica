@@ -22,5 +22,5 @@ JWT_SECRET=tu_secreto_para_tokens (el mismo que usa Supabase)
 # URLs de los microservicios (en desarrollo local)
 AUTH_SERVICE_URL=http://localhost:5001
 USERS_SERVICE_URL=http://localhost:5002
-💡 Pro-tip: Si quieres ahorrarles trabajo, puedes crear archivos llamados .env.example en cada carpeta (estos SÍ se pueden subir a GitHub) que contengan solo los nombres de las variables pero vacíos, para que ellos solo tengan que llenarlos. ¿Te gustaría que los cree?
+
 
