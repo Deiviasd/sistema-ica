@@ -12,6 +12,8 @@ git checkout feature/frontend
 ```
 
 ### Backend (Microservicios)
+git checkout main
+
 *   **Auth:** `git checkout feature/backend-auth`
 *   **Predios:** `git checkout feature/backend-predios`
 *   **Cultivo:** `git checkout feature/backend-cultivo`
