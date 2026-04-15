@@ -5,8 +5,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"   # Puerto de mensajes
-      - "15672:15672" # Puerto del Panel de Control (User: guest, Pass: guest)
+      - "5672:5672"   
+      - "15672:15672" 
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 10s
