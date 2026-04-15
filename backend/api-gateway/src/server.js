@@ -36,21 +36,81 @@ function authenticateToken(req, res, next) {
 // 🚀 ORQUESTACIÓN ASÍNCRONA (FASE 3)
 // ==========================================
 
+/**
+ * REGISTRO INTEGRAL DE LOTE (Lote + Siembra)
+ * Cumple con la secuencia: Formulario unificado de dos secciones
+ */
+app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, next) => {
+    let loteId = null;
+    let siembraId = null;
+
+    try {
+        const { 
+            id_lugar_produccion, nombre_lote, area_m2, // Sección 1: Datos Lote
+            especie, variedad, fecha_siembra           // Sección 2: Datos Siembra
+        } = req.body;
+
+        // 1. Paso Síncrono: Registrar el Lote en MS-Predios
+        const loteResponse = await internalApi.predios.post('/lotes', {
+            id_lugar_produccion,
+            nombre_lote,
+            area_m2,
+            estado: 'ocupado' // El sistema lo marca como ocupado automáticamente
+        });
+        loteId = loteResponse.data.id_lote;
+
+        // 2. Paso Síncrono: Registrar la Siembra en MS-Cultivo vinculada al nuevo Lote
+        const siembraResponse = await internalApi.cultivo.post('/siembras', {
+            id_lote: loteId,
+            especie,
+            variedad,
+            fecha_siembra,
+            estado: 'activa'
+        });
+        siembraId = siembraResponse.data.id_siembra;
+
+        // 3. Notificación Asíncrona: Auditoría de registro unificado
+        eventBus.publish('audit_queue', {
+            modulo: 'registro_agricola',
+            tipo_accion: 'CREATE_LOTE_INTEGRAL',
+            id_referencia: `Lote:${loteId}|Siembra:${siembraId}`,
+            id_usuario: req.user.id,
+            timestamp: new Date().toISOString()
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Registro integral exitoso (Paso 8 y 9 cumplidos)',
+            lote: loteResponse.data,
+            siembra: siembraResponse.data
+        });
+
+    } catch (error) {
+        console.error('❌ Error en Registro Integral:', error.message);
+        
+        // COMPENSACIÓN (Patrón SAGA): Si el lote se creó pero la siembra falló, 
+        // marcamos el lote como 'inactivo' para mantener trazabilidad pero evitar su uso.
+        if (loteId && !siembraId) {
+            console.log('🔄 Ejecutando compensación: Marcando lote como inactivo...');
+            await internalApi.predios.patch(`/lotes/${loteId}/estado`, {
+                estado: 'inactivo'
+            }).catch(e => console.error('Error en compensación:', e.message));
+        }
+
+        next(error);
+    }
+});
+
+// Mantengo el endpoint existente para siembras en lotes ya creados
 app.post('/api/orchestrator/siembras', authenticateToken, validator.loteExists, async (req, res, next) => {
     let siembraId = null;
     try {
         const { id_lote } = req.body;
-
-        // 1. Paso Síncrono: Crear siembra en ms-cultivo
         const siembraResponse = await internalApi.cultivo.post('/siembras', req.body);
         siembraId = siembraResponse.data.id_siembra;
         
-        // 2. Transacción Distribuida (SAGA): Ocupar el lote en ms-predios
-        await internalApi.predios.patch(`/lotes/${id_lote}/state`, {
-            estado: 'ocupado'
-        });
+        await internalApi.predios.patch(`/lotes/${id_lote}/state`, { estado: 'ocupado' });
 
-        // 3. Notificación Asíncrona: Auditoría
         eventBus.publish('audit_queue', {
             modulo: 'transacciones',
             tipo_accion: 'CREATE_SIEMBRA_WITH_LOT_STATE',
@@ -64,16 +124,11 @@ app.post('/api/orchestrator/siembras', authenticateToken, validator.loteExists, 
             message: 'Siembra registrada y Lote ocupado correctamente',
             data: siembraResponse.data
         });
-
     } catch (error) {
         console.error('❌ Error en Orquestación Siembra:', error.message);
-        
-        // COMPENSACIÓN: Si falló el paso 2, intentamos borrar la siembra creada
         if (siembraId) {
-            console.log('🔄 Ejecutando compensación: Borrando siembra inducida...');
             await internalApi.cultivo.delete(`/siembras/${siembraId}`).catch(e => console.error('Error en compensación:', e.message));
         }
-
         next(error);
     }
 });
