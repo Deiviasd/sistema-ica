@@ -37,26 +37,43 @@ function authenticateToken(req, res, next) {
 // ==========================================
 
 app.post('/api/orchestrator/siembras', authenticateToken, validator.loteExists, async (req, res, next) => {
+    let siembraId = null;
     try {
-        // 1. Llamada Síncrona (Necesitamos la respuesta para saber si se creó)
+        const { id_lote } = req.body;
+
+        // 1. Paso Síncrono: Crear siembra en ms-cultivo
         const siembraResponse = await internalApi.cultivo.post('/siembras', req.body);
+        siembraId = siembraResponse.data.id_siembra;
         
-        // 2. Llamada ASÍNCRONA vía RabbitMQ (No esperamos a Auditoría)
-        // Esto es un flujo coordinado de la FASE 3
+        // 2. Transacción Distribuida (SAGA): Ocupar el lote en ms-predios
+        await internalApi.predios.patch(`/lotes/${id_lote}/state`, {
+            estado: 'ocupado'
+        });
+
+        // 3. Notificación Asíncrona: Auditoría
         eventBus.publish('audit_queue', {
-            modulo: 'cultivo',
-            tipo_accion: 'CREATE_SIEMBRA',
-            id_referencia: siembraResponse.data.id_siembra,
+            modulo: 'transacciones',
+            tipo_accion: 'CREATE_SIEMBRA_WITH_LOT_STATE',
+            id_referencia: siembraId,
             id_usuario: req.user.id,
             timestamp: new Date().toISOString()
         });
 
         res.status(201).json({
             success: true,
-            message: 'Siembra orquestada con éxito (Auditoría en proceso)',
+            message: 'Siembra registrada y Lote ocupado correctamente',
             data: siembraResponse.data
         });
+
     } catch (error) {
+        console.error('❌ Error en Orquestación Siembra:', error.message);
+        
+        // COMPENSACIÓN: Si falló el paso 2, intentamos borrar la siembra creada
+        if (siembraId) {
+            console.log('🔄 Ejecutando compensación: Borrando siembra inducida...');
+            await internalApi.cultivo.delete(`/siembras/${siembraId}`).catch(e => console.error('Error en compensación:', e.message));
+        }
+
         next(error);
     }
 });
