@@ -2,6 +2,17 @@ version: "3.9"
 
 services:
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # Puerto de mensajes
+      - "15672:15672" # Puerto del Panel de Control (User: guest, Pass: guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   ms-auth:
     build: ./backend/ms-auth
     ports:
@@ -9,14 +20,53 @@ services:
     env_file:
       - ./backend/ms-auth/.env
     command: npm run dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
-  ms-users:
-    build: ./backend/ms-users
+  ms-predios:
+    build: ./backend/ms-predios
     ports:
       - "4001:4001"
     env_file:
-      - ./backend/ms-users/.env
+      - ./backend/ms-predios/.env
     command: npm run dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  ms-cultivo:
+    build: ./backend/ms-cultivo
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./backend/ms-cultivo/.env
+    command: npm run dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  ms-inspecciones:
+    build: ./backend/ms-inspecciones
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./backend/ms-inspecciones/.env
+    command: npm run dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  ms-auditoria:
+    build: ./backend/ms-auditoria
+    ports:
+      - "4004:4004"
+    env_file:
+      - ./backend/ms-auditoria/.env
+    command: npm run dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   api-gateway:
     build: ./backend/api-gateway
@@ -26,8 +76,12 @@ services:
       - ./backend/api-gateway/.env
     command: npm run dev
     depends_on:
-      - ms-auth
-      - ms-users
+      rabbitmq:
+        condition: service_healthy
+      ms-auth:
+        condition: service_started
+      ms-predios:
+        condition: service_started
 
   frontend:
     build: ./frontend
