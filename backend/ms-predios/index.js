@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { supabase } = require('./src/config/supabase');
+const { createClient } = require('@supabase/supabase-js'); // Usamos createClient directo
 require('dotenv').config();
 
 const app = express();
@@ -8,69 +8,73 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 4001;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+// 🛡️ HELPER: Crear cliente de Supabase con la identidad del usuario
+const getSupabaseUserClient = (req) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    // Si no hay token, el RLS fallará automáticamente (lo cual es bueno)
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+};
 
 // --- GESTIÓN DE LUGARES DE PRODUCCIÓN ---
-// Paso 1 y 2: Listar lugares del predio (Productor)
+// Paso 1 y 2: Listar lugares del predio (Delegado a Supabase RLS)
 app.get('/lugares-produccion', async (req, res) => {
     try {
-        const { productor_id, id } = req.query;
+        const supabase = getSupabaseUserClient(req);
+        const { id } = req.query;
+        
         let query = supabase.from('lugar_produccion').select('*, lote(*)');
         
         if (id) {
             query = query.eq('id_lugar_produccion', id);
-        } else if (productor_id) {
-            query = query.eq('productor_id', productor_id);
         }
 
         const { data, error } = await query;
         if (error) throw error;
+        
+        // Si no hay data por RLS, devolverá [] vacío (correcto)
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(401).json({ error: 'Sesión inválida o acceso denegado por RLS' });
     }
 });
 
-// Paso 4, 5 y 6: Registrar nuevo lugar (Nombre y Área en m2)
+// Paso 4, 5 y 6: Registrar nuevo lugar (Identidad automática vía RLS)
 app.post('/lugares-produccion', async (req, res) => {
     try {
+        const supabase = getSupabaseUserClient(req);
         const { nombre_lugar, area_total_m2, numero_predial, productor_id } = req.body;
         
-        // El Paso 6 de la secuencia pide validar campos obligatorios
-        if (!nombre_lugar || !area_total_m2 || !productor_id || !numero_predial) {
-            return res.status(400).json({ error: 'Todos los campos (Nombre, Área m², ID Productor y Número Predial) son obligatorios.' });
-        }
-
-        // Paso 7: Registrar y asociar
+        // El RLS verificará que el 'productor_id' que envíes coincida con tu Token
         const { data, error } = await supabase
             .from('lugar_produccion')
             .insert([{ 
                 nombre_lugar, 
-                area_total: area_total_m2, // Guardamos los m2
+                area_total: area_total_m2, 
                 numero_predial, 
                 productor_id 
             }])
             .select();
 
-        if (error) {
-            if (error.code === '23505') return res.status(400).json({ error: 'Este Número Predial ya está registrado.' });
-            throw error;
-        }
-
-        // Paso 8: Confirmación de éxito
-        res.status(201).json({
-            message: 'Lugar de producción registrado exitosamente y asociado al predio legal.',
-            data: data[0]
-        });
-
+        if (error) throw error;
+        res.status(201).json(data[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(403).json({ error: 'No tienes permiso para registrar este predio o sesión expirada' });
     }
 });
 
-// --- GESTIÓN DE LOTES ---
+// --- GESTIÓN DE LOTES (Protegido por cascada RLS en Supabase) ---
 app.post('/lotes', async (req, res) => {
     try {
+        const supabase = getSupabaseUserClient(req);
         const { nombre_lote, area_m2, id_lugar_produccion } = req.body;
+        
         const { data, error } = await supabase
             .from('lote')
             .insert([{ 
@@ -84,22 +88,10 @@ app.post('/lotes', async (req, res) => {
         if (error) throw error;
         res.status(201).json(data[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.patch('/lotes/:id/estado', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { estado } = req.body;
-        const { data, error } = await supabase.from('lote').update({ estado }).eq('id_lote', id).select();
-        if (error) throw error;
-        res.json(data[0]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(403).json({ error: 'No puedes crear lotes en lugares que no te pertenecen' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ MS-Predios (Alineado con Wizard Productor) en el puerto ${PORT}`);
+    console.log(`✅ MS-Predios: Seguridad delegada a Supabase RLS en puerto ${PORT}`);
 });
