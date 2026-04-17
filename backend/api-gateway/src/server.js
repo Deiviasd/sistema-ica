@@ -24,10 +24,13 @@ function authenticateToken(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Token requerido' });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Limpieza de token y uso de texto plano (según validación RLS)
+        token = token.trim().replace(/\s/g, '');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET.trim());
         req.user = decoded;
         next();
     } catch (err) {
+        console.error('❌ Error de validación JWT:', err.message);
         return res.status(403).json({ error: 'Token inválido o expirado' });
     }
 }
