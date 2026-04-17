@@ -9,7 +9,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4001;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// 🔹 Fallback a SERVICE_ROLE si no hay ANON_KEY definida
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // 🛡️ HELPER: Crear cliente de Supabase con la identidad del usuario
 const getSupabaseUserClient = (req) => {
@@ -41,7 +42,11 @@ app.get('/lugares-produccion', async (req, res) => {
         // Si no hay data por RLS, devolverá [] vacío (correcto)
         res.json(data);
     } catch (error) {
-        res.status(401).json({ error: 'Sesión inválida o acceso denegado por RLS' });
+        console.error('❌ Error de Supabase en MS-PREDIOS:', error);
+        res.status(401).json({ 
+            error: 'Sesión inválida o acceso denegado por RLS', 
+            details: error.message || error 
+        });
     }
 });
 

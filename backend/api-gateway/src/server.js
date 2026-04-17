@@ -19,16 +19,21 @@ eventBus.connect();
 // 🔐 Middleware de autenticación
 function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
 
     if (!token) return res.status(401).json({ error: 'Token requerido' });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        token = token.trim().replace(/\s/g, '');
+        // 🔹 Usamos la llave como texto plano (descubierto por prueba-adn)
+        const secret = process.env.JWT_SECRET.trim();
+        const decoded = jwt.verify(token, secret);
+        
         req.user = decoded;
         next();
     } catch (err) {
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+        console.error('❌ Error de validación en Gateway:', err.message);
+        return res.status(403).json({ error: 'Token inválido o expirado', details: err.message });
     }
 }
 
