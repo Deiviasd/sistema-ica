@@ -25,8 +25,8 @@ function authenticateToken(req, res, next) {
 
     try {
         token = token.trim().replace(/\s/g, '');
-        // 🔹 Usamos la llave como texto plano (descubierto por prueba-adn)
-        const secret = process.env.JWT_SECRET.trim();
+        // 🔐 Validamos con la llave maestra de Auth
+        const secret = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET).trim();
         const decoded = jwt.verify(token, secret);
         
         req.user = decoded;
@@ -142,13 +142,21 @@ app.post('/api/orchestrator/siembras', authenticateToken, validator.loteExists, 
 // 🔁 PROXIES CONFIGURADOS
 // ==========================================
 
-const setupProxy = (path, target, validators = [], protected = true) => {
+const setupProxy = (path, target, validators = [], protected = true, targetSecretEnv = null) => {
     const middlewares = protected ? [authenticateToken, ...validators] : [...validators];
     app.use(path, ...middlewares, createProxyMiddleware({
         target,
         changeOrigin: true,
         pathRewrite: { [`^${path}`]: '' },
         onProxyReq: (proxyReq, req, res) => {
+            // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
+            if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
+                const targetSecret = process.env[targetSecretEnv].trim();
+                // Creamos un nuevo token con los mismos datos del usuario pero la llave del destino
+                const newToken = jwt.sign(req.user, targetSecret);
+                proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
+            }
+
             if (req.body) {
                 const bodyData = JSON.stringify(req.body);
                 proxyReq.setHeader('Content-Type', 'application/json');
@@ -160,10 +168,10 @@ const setupProxy = (path, target, validators = [], protected = true) => {
 };
 
 setupProxy('/auth', process.env.AUTH_SERVICE_URL, [], false);
-setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists]);
-setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists]);
-setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists]);
-setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL);
+setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists], true, 'JWT_SECRET_PREDIOS');
+setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists], true, 'JWT_SECRET_CULTIVOS');
+setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');
+setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [], true, 'JWT_SECRET_AUDITORIA');
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'Orchestrator Phase 3 Online (RabbitMQ Active)' }));

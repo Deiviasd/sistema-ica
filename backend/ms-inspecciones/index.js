@@ -10,7 +10,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4003;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// 🔹 Fallback a SERVICE_ROLE si no hay ANON_KEY definida
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const PREDIOS_URL = process.env.PREDIOS_SERVICE_URL || 'http://ms-predios:4001';
 const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://ms-auth:4000';
@@ -28,7 +29,7 @@ const getSupabaseUserClient = (req) => {
 // ==========================================
 // 🎯 CONTEXTO MEJORADO PARA EL TÉCNICO (RLS DELEGADO)
 // ==========================================
-app.get('/inspecciones/:id/contexto', async (req, res) => {
+app.get('/:id/contexto', async (req, res) => {
     try {
         const supabase = getSupabaseUserClient(req);
         const { id } = req.params;
@@ -40,7 +41,10 @@ app.get('/inspecciones/:id/contexto', async (req, res) => {
             .eq('id_inspeccion', id)
             .single();
 
-        if (inspErr || !insp) return res.status(404).json({ error: 'Inspección no encontrada o sin acceso' });
+        if (inspErr || !insp) return res.status(404).json({ 
+            error: 'Inspección no encontrada o sin acceso', 
+            details: inspErr?.message || 'No se encontró el registro'
+        });
 
         // 2. Info del Productor (MS-AUTH)
         const prodRes = await axios.get(`${AUTH_URL}/usuarios/${insp.productor_id}`).catch(() => ({ data: { nombre: 'N/A' } }));
@@ -86,14 +90,18 @@ app.get('/inspecciones/:id/contexto', async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ error: 'Fallo al cargar contexto seguro' });
+        console.error('❌ Error en GET /contexto:', error);
+        res.status(500).json({ 
+            error: 'Fallo al cargar contexto seguro', 
+            details: error.message || error 
+        });
     }
 });
 
 // ==========================================
 // 📝 REGISTRO DE HALLAZGOS (PROTEGIDO POR RLS)
 // ==========================================
-app.post('/inspecciones/:id/detalles', async (req, res) => {
+app.post('/:id/detalles', async (req, res) => {
     try {
         const supabase = getSupabaseUserClient(req);
         const { id } = req.params;
@@ -118,14 +126,18 @@ app.post('/inspecciones/:id/detalles', async (req, res) => {
 
         res.status(201).json(data[0]);
     } catch (error) {
-        res.status(403).json({ error: 'No autorizado para registrar hallazgos en esta inspección' });
+        console.error('❌ Error en POST /detalles:', error);
+        res.status(403).json({ 
+            error: 'No autorizado para registrar hallazgos', 
+            details: error.message || error 
+        });
     }
 });
 
 // ==========================================
 // 📊 REPORTES ENRIQUECIDOS (CON RLS)
 // ==========================================
-app.get('/inspecciones/reporte', async (req, res) => {
+app.get('/reporte', async (req, res) => {
     try {
         const supabase = getSupabaseUserClient(req);
         const { tecnico_id, productor_id, estado } = req.query;
@@ -180,7 +192,7 @@ app.get('/inspecciones/reporte', async (req, res) => {
     }
 });
 
-app.patch('/inspecciones/:id/finalizar', async (req, res) => {
+app.patch('/:id/finalizar', async (req, res) => {
     try {
         const supabase = getSupabaseUserClient(req);
         const { id } = req.params;

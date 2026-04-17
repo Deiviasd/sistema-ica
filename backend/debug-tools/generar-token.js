@@ -1,16 +1,19 @@
 const jwt = require('jsonwebtoken');
 
-// 🔐 TU LLAVE MAESTRA (Base64 de Supabase)
-const JWT_SECRET_BASE64 = "p6HO94SP/ny5Z8Y6kbXPGU/1zpaQcj+rnxCLpUXYqZMs01ohouZShDsIDUH0dx27rmBi8Wr6UUnbT9padmp0zg==";
+// 🔐 LLAVE DE AUTH (ms-auth) - La que valida el Gateway
+const JWT_SECRET_BASE64 = "7HX7Z92ua3U6/zXwgc+YUtvg6/yz26jFAjJoPGJ9Bs7EZJSfzR9q/8Wum05aUZC54AYci4ZT78pErnxIITCT1A==";
+
+// 🔹 CONFIGURA EL ROL AQUÍ ("tecnico" o "productor")
+const ROLE = "tecnico";
 
 const payload = {
     role: "authenticated",
-    id_usuario: "1",
+    id_usuario: ROLE === "tecnico" ? "tech_01" : "2",
     aud: "authenticated",
-    iss: "supabase", // 🔹 CRÍTICO: Supabase suele validar el issuer
-    sub: "00000000-0000-0000-0000-000000000001", // 🔹 Un UUID ficticio (obligatorio para PostgREST)
-    app_metadata: { role: "productor" },
-    user_metadata: { full_name: "Productor de Pruebas" },
+    iss: "supabase",
+    sub: ROLE === "tecnico" ? "0ec0-7ec8-4903-b09e-7195388c76ca" : "0000-0000-0000-0001",
+    app_metadata: { role: ROLE },
+    user_metadata: { full_name: ROLE === "tecnico" ? "Técnico de Campo ICA" : "Productor de Pruebas" },
     exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 365)
 };
 
