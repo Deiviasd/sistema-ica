@@ -1,9 +1,18 @@
 const { supabase } = require('../config/supabase')
 
 const createUser = async (userData) => {
+
     const { data, error } = await supabase
-        .from('users')
-        .insert([userData])
+        .from('usuario')
+        .insert([{
+            nombre: userData.nombre,
+            documento: userData.documento,
+            correo: userData.email,
+            contraseña: userData.password,
+            id_rol: userData.id_rol || 'PRODUCTOR',
+            id_region: userData.id_region,
+            estado: userData.estado || 'inactivo'
+        }])
         .select()
         .single()
 
@@ -14,9 +23,9 @@ const createUser = async (userData) => {
 
 const findUserByEmail = async (email) => {
     const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
+        .from('usuario')
+        .select('*, rol(*)') // Include role info
+        .eq('correo', email)
         .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -26,4 +35,26 @@ const findUserByEmail = async (email) => {
     return data
 }
 
-module.exports = { createUser, findUserByEmail }
+const getPendingUsers = async () => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .select('id_usuario, nombre, correo, fecha_registro, id_rol, id_region')
+        .eq('estado', 'inactivo')
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+const updateStatus = async (id, status) => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .update({ estado: status })
+        .eq('id_usuario', id)
+        .select()
+        .single()
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus }
