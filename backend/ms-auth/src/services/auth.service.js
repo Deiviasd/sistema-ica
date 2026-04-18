@@ -52,7 +52,7 @@ const loginService = async ({ email, password }) => {
         throw new Error('Credenciales inválidas')
     }
 
-    if (user.estado !== 'activo') {
+    if (user.estado?.toLowerCase() !== 'activo') {
         throw new Error(`Cuenta ${user.estado}. Espere aprobación administrativa.`)
     }
 
