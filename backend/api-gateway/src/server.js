@@ -24,13 +24,29 @@ function authenticateToken(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Token requerido' });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // 🔥 Corregido: Usar la llave maestra de Auth definida en el .env
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_AUTH);
         req.user = decoded;
         next();
     } catch (err) {
         return res.status(403).json({ error: 'Token inválido o expirado' });
     }
 }
+
+// 🛡️ Middleware de Autorización por Roles
+const restrictTo = (...roles) => {
+    return (req, res, next) => {
+        // En Fase 3, el rol viene en app_metadata.role (según roadmap)
+        const userRole = req.user.app_metadata?.role;
+        
+        if (!roles.includes(userRole)) {
+            return res.status(403).json({ 
+                error: 'No tienes permisos para acceder a este recurso' 
+            });
+        }
+        next();
+    };
+};
 
 // ==========================================
 // 🚀 ORQUESTACIÓN ASÍNCRONA (FASE 3)
@@ -103,7 +119,7 @@ setupProxy('/auth', process.env.AUTH_SERVICE_URL, [], false);
 setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists]);
 setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists]);
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists]);
-setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL);
+setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('admin')]);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'Orchestrator Phase 3 Online (RabbitMQ Active)' }));
