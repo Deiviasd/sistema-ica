@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors')
 
 const authRoutes = require('./routes/auth.routes')
+const catalogoRoutes = require('./routes/catalogo.routes')
 
 const eventBus = require('./services/eventBus')
 
@@ -16,6 +17,8 @@ eventBus.connect()
 
 // 🔐 Aquí conectamos las rutas reales
 app.use(authRoutes)
+app.use('/catalogos', catalogoRoutes)
+
 
 const PORT = process.env.PORT || 4000
 

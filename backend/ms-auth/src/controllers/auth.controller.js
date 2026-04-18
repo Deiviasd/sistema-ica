@@ -1,4 +1,4 @@
-const { loginService, registerService, getPendingUsersService, updateUserService } = require('../services/auth.service')
+const { loginService, registerService, getPendingUsersService, updateUserService, getUserService } = require('../services/auth.service')
 
 const registerController = async (req, res) => {
     try {
@@ -37,4 +37,14 @@ const updateStatusController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController, getPendingController, updateStatusController }
+const getUserController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const result = await getUserService(id)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(404).json({ error: error.message })
+    }
+}
+
+module.exports = { loginController, registerController, getPendingController, updateStatusController, getUserController }

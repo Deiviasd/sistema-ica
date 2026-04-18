@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const { createUser, findUserByEmail, getPendingUsers, updateStatus } = require('../repositories/user.repository')
+const { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById } = require('../repositories/user.repository')
 const jwt = require('jsonwebtoken')
 const eventBus = require('./eventBus')
 
@@ -101,4 +101,10 @@ const updateUserService = async (adminId, userId, { estado }) => {
     return user
 }
 
-module.exports = { loginService, registerService, getPendingUsersService, updateUserService }
+const getUserService = async (id) => {
+    const user = await findUserById(id)
+    if (!user) throw new Error(`Usuario ${id} no encontrado`)
+    return user
+}
+
+module.exports = { loginService, registerService, getPendingUsersService, updateUserService, getUserService }
