@@ -8,7 +8,7 @@ const {
     updateStatusController,
     getUserController 
 } = require('../controllers/auth.controller')
-const { verifyToken } = require('../middleware/auth.middleware')
+const { verifyToken, requireAdmin } = require('../middleware/auth.middleware')
 
 router.get('/profile', verifyToken, (req, res) => {
     res.json({
@@ -19,9 +19,9 @@ router.get('/profile', verifyToken, (req, res) => {
 router.post('/register', registerController)
 router.post('/login', loginController)
 
-// 👨‍💼 Gestión de Usuarios (Sólo Admins - validado por Gateway)
+// 👨‍💼 Gestión de Usuarios (Sólo Admins - validado por Gateway y Middleware Interno)
 router.get('/usuarios/:id', getUserController) // <--- Esta es la que usa el Validator
-router.get('/users/pending', verifyToken, getPendingController)
-router.patch('/users/:id/status', verifyToken, updateStatusController)
+router.get('/users/pending', verifyToken, requireAdmin, getPendingController)
+router.patch('/users/:id/status', verifyToken, requireAdmin, updateStatusController)
 
 module.exports = router

@@ -15,7 +15,6 @@ const verifyToken = (req, res, next) => {
         // 3️⃣ Verificar token
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
-        // 4️⃣ Guardar usuario en request
         req.user = decoded
 
         next() // Permitir acceso
@@ -24,4 +23,15 @@ const verifyToken = (req, res, next) => {
     }
 }
 
-module.exports = { verifyToken }
+const requireAdmin = (req, res, next) => {
+    // Se asume que el objeto req.user ya existe gracias a verifyToken
+    const role = req.user?.app_metadata?.role
+
+    if (role !== 'admin') {
+        return res.status(403).json({ error: 'Acceso denegado: Se requieren privilegios de Administrador ICA' })
+    }
+
+    next()
+}
+
+module.exports = { verifyToken, requireAdmin }
