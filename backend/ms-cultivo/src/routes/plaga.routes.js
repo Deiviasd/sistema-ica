@@ -1,9 +1,9 @@
 const express = require('express')
 const router = express.Router()
 const { getAllPlagas } = require('../controllers/plaga.controller')
-const authenticateToken = require('../middleware/auth.middleware')
+const { verifyToken } = require('../middleware/auth.middleware')
 
 // Ruta para obtener plagas (opcionalmente filtrado por id_especie)
-router.get('/', authenticateToken, getAllPlagas)
+router.get('/', verifyToken, getAllPlagas)
 
 module.exports = router
