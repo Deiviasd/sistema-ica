@@ -12,8 +12,8 @@ const RABBIT_URL = process.env.RABBIT_URL || 'amqp://guest:guest@rabbitmq:5672';
 // 📡 CONFIGURACIÓN DE BASE DE DATOS (Supabase Cloud)
 // Usamos la URL de conexión directa con la contraseña proporcionada
 const pool = new Pool({
-    connectionString: "postgresql://postgres:aGhj89qg4U2Qn5y5@db.aehaprlkirkivzdhsptt.supabase.co:5432/postgres",
-    ssl: { rejectUnauthorized: false } // Requerido para conexiones seguras en Supabase
+    connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres",
+    ssl: { rejectUnauthorized: false }
 });
 
 // 👂 CONSUMIDOR DE RABBITMQ

@@ -3,6 +3,8 @@ const express = require('express')
 const cors = require('cors')
 const eventBus = require('./services/eventBus')
 const siembraRoutes = require('./routes/siembra.routes')
+const plagaRoutes = require('./routes/plaga.routes')
+const catalogoRoutes = require('./routes/catalogo.routes')
 
 const app = express()
 
@@ -14,6 +16,8 @@ eventBus.connect()
 
 // Rutas
 app.use('/siembras', siembraRoutes)
+app.use('/plagas', plagaRoutes)
+app.use('/catalogos', catalogoRoutes)
 
 // Health
 app.get('/health', (req, res) => res.json({ 

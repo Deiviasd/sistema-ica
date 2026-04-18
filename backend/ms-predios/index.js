@@ -54,7 +54,7 @@ app.get('/lugares-produccion', async (req, res) => {
 app.post('/lugares-produccion', async (req, res) => {
     try {
         const supabase = getSupabaseUserClient(req);
-        const { nombre_lugar, area_total_m2, numero_predial, productor_id } = req.body;
+        const { nombre_lugar, area_total_m2, numero_predial, productor_id, updated_at } = req.body;
         
         // El RLS verificará que el 'productor_id' que envíes coincida con tu Token
         const { data, error } = await supabase
@@ -63,19 +63,28 @@ app.post('/lugares-produccion', async (req, res) => {
                 nombre_lugar, 
                 area_total: area_total_m2, 
                 numero_predial, 
-                productor_id 
+                productor_id,
+                updated_at: updated_at || new Date().toISOString()
             }])
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error detallado en INSERT ms-predios:', error);
+            throw error;
+        }
         res.status(201).json(data[0]);
     } catch (error) {
-        res.status(403).json({ error: 'No tienes permiso para registrar este predio o sesión expirada' });
+        res.status(403).json({ 
+            error: 'Acceso denegado por RLS o validación de Supabase',
+            message: error.message || error,
+            code: error.code
+        });
     }
 });
 
 // --- GESTIÓN DE LOTES (Protegido por cascada RLS en Supabase) ---
 app.post('/lotes', async (req, res) => {
+    console.log('📥 PETICIÓN RECIBIDA EN /LOTES:', req.body);
     try {
         const supabase = getSupabaseUserClient(req);
         const { nombre_lote, area_m2, id_lugar_produccion } = req.body;
@@ -85,15 +94,22 @@ app.post('/lotes', async (req, res) => {
             .insert([{ 
                 nombre_lote, 
                 area: area_m2, 
-                id_lugar_produccion, 
-                estado: 'disponible' 
+                id_lugar_produccion,
+                estado: 'disponible'
             }])
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error en Lote:', error);
+            return res.status(error.code === '42501' ? 403 : 500).json({ 
+                error: error.message,
+                code: error.code 
+            });
+        }
         res.status(201).json(data[0]);
     } catch (error) {
-        res.status(403).json({ error: 'No puedes crear lotes en lugares que no te pertenecen' });
+        console.error('🔥 Error crítico en Lote:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

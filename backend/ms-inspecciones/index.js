@@ -126,4 +126,37 @@ app.patch('/:id/finalizar', async (req, res) => {
     } catch (error) { res.status(403).json({ error: 'Error al finalizar: No autorizado' }); }
 });
 
+const amqp = require('amqplib');
+const RABBIT_URL = process.env.RABBIT_URL || 'amqp://guest:guest@rabbitmq:5672';
+
+// ==========================================
+// 👂 EVENTOS ASÍNCRONOS (COREOGRAFÍA)
+// ==========================================
+async function startConsumer() {
+    try {
+        const connection = await amqp.connect(RABBIT_URL);
+        const channel = await connection.createChannel();
+        const queue = 'inspecciones_queue';
+
+        await channel.assertQueue(queue, { durable: true });
+        console.log(`📡 [MS-INSPECCIONES]: Escuchando eventos ICA en [${queue}]...`);
+
+        channel.consume(queue, async (msg) => {
+            if (msg !== null) {
+                const event = JSON.parse(msg.content.toString());
+                console.log(`📝 [MS-INSPECCIONES]: Evento recibido -> ${event.tipo}`);
+
+                if (event.tipo === 'SIEMBRA_FINALIZADA') {
+                    console.log(`🚜 Programando inspección automática para predio del productor ${event.productor_id}...`);
+                    // Aquí iría el INSERT a supabase usando process.env.SUPABASE_SERVICE_ROLE_KEY
+                    channel.ack(msg);
+                }
+            }
+        });
+    } catch (error) {
+        setTimeout(startConsumer, 5000);
+    }
+}
+startConsumer();
+
 app.listen(PORT, () => { console.log(`🚀 MS-Inspecciones: Seguridad delegada a RLS en puerto ${PORT}`); });

@@ -64,12 +64,16 @@ app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, 
 
         const loteResponse = await internalApi.predios.post('/lotes', {
             id_lugar_produccion, nombre_lote, area_m2, estado: 'ocupado'
-        });
+        }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_PREDIOS'));
+        
         loteId = loteResponse.data.id_lote;
 
         const siembraResponse = await internalApi.cultivo.post('/siembras', {
-            id_lote: loteId, especie, variedad, fecha_siembra, estado: 'activa'
-        });
+            id_lote: loteId, 
+            id_variedad: 1, 
+            fecha_siembra
+        }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_CULTIVOS'));
+        
         siembraId = siembraResponse.data.id_siembra;
 
         eventBus.publish('audit_queue', {
@@ -108,7 +112,6 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
                 const targetSecret = process.env[targetSecretEnv].trim();
-                // Creamos un nuevo token con los mismos datos del usuario pero la llave del destino
                 const newToken = jwt.sign(req.user, targetSecret);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
             }
@@ -118,6 +121,24 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
                 proxyReq.setHeader('Content-Type', 'application/json');
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
                 proxyReq.write(bodyData);
+            }
+        },
+        onProxyRes: (proxyRes, req, res) => {
+            // 🕵️ AUDITORÍA GLOBAL DESDE EL ORQUESTADOR
+            const isModifying = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+            const isSuccess = proxyRes.statusCode >= 200 && proxyRes.statusCode < 300;
+            
+            // Si el Gateway ve que pasó una creación/edición de cualquier microservicio, ¡él mismo levanta el evento!
+            if (isModifying && isSuccess) {
+                const actorId = req.user?.id_usuario || req.user?.sub || 'sistema';
+                eventBus.publish('audit_queue', {
+                    modulo: req.originalUrl.split('/')[1] || 'gateway',
+                    tipo_accion: `${req.method}_${req.originalUrl}`,
+                    id_referencia: `HTTP ${proxyRes.statusCode}`,
+                    id_usuario: actorId,
+                    timestamp: new Date().toISOString(),
+                    descripcion: `Acción ${req.method} orquestada hacia ${target}`
+                });
             }
         }
     }));

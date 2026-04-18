@@ -57,4 +57,22 @@ const updateStatus = async (id, status) => {
     return data
 }
 
-module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus }
+const findUserById = async (id) => {
+    let query = supabase.from('usuario').select('*');
+
+    // Detectar si el ID es un UUID (Supabase Auth) o un Entero (Nuestros IDs internos)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    if (isUuid) {
+        query = query.eq('id_auth_supabase', id);
+    } else {
+        query = query.eq('id_usuario', id);
+    }
+
+    const { data, error } = await query.single();
+
+    if (error && error.code !== 'PGRST116') throw new Error(error.message);
+    return data;
+}
+
+module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById }
