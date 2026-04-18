@@ -4,7 +4,7 @@ let channel = null;
 
 const connect = async () => {
     try {
-        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost');
+        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq:5672');
         channel = await connection.createChannel();
         console.log('✅ MS-AUTH: Conectado a RabbitMQ');
     } catch (error) {

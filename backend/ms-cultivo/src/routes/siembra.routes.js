@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { createSiembraController, getSiembrasController } = require('../controllers/siembra.controller')
+const { createSiembraController, getSiembrasController, finishSiembraController } = require('../controllers/siembra.controller')
 const { verifyToken } = require('../middleware/auth.middleware')
 
 router.post('/', verifyToken, createSiembraController)

@@ -1,4 +1,4 @@
-const { registerSiembraService, listSiembrasService } = require('../services/siembra.service')
+const { registerSiembraService, listSiembrasService, finishSiembraService } = require('../services/siembra.service')
 
 const createSiembraController = async (req, res) => {
     try {
