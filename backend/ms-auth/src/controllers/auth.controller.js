@@ -1,4 +1,4 @@
-const { loginService, registerService } = require('../services/auth.service')
+const { loginService, registerService, getPendingUsersService, updateUserService } = require('../services/auth.service')
 
 const registerController = async (req, res) => {
     try {
@@ -17,4 +17,24 @@ const loginController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController }
+const getPendingController = async (req, res) => {
+    try {
+        const result = await getPendingUsersService()
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const updateStatusController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const adminId = req.user.id // ID del Admin ICA (extraído del token)
+        const result = await updateUserService(adminId, id, req.body)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+module.exports = { loginController, registerController, getPendingController, updateStatusController }

@@ -4,10 +4,15 @@ const cors = require('cors')
 
 const authRoutes = require('./routes/auth.routes')
 
+const eventBus = require('./services/eventBus')
+
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+// 🔌 Conectar a RabbitMQ para auditoría
+eventBus.connect()
 
 // 🔐 Aquí conectamos las rutas reales
 app.use(authRoutes)
