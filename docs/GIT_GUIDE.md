@@ -38,7 +38,7 @@ Cuando hayas terminado una tarea o parte del código:
 ```bash
 git add .
 git commit -m "feat: descripción corta de lo que hiciste"
-```
+```G
 
 ### Paso 3: Subir cambios a GitHub
 Para que tus cambios aparezcan en el repositorio remoto:

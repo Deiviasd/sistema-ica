@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById } = require('../repositories/user.repository')
+const { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById, findUsersByRole } = require('../repositories/user.repository')
 const jwt = require('jsonwebtoken')
 const eventBus = require('./eventBus')
 
@@ -122,4 +122,8 @@ const getUserService = async (id) => {
     return user
 }
 
-module.exports = { loginService, registerService, getPendingUsersService, updateUserService, getUserService }
+const getUsersByRoleService = async (role) => {
+    return await findUsersByRole(role)
+}
+
+module.exports = { loginService, registerService, getPendingUsersService, updateUserService, getUserService, getUsersByRoleService }

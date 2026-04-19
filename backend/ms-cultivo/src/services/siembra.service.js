@@ -2,7 +2,10 @@ const { createSiembra, getSiembras, finishSiembra } = require('../repositories/s
 const eventBus = require('./eventBus')
 
 const registerSiembraService = async (siembraData, userId) => {
-    const siembra = await createSiembra(siembraData)
+    const siembra = await createSiembra({
+        ...siembraData,
+        productor_id: userId
+    })
 
     // 📣 Notificar a Auditoría
     eventBus.publish('audit_queue', {
@@ -33,10 +36,11 @@ const finishSiembraService = async (id, userId, fechaFin = new Date().toISOStrin
         timestamp: new Date().toISOString()
     })
 
-    // 🚜 EVENTO DE NEGOCIO: Programar Inspección Automática!
+    // 🚜 EVENTO DE NEGOCIO: Programar Inspección Automática y desactivar lote!
     eventBus.publish('inspecciones_queue', {
         tipo: 'SIEMBRA_FINALIZADA',
         id_siembra: siembra.id_siembra,
+        id_lote: siembra.id_lote,
         productor_id: userId,
         fecha: fechaFin
     });

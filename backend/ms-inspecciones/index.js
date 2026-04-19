@@ -17,20 +17,33 @@ const PREDIOS_URL = process.env.PREDIOS_SERVICE_URL || 'http://ms-predios:4001';
 const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://ms-auth:4000';
 const CULTIVO_URL = process.env.CULTIVO_SERVICE_URL || 'http://ms-cultivo:4002';
 
-const getSupabaseUserClient = (req) => {
-    const authHeader = req.headers['authorization'];
+const jwt = require('jsonwebtoken');
+
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${token}` } }
-    });
+    if (!token) return res.status(401).json({ error: 'Token requerido' });
+
+    try {
+        const secret = process.env.JWT_SECRET || "";
+        const decoded = jwt.verify(token, secret);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ error: 'Token inválido o expirado' });
+    }
+};
+
+const getSupabaseAdmin = () => {
+    return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 };
 
 // ==========================================
 // 🎯 CONTEXTO MEJORADO PARA EL TÉCNICO (RLS DELEGADO)
 // ==========================================
-app.get('/:id/contexto', async (req, res) => {
+app.get('/:id/contexto', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
+        const supabase = getSupabaseAdmin();
         const { id } = req.params;
         const { data: insp, error: inspErr } = await supabase
             .from('inspeccion').select('*').eq('id_inspeccion', id).single();
@@ -80,16 +93,16 @@ app.get('/:id/contexto', async (req, res) => {
 // ==========================================
 // 📝 REGISTRO DE HALLAZGOS (PROTEGIDO POR RLS)
 // ==========================================
-app.post('/:id/detalles', async (req, res) => {
+app.post('/:id/detalles', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
+        const supabase = getSupabaseAdmin();
         const { id } = req.params;
-        const { error } = await supabase.from('detalle_inspeccion').insert([{ ...req.body, id_inspeccion: id }]);
+        const { data, error } = await supabase.from('detalle_inspeccion').insert([{ ...req.body, id_inspeccion: id }]).select();
         if (error) throw error;
         // Cambiar estado si estaba en 'programada'
         await supabase.from('inspeccion').update({ estado: 'en_proceso' }).eq('id_inspeccion', id).eq('estado', 'programada');
 
-        res.status(201).json(data[0]);
+        res.status(201).json(data ? data[0] : { message: 'Detalle registrado' });
     } catch (error) {
         console.error('❌ Error en POST /detalles:', error);
         res.status(403).json({ 
@@ -102,18 +115,28 @@ app.post('/:id/detalles', async (req, res) => {
 // ==========================================
 // 📊 REPORTES ENRIQUECIDOS (CON RLS)
 // ==========================================
-app.get('/reporte', async (req, res) => {
+app.get('/reporte', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
-        const { data, error } = await supabase.from('inspeccion').select('*, detalle_inspeccion(*)');
+        const supabase = getSupabaseAdmin();
+        const { id_usuario, role } = req.user;
+
+        let query = supabase.from('inspeccion').select('*, detalle_inspeccion(*)');
+
+        if (role !== 'ADMIN_ICA' && role !== 'admin') {
+            const producerId = Number(id_usuario);
+            if (isNaN(producerId)) return res.json([]);
+            query = query.eq('productor_id', producerId);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         res.json(data);
-    } catch (error) { res.status(500).json({ error: 'Error en reporte' }); }
+    } catch (error) { res.status(500).json({ error: 'Error en reporte', details: error.message }); }
 });
 
-app.patch('/:id/finalizar', async (req, res) => {
+app.patch('/:id/finalizar', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
+        const supabase = getSupabaseAdmin();
         const { id } = req.params;
         const { observaciones_generales } = req.body;
 
@@ -124,6 +147,55 @@ app.patch('/:id/finalizar', async (req, res) => {
         if (error) throw error;
         res.json({ message: 'Inspección finalizada con éxito' });
     } catch (error) { res.status(403).json({ error: 'Error al finalizar: No autorizado' }); }
+});
+
+// ==========================================
+// 📅 AGENDAMIENTO AUTOMÁTICO (PRODUCTOR)
+// ==========================================
+app.post('/agendar', verifyToken, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id_lugar_produccion, fecha_sugerida } = req.body;
+        const productor_id = req.user.id_usuario; // Extraído del token por el Gateway
+
+        if (!id_lugar_produccion) return res.status(400).json({ error: 'id_lugar_produccion es requerido' });
+
+        // 1. Obtener técnicos disponibles desde MS-AUTH
+        const techRes = await axios.get(`${AUTH_URL}/auth/usuarios/rol/tecnico`).catch(e => {
+            console.error('Error obteniendo técnicos:', e.message);
+            return { data: [] };
+        });
+
+        const tecnicos = techRes.data;
+        if (tecnicos.length === 0) {
+            return res.status(503).json({ error: 'No hay técnicos disponibles para asignación automática en este momento.' });
+        }
+
+        // 2. Asignación automática (Round Robin simple o Aleatorio)
+        const tecnicoAsignado = tecnicos[Math.floor(Math.random() * tecnicos.length)];
+
+        // 3. Crear la inspección en Supabase
+        const { data, error } = await supabase.from('inspeccion').insert([{
+            productor_id,
+            tecnico_id: tecnicoAsignado.id_usuario,
+            id_lugar_produccion,
+            estado: 'programada',
+            fecha_inspeccion: fecha_sugerida || new Date(Date.now() + 86400000 * 3).toISOString(), // +3 días por defecto
+            observaciones_generales: 'Agendada automáticamente por el productor'
+        }]).select();
+
+        if (error) throw error;
+
+        res.status(201).json({
+            message: 'Inspección agendada con éxito',
+            detalle: data[0],
+            tecnico: tecnicoAsignado.nombre
+        });
+
+    } catch (error) {
+        console.error('❌ Error en /agendar:', error);
+        res.status(500).json({ error: 'Error al agendar inspección', details: error.message });
+    }
 });
 
 const amqp = require('amqplib');

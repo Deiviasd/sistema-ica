@@ -17,22 +17,25 @@ const getSupabaseAdmin = () => {
     return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 };
 
-// 🛡️ Middleware de Identidad Inyectada (Confiamos en el Gateway)
-const authenticateInternal = (req, res, next) => {
-    const userId = req.headers['x-user-id'];
-    const userRole = req.headers['x-user-role'];
-    
-    if (!userId) {
-        console.error('❌ Acceso directo denegado en MS-PREDIOS (Sin header de identidad)');
-        return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
-    }
+const jwt = require('jsonwebtoken');
 
-    req.user = { id_usuario: userId, role: userRole };
-    next();
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Token requerido' });
+
+    try {
+        const secret = process.env.JWT_SECRET || "";
+        const decoded = jwt.verify(token, secret);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ error: 'Token inválido o expirado' });
+    }
 };
 
 // --- GESTIÓN DE LUGARES DE PRODUCCIÓN ---
-app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
+app.get('/lugares-produccion', verifyToken, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id_usuario, role } = req.user;
@@ -41,11 +44,12 @@ app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
 
         let query = supabase.from('lugar_produccion').select('*, lote(*)');
 
-        // 🛡️ SEGURIDAD INTERNA: Convertimos a número para asegurar coincidencia con int4 en DB
         if (role !== 'ADMIN_ICA' && role !== 'admin') {
-            const numericId = Number(id_usuario);
-            console.log(`🎯 [MS-PREDIOS] Filtrando con ID NUMÉRICO: ${numericId}`);
-            query = query.eq('productor_id', numericId);
+             const producerId = Number(id_usuario);
+             if (isNaN(producerId)) {
+                 return res.json([]); // Si no hay ID válido, devolvemos vacío en lugar de error 400
+             }
+            query = query.eq('productor_id', producerId);
         }
 
         const { data, error } = await query;
@@ -58,13 +62,13 @@ app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
     }
 });
 
-// Paso 4, 5 y 6: Registrar nuevo lugar (Identidad automática vía RLS)
-app.post('/lugares-produccion', async (req, res) => {
+// Registrar nuevo lugar
+app.post('/lugares-produccion', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
-        const { nombre_lugar, area_total_m2, numero_predial, productor_id, updated_at } = req.body;
+        const supabase = getSupabaseAdmin();
+        const { nombre_lugar, area_total_m2, numero_predial } = req.body;
+        const productor_id = req.user.id_usuario;
         
-        // El RLS verificará que el 'productor_id' que envíes coincida con tu Token
         const { data, error } = await supabase
             .from('lugar_produccion')
             .insert([{ 
@@ -72,29 +76,21 @@ app.post('/lugares-produccion', async (req, res) => {
                 area_total: area_total_m2, 
                 numero_predial, 
                 productor_id,
-                updated_at: updated_at || new Date().toISOString()
+                updated_at: new Date().toISOString()
             }])
             .select();
 
-        if (error) {
-            console.error('❌ Error detallado en INSERT ms-predios:', error);
-            throw error;
-        }
+        if (error) throw error;
         res.status(201).json(data[0]);
     } catch (error) {
-        res.status(403).json({ 
-            error: 'Acceso denegado por RLS o validación de Supabase',
-            message: error.message || error,
-            code: error.code
-        });
+        res.status(403).json({ error: error.message });
     }
 });
 
-// --- GESTIÓN DE LOTES (Protegido por cascada RLS en Supabase) ---
-app.post('/lotes', async (req, res) => {
-    console.log('📥 PETICIÓN RECIBIDA EN /LOTES:', req.body);
+// Registrar nuevo lote
+app.post('/lotes', verifyToken, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
+        const supabase = getSupabaseAdmin();
         const { nombre_lote, area_m2, id_lugar_produccion } = req.body;
         
         const { data, error } = await supabase
@@ -107,20 +103,46 @@ app.post('/lotes', async (req, res) => {
             }])
             .select();
 
-        if (error) {
-            console.error('❌ Error en Lote:', error);
-            return res.status(error.code === '42501' ? 403 : 500).json({ 
-                error: error.message,
-                code: error.code 
-            });
-        }
+        if (error) throw error;
         res.status(201).json(data[0]);
     } catch (error) {
-        console.error('🔥 Error crítico en Lote:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
+const amqp = require('amqplib');
+const RABBIT_URL = process.env.RABBIT_URL || 'amqp://guest:guest@rabbitmq:5672';
+
+async function startConsumer() {
+    try {
+        const connection = await amqp.connect(RABBIT_URL);
+        const channel = await connection.createChannel();
+        const queue = 'inspecciones_queue'; 
+
+        await channel.assertQueue(queue, { durable: true });
+        console.log(`📡 [MS-PREDIOS]: Sincronizado con Lotes en [${queue}]...`);
+
+        channel.consume(queue, async (msg) => {
+            if (msg !== null) {
+                const event = JSON.parse(msg.content.toString());
+                
+                if (event.tipo === 'SIEMBRA_FINALIZADA') {
+                    console.log(`🌿 [MS-PREDIOS]: Desactivando lote ${event.id_lote} por fin de siembra...`);
+                    const supabase = getSupabaseAdmin();
+                    await supabase
+                        .from('lote')
+                        .update({ estado: 'inactivo' })
+                        .eq('id_lote', event.id_lote);
+                }
+                channel.ack(msg);
+            }
+        });
+    } catch (error) {
+        setTimeout(startConsumer, 5000);
+    }
+}
+startConsumer();
+
 app.listen(PORT, () => {
-    console.log(`✅ MS-Predios: Seguridad delegada a Supabase RLS en puerto ${PORT}`);
+    console.log(`✅ MS-Predios: Escuchando ICA en puerto ${PORT}`);
 });

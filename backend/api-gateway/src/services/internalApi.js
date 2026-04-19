@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
  * gestionadas por el Orquestador con soporte de Token Exchange.
  */
 const internalApi = {
-    auth: axios.create({ baseURL: `${process.env.AUTH_SERVICE_URL}auth` }),
+    auth: axios.create({ baseURL: `${process.env.AUTH_SERVICE_URL}/auth` }),
     predios: axios.create({ baseURL: process.env.PREDIOS_SERVICE_URL }),
     cultivo: axios.create({ baseURL: process.env.CULTIVOS_SERVICE_URL }),
     inspecciones: axios.create({ baseURL: process.env.INSPECCIONES_SERVICE_URL }),
@@ -19,26 +19,30 @@ const internalApi = {
      */
     getAuthHeaders: (user, targetSecretEnv) => {
         if (!user) return {};
-        
+
         // LIMPIEZA: Extraemos solo lo necesario y eliminamos claims antiguos (exp, iat)
         const { iat, exp, ...cleanUser } = user;
-        
-        // ASEGURAR: Supabase exige 'role' y 'id_usuario' (para tu RLS personalizado)
+
+        // ASEGURAR: Payload estabilizado para Supabase
         const payload = {
-            ...cleanUser,
-            id: cleanUser.id || cleanUser.sub || cleanUser.id_usuario, // Normalización del ID
-            role: cleanUser.role || cleanUser.app_metadata?.role || 'authenticated',
+            sub: cleanUser.id_auth_supabase || cleanUser.sub || cleanUser.id,
+            id_usuario: cleanUser.id_usuario,
+            email: cleanUser.email,
+            role: 'authenticated', // Rol base de Supabase
+            app_metadata: {
+                role: cleanUser.role || cleanUser.app_metadata?.role || 'productor'
+            },
             aud: 'authenticated'
         };
 
-        const targetSecret = process.env[targetSecretEnv].trim();
+        const targetSecret = (process.env[targetSecretEnv] || "").trim();
         const newToken = jwt.sign(payload, targetSecret, { expiresIn: '1h' });
-        
-        return { 
-            headers: { 
+
+        return {
+            headers: {
                 Authorization: `Bearer ${newToken}`,
                 'Content-Type': 'application/json'
-            } 
+            }
         };
     }
 };

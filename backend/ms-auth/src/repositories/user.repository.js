@@ -76,4 +76,15 @@ const findUserById = async (id) => {
     return data;
 }
 
-module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById }
+const findUsersByRole = async (role) => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .select('id_usuario, nombre, correo, id_region')
+        .eq('id_rol', role.toUpperCase())
+        .eq('estado', 'activo');
+
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById, findUsersByRole }

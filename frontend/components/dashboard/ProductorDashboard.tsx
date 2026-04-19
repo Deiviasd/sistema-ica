@@ -40,17 +40,20 @@ export default function ProductorDashboard() {
   const { user } = useUserStore()
   const [predios, setPredios] = useState<Predio[]>([])
   const [siembras, setSiembras] = useState<Siembra[]>([])
+  const [inspecciones, setInspecciones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [prediosRes, siembrasRes] = await Promise.all([
+        const [prediosRes, siembrasRes, inspRes] = await Promise.all([
           api.get("/predios/lugares-produccion"),
-          api.get("/cultivos/siembras")
+          api.get("/cultivos/siembras"),
+          api.get("/inspecciones/reporte")
         ])
         setPredios(prediosRes.data)
         setSiembras(siembrasRes.data)
+        setInspecciones(inspRes.data)
       } catch (error) {
         console.error("Error cargando datos del dashboard:", error)
       } finally {
@@ -60,6 +63,18 @@ export default function ProductorDashboard() {
 
     if (user) fetchData()
   }, [user])
+
+  const handleAgendar = async (idLugar: number, nombreLugar: string) => {
+    try {
+      const res = await api.post("/inspecciones/agendar", {
+        id_lugar_produccion: idLugar,
+        fecha_sugerida: new Date(Date.now() + 86400000 * 3).toISOString() // +3 días
+      });
+      alert(`✅ Inspección agendada para ${nombreLugar}.\nTécnico asignado: ${res.data.tecnico}`);
+    } catch (error: any) {
+      alert(error.response?.data?.error || "Error al agendar inspección");
+    }
+  }
 
   const container = {
     hidden: { opacity: 0 },
@@ -94,14 +109,14 @@ export default function ProductorDashboard() {
       {/* Resumen de Metas */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Predios"
+          title="Lugares de Producción"
           value={predios.length.toString()}
           icon={<MapPin className="w-6 h-6 text-emerald-500" />}
           trend="+1 este mes"
           color="emerald"
         />
         <StatCard
-          title="Siembras Activas"
+          title="Lotes y Siembras"
           value={siembras.length.toString()}
           icon={<Sprout className="w-6 h-6 text-teal-500" />}
           trend="En producción"
@@ -109,7 +124,7 @@ export default function ProductorDashboard() {
         />
         <StatCard
           title="Inspecciones"
-          value="2"
+          value={inspecciones.length.toString()}
           icon={<ClipboardCheck className="w-6 h-6 text-blue-500" />}
           trend="Pendientes"
           color="blue"
@@ -129,10 +144,10 @@ export default function ProductorDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               <Leaf className="w-6 h-6 text-emerald-500" />
-              Mis Fincas y Lugares de Producción
+              Lugares de Producción
             </h2>
             <Button variant="outline" className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10">
-              <Plus className="w-4 h-4 mr-2" /> Nuevo Predio
+              <Plus className="w-4 h-4 mr-2" /> Nuevo Lugar
             </Button>
           </div>
 
@@ -155,16 +170,26 @@ export default function ProductorDashboard() {
                           </span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-slate-500 hover:text-emerald-400">
-                        <ArrowRight className="w-5 h-5" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                          onClick={() => handleAgendar(predio.id_lugar_produccion, predio.nombre_lugar)}
+                        >
+                          <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Agendar Inspección
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-slate-500 hover:text-emerald-400">
+                          <ArrowRight className="w-5 h-5" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
             )) : (
               <div className="text-center py-12 bg-slate-900/20 rounded-3xl border border-dashed border-slate-800">
-                <p className="text-slate-500">No tienes predios registrados aún.</p>
+                <p className="text-slate-500">No tienes lugares de producción registrados aún.</p>
               </div>
             )}
           </div>
@@ -172,7 +197,7 @@ export default function ProductorDashboard() {
 
         {/* Panel Lateral: Siembras Recientes */}
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white">Siembras Recientes</h2>
+          <h2 className="text-xl font-bold text-white">Lotes y Siembras</h2>
           <div className="space-y-4">
             {siembras.slice(0, 4).map((siembra) => (
               <Card key={siembra.id_siembra} className="bg-slate-900/30 border-slate-800/50">

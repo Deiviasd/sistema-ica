@@ -130,31 +130,27 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
         changeOrigin: true,
         pathRewrite: { [`^${path}`]: '' },
         onProxyReq: (proxyReq, req, res) => {
-            // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
+            // 🔄 TOKEN SYNC: Estandarizamos el token para Supabase RLS
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
                 const targetSecret = process.env[targetSecretEnv].trim();
 
-                // 🎭 Payload universal compatible con todos los MS y Supabase
                 const payload = {
-                    id: req.user.id_usuario || req.user.id, // Para MS-CULTIVO
-                    id_usuario: req.user.id_usuario || req.user.id, // Para MS-AUTH/PREDIOS
-                    sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
+                    sub: req.user.id_auth_supabase || req.user.sub || req.user.id || req.user.id_usuario,
+                    id_usuario: req.user.id_usuario || req.user.id || req.user.sub,
                     email: req.user.email,
-                    role: req.user.app_metadata?.role || req.user.role || 'authenticated',
-                    aud: 'authenticated',
-                    app_metadata: req.user.app_metadata || {}
+                    role: 'authenticated', // Rol reconocido por Supabase DB
+                    app_metadata: {
+                        role: req.user.app_metadata?.role || req.user.role || 'productor'
+                    },
+                    aud: 'authenticated'
                 };
 
-                const newToken = jwt.sign(payload, targetSecret);
-                console.log(`🎫 [TOKEN EXCHANGE] Re-firmando para ${target} con payload universal`);
+                const newToken = jwt.sign(payload, targetSecret, { expiresIn: '1h' });
+                console.log(`🎫 [TOKEN SYNC] Forwarding to: ${target} | User: ${payload.email}`);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
-
-                // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
-                proxyReq.setHeader('x-user-id', payload.id_usuario);
-                proxyReq.setHeader('x-user-role', payload.role);
             }
 
-            if (req.body) {
+            if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
                 const bodyData = JSON.stringify(req.body);
                 proxyReq.setHeader('Content-Type', 'application/json');
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

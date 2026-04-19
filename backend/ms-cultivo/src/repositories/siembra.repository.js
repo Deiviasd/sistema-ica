@@ -12,16 +12,18 @@ const createSiembra = async (siembraData) => {
 }
 
 const getSiembras = async (userId = null, role = 'productor') => {
-    // 🛡️ SEGURIDAD: Si no es administrador y no tenemos cómo filtrar por dueño aún,
-    // devolvemos vacío para no mostrar datos de otros productores en el dashboard.
-    if (role !== 'ADMIN_ICA' && role !== 'admin') {
-        console.log(`🧹 [MS-CULTIVO] Limpiando dashboard para productor ${userId}`);
-        return []; 
+    // 🛡️ SEGURIDAD: Filtramos por productor_id para que el productor solo vea su propia información.
+    let query = supabase
+        .from('siembra')
+        .select('*, variedad(nombre_variedad, especie(nombre_comun))');
+
+    if (role !== 'ADMIN_ICA' && role !== 'admin' && userId) {
+        const producerId = Number(userId);
+        if (isNaN(producerId)) return [];
+        query = query.eq('productor_id', producerId);
     }
 
-    const { data, error } = await supabase
-        .from('siembra')
-        .select('*, variedad(nombre_variedad, especie(nombre_comun))')
+    const { data, error } = await query;
     
     if (error) throw new Error(error.message)
     return data
