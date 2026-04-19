@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
  * gestionadas por el Orquestador con soporte de Token Exchange.
  */
 const internalApi = {
-    auth: axios.create({ baseURL: process.env.AUTH_SERVICE_URL }),
+    auth: axios.create({ baseURL: `${process.env.AUTH_SERVICE_URL}auth` }),
     predios: axios.create({ baseURL: process.env.PREDIOS_SERVICE_URL }),
     cultivo: axios.create({ baseURL: process.env.CULTIVOS_SERVICE_URL }),
     inspecciones: axios.create({ baseURL: process.env.INSPECCIONES_SERVICE_URL }),

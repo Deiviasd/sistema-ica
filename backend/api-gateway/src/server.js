@@ -26,13 +26,13 @@ function authenticateToken(req, res, next) {
     try {
         // En ms-auth firmamos con el secreto como string, aquí validamos igual
         const secret = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET || "").trim();
-        
+
         const tokenParts = token.split('.');
         if (tokenParts.length === 3) {
             try {
                 const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
                 console.log(`🔍 [JWT DEBUG] Header:`, JSON.stringify(header));
-            } catch (e) {}
+            } catch (e) { }
         }
         console.log(`🔍 [JWT DEBUG] Secret Length: ${secret.length}`);
 
@@ -45,7 +45,7 @@ function authenticateToken(req, res, next) {
             id: decoded.id || decoded.sub,
             id_usuario: decoded.id_usuario || decoded.sub
         };
-        
+
         console.log(`🔑 [JWT DEBUG] Token decodificado para: ${req.user.email}`);
         next();
     } catch (err) {
@@ -60,7 +60,7 @@ const restrictTo = (...roles) => {
     return (req, res, next) => {
         // El rol viene en app_metadata.role según el JWT de ms-auth
         const userRole = req.user?.app_metadata?.role;
-        
+
         console.log(`🛡️ [AUTH DEBUG] Ruta: ${req.originalUrl} | Rol Usuario: ${userRole} | Requerido: ${roles}`);
 
         if (!roles.includes(userRole)) {
@@ -133,17 +133,21 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
                 const rawSecret = process.env[targetSecretEnv].trim();
-                // 🔐 Decodificar secreto si es Base64 (Llaves de Supabase)
-                const targetSecret = rawSecret.length > 40 ? Buffer.from(rawSecret, 'base64') : rawSecret;
-                
-                // 🎭 Payload compatible con Supabase RLS y Microservicios internos
+                // 🔐 Probando con la llave como texto literal (sin decodificar Base64)
+                const targetSecret = rawSecret;
+
+                // 🎭 Payload ultra-compatible con Supabase RLS
                 const payload = {
-                    ...req.user,
+                    sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
+                    id_usuario: req.user.id_usuario,
+                    email: req.user.email,
+                    role: req.user.app_metadata?.role || 'authenticated',
                     aud: 'authenticated',
-                    role: req.user.app_metadata?.user_role || 'authenticated'
+                    app_metadata: req.user.app_metadata || {}
                 };
 
                 const newToken = jwt.sign(payload, targetSecret);
+                console.log(`🎫 [TOKEN EXCHANGE] Para: ${target} | UserID: ${payload.id_usuario} | Role: ${payload.role}`);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
             }
 
@@ -175,27 +179,46 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
     }));
 };
 
-// 🔓 Rutas públicas de Auth
-// 🔐 Microservicio de Autenticación (ms-auth)
-app.use('/auth', createProxyMiddleware({ 
-    target: process.env.AUTH_SERVICE_URL, 
-    pathRewrite: { '^/auth': '' },
+// --------------------------------------------------------------------------
+// 🚀 PROXY CONFIGURATION
+// --------------------------------------------------------------------------
+
+// 🔐 Rutas de gestión de Usuarios (Mapeo: /auth/users -> /auth/users)
+// No usamos setupProxy aquí porque ms-auth espera recibir el prefijo /auth
+app.use('/auth/users', authenticateToken, createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
-    onProxyReq: (proxyReq, req, res) => {
-        // 🔥 FIX: Re-inyectar el body si express.json() ya lo procesó
+    onProxyReq: (proxyReq, req) => {
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Type', 'application/json');
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
             proxyReq.write(bodyData);
         }
-        console.log(`📡 [PROXY] Forwarding ${req.method} ${req.url} -> ms-auth`);
     }
 }));
 
-// 🔐 Rutas de gestión de Usuarios (Mapeo: /auth/users -> /users)
-setupProxy('/auth/users', process.env.AUTH_SERVICE_URL, [], true, 'JWT_SECRET_AUTH');
-setupProxy('/auth/pending', process.env.AUTH_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_AUTH');
+app.use('/auth/pending', authenticateToken, restrictTo('ADMIN_ICA'), createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL,
+    changeOrigin: true
+}));
+
+// 🔐 Microservicio de Autenticación Genérico (Login, Register, Profile)
+app.use('/auth', createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req, res) => {
+        if (req.body) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Type', 'application/json');
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
+        console.log(`📡 [PROXY] Forwarding ${req.method} ${req.url} -> ms-auth (Full Path)`);
+    }
+}));
+
+// 🚜 Microservicios de Negocio (Usan pathRewrite porque no esperan /predios o /cultivos internamente)
 setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists], true, 'JWT_SECRET_PREDIOS');
 setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists], true, 'JWT_SECRET_CULTIVOS');
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');

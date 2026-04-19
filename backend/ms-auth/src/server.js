@@ -15,8 +15,8 @@ app.use(express.json())
 // 🔌 Conectar a RabbitMQ para auditoría
 eventBus.connect()
 
-// 🔐 Aquí conectamos las rutas reales
-app.use(authRoutes)
+// 🔐 Aquí conectamos las rutas reales con el prefijo oficial
+app.use('/auth', authRoutes)
 app.use('/catalogos', catalogoRoutes)
 
 
