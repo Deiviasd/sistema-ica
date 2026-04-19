@@ -11,7 +11,14 @@ const createSiembra = async (siembraData) => {
     return data
 }
 
-const getSiembras = async () => {
+const getSiembras = async (userId = null, role = 'productor') => {
+    // 🛡️ SEGURIDAD: Si no es administrador y no tenemos cómo filtrar por dueño aún,
+    // devolvemos vacío para no mostrar datos de otros productores en el dashboard.
+    if (role !== 'ADMIN_ICA' && role !== 'admin') {
+        console.log(`🧹 [MS-CULTIVO] Limpiando dashboard para productor ${userId}`);
+        return []; 
+    }
+
     const { data, error } = await supabase
         .from('siembra')
         .select('*, variedad(nombre_variedad, especie(nombre_comun))')

@@ -12,41 +12,49 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 // 🔹 Fallback a SERVICE_ROLE si no hay ANON_KEY definida
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// 🛡️ HELPER: Crear cliente de Supabase con la identidad del usuario
-const getSupabaseUserClient = (req) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+// 🛡️ HELPER: Crear cliente de Supabase con Bypass de RLS (usando Service Role)
+const getSupabaseAdmin = () => {
+    return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+};
+
+// 🛡️ Middleware de Identidad Inyectada (Confiamos en el Gateway)
+const authenticateInternal = (req, res, next) => {
+    const userId = req.headers['x-user-id'];
+    const userRole = req.headers['x-user-role'];
     
-    // Si no hay token, el RLS fallará automáticamente (lo cual es bueno)
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${token}` } }
-    });
+    if (!userId) {
+        console.error('❌ Acceso directo denegado en MS-PREDIOS (Sin header de identidad)');
+        return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
+    }
+
+    req.user = { id_usuario: userId, role: userRole };
+    next();
 };
 
 // --- GESTIÓN DE LUGARES DE PRODUCCIÓN ---
-// Paso 1 y 2: Listar lugares del predio (Delegado a Supabase RLS)
-app.get('/lugares-produccion', async (req, res) => {
+app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
     try {
-        const supabase = getSupabaseUserClient(req);
-        const { id } = req.query;
+        const supabase = getSupabaseAdmin();
+        const { id_usuario, role } = req.user;
         
+        console.log(`🔍 [MS-PREDIOS] Consultando para: ${id_usuario} | Rol: ${role}`);
+
         let query = supabase.from('lugar_produccion').select('*, lote(*)');
-        
-        if (id) {
-            query = query.eq('id_lugar_produccion', id);
+
+        // 🛡️ SEGURIDAD INTERNA: Convertimos a número para asegurar coincidencia con int4 en DB
+        if (role !== 'ADMIN_ICA' && role !== 'admin') {
+            const numericId = Number(id_usuario);
+            console.log(`🎯 [MS-PREDIOS] Filtrando con ID NUMÉRICO: ${numericId}`);
+            query = query.eq('productor_id', numericId);
         }
 
         const { data, error } = await query;
         if (error) throw error;
         
-        // Si no hay data por RLS, devolverá [] vacío (correcto)
-        res.json(data);
+        res.json(data || []);
     } catch (error) {
-        console.error('❌ Error de Supabase en MS-PREDIOS:', error);
-        res.status(401).json({ 
-            error: 'Sesión inválida o acceso denegado por RLS', 
-            details: error.message || error 
-        });
+        console.error('❌ Error en MS-PREDIOS:', error.message);
+        res.status(500).json({ error: 'Error interno', details: error.message });
     }
 });
 

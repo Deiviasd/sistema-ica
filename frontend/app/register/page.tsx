@@ -64,34 +64,27 @@ export default function RegisterPage() {
     setError(null)
 
     try {
-      // 1. Registro en Supabase Auth + Trigger Automático
-      // Enviamos toda la metadata que la función 'handle_new_user' espera en la DB
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 1. Registro a través de nuestro Gateway de Microservicios
+      const res = await api.post("/auth/register", {
+        nombre: formData.nombre,
+        documento: formData.documento,
         email: formData.email.trim(),
         password: formData.password.trim(),
-        options: {
-          data: {
-            nombre: formData.nombre,
-            documento: formData.documento,
-            id_rol: formData.id_rol,
-            id_region: formData.id_region,
-            numero_predial: formData.id_rol === "PRODUCTOR" ? formData.numero_predial : null
-          }
-        }
+        id_rol: formData.id_rol,
+        id_region: formData.id_region,
+        numero_predial: formData.id_rol === "PRODUCTOR" ? formData.numero_predial : null
       })
 
-      if (authError) throw authError
-      if (!authData.user) throw new Error("No se pudo crear el usuario")
-
-      // 💡 El Trigger 'on_auth_user_created' se encarga de crear el usuario en la tabla 'public.usuario'
-      // No necesitamos llamar a api.post("/auth/register")
+      if (res.status !== 201 && res.status !== 200) {
+        throw new Error(res.data.error || "No se pudo crear el usuario")
+      }
 
       // 3. Éxito - Redirigir con mensaje
       router.push("/login?registered=true")
 
     } catch (err: any) {
       console.error("Error en registro:", err)
-      setError(err.message || "Ocurrió un error inesperado")
+      setError(err.response?.data?.error || err.message || "Ocurrió un error inesperado")
     } finally {
       setLoading(false)
     }

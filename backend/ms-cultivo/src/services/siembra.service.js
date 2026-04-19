@@ -16,8 +16,8 @@ const registerSiembraService = async (siembraData, userId) => {
     return siembra
 }
 
-const listSiembrasService = async () => {
-    return await getSiembras()
+const listSiembrasService = async (userId, role) => {
+    return await getSiembras(userId, role)
 }
 
 const finishSiembraService = async (id, userId, fechaFin = new Date().toISOString().split('T')[0]) => {

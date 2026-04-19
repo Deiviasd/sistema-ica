@@ -132,23 +132,26 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
         onProxyReq: (proxyReq, req, res) => {
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
-                const rawSecret = process.env[targetSecretEnv].trim();
-                // 🔐 Probando con la llave como texto literal (sin decodificar Base64)
-                const targetSecret = rawSecret;
+                const targetSecret = process.env[targetSecretEnv].trim();
 
-                // 🎭 Payload ultra-compatible con Supabase RLS
+                // 🎭 Payload universal compatible con todos los MS y Supabase
                 const payload = {
+                    id: req.user.id_usuario || req.user.id, // Para MS-CULTIVO
+                    id_usuario: req.user.id_usuario || req.user.id, // Para MS-AUTH/PREDIOS
                     sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
-                    id_usuario: req.user.id_usuario,
                     email: req.user.email,
-                    role: req.user.app_metadata?.role || 'authenticated',
+                    role: req.user.app_metadata?.role || req.user.role || 'authenticated',
                     aud: 'authenticated',
                     app_metadata: req.user.app_metadata || {}
                 };
 
                 const newToken = jwt.sign(payload, targetSecret);
-                console.log(`🎫 [TOKEN EXCHANGE] Para: ${target} | UserID: ${payload.id_usuario} | Role: ${payload.role}`);
+                console.log(`🎫 [TOKEN EXCHANGE] Re-firmando para ${target} con payload universal`);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
+
+                // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
+                proxyReq.setHeader('x-user-id', payload.id_usuario);
+                proxyReq.setHeader('x-user-role', payload.role);
             }
 
             if (req.body) {
@@ -179,32 +182,22 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
     }));
 };
 
-// --------------------------------------------------------------------------
-// 🚀 PROXY CONFIGURATION
-// --------------------------------------------------------------------------
-
-// 🔐 Rutas de gestión de Usuarios (Mapeo: /auth/users -> /auth/users)
-// No usamos setupProxy aquí porque ms-auth espera recibir el prefijo /auth
-app.use('/auth/users', authenticateToken, createProxyMiddleware({
-    target: process.env.AUTH_SERVICE_URL,
-    changeOrigin: true,
-    onProxyReq: (proxyReq, req) => {
-        if (req.body) {
-            const bodyData = JSON.stringify(req.body);
-            proxyReq.setHeader('Content-Type', 'application/json');
-            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-            proxyReq.write(bodyData);
-        }
+// 🔐 Microservicio de Autenticación (Login, Register, Profile, Gestión de Usuarios)
+// Usamos un middleware manual para proteger solo ciertas rutas
+app.use('/auth', (req, res, next) => {
+    const publicPaths = ['/login', '/register', '/catalogos'];
+    const isPublic = publicPaths.some(path => req.path.startsWith(path));
+    
+    if (isPublic) return next();
+    
+    // Rutas que requieren ADMIN_ICA
+    if (req.path.startsWith('/pending') || req.path.startsWith('/users')) {
+        return authenticateToken(req, res, () => restrictTo('ADMIN_ICA')(req, res, next));
     }
-}));
 
-app.use('/auth/pending', authenticateToken, restrictTo('ADMIN_ICA'), createProxyMiddleware({
-    target: process.env.AUTH_SERVICE_URL,
-    changeOrigin: true
-}));
-
-// 🔐 Microservicio de Autenticación Genérico (Login, Register, Profile)
-app.use('/auth', createProxyMiddleware({
+    // El resto requiere al menos estar autenticado (profile, etc)
+    return authenticateToken(req, res, next);
+}, createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
     onProxyReq: (proxyReq, req, res) => {
@@ -214,7 +207,7 @@ app.use('/auth', createProxyMiddleware({
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
             proxyReq.write(bodyData);
         }
-        console.log(`📡 [PROXY] Forwarding ${req.method} ${req.url} -> ms-auth (Full Path)`);
+        console.log(`📡 [PROXY] Forwarding ${req.method} ${req.originalUrl} -> ms-auth`);
     }
 }));
 

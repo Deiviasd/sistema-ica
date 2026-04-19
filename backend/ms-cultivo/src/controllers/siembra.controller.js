@@ -12,7 +12,9 @@ const createSiembraController = async (req, res) => {
 
 const getSiembrasController = async (req, res) => {
     try {
-        const result = await listSiembrasService()
+        const userId = req.user.id
+        const role = req.user.role
+        const result = await listSiembrasService(userId, role)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({ error: error.message })
