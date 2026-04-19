@@ -25,8 +25,23 @@ const registerService = async (userData) => {
         password: hashedPassword,
         id_rol: userData.id_rol,
         id_region: userData.id_region,
+        id_auth_supabase: userData.id_auth_supabase,
         estado: 'inactivo' // ⏳ Pendiente de aprobación por Admin ICA
     })
+
+    // 🏘️ Si es productor y trae número predial, lo asociamos de una vez
+    if (userData.id_rol === 'PRODUCTOR' && userData.numero_predial) {
+        try {
+            const { supabase } = require('../repositories/user.repository'); // Importamos repo local
+            await supabase.from('usuario_predio').insert([{
+                id_usuario: user.id_usuario,
+                numero_predial: parseInt(userData.numero_predial),
+                fecha_asociacion: new Date().toISOString()
+            }]);
+        } catch (predioError) {
+            console.error('⚠️ Error al asociar predio en registro:', predioError.message);
+        }
+    }
 
     return {
         id: user.id_usuario,

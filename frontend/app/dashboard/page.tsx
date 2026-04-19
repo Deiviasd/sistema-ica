@@ -3,6 +3,7 @@
 import { useUserStore } from "@/lib/store"
 import { motion } from "framer-motion"
 import { Leaf, FileCheck, ShieldAlert } from "lucide-react"
+import ProductorDashboard from "@/components/dashboard/ProductorDashboard"
 
 export default function Dashboard() {
   const { user } = useUserStore()
@@ -14,6 +15,28 @@ export default function Dashboard() {
     if (hour < 12) return "Buenos días"
     if (hour < 18) return "Buenas tardes"
     return "Buenas noches"
+  }
+
+  // Si es productor, mostramos el dashboard especializado
+  if (user.role === 'productor') {
+    return (
+      <div className="space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-2"
+        >
+          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+            {getGreeting()}, <span className="text-emerald-500">{user.email.split('@')[0]}</span> 🌿
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Aquí tienes el resumen de tu producción fitosanitaria.
+          </p>
+        </motion.div>
+        
+        <ProductorDashboard />
+      </div>
+    )
   }
 
   return (
@@ -44,25 +67,6 @@ export default function Dashboard() {
           />
         )}
         
-        {user.role === 'productor' && (
-          <>
-            <DashboardCard
-              title="Mis Predios"
-              value="2"
-              icon={<Leaf className="w-8 h-8 text-green-500" />}
-              color="bg-green-500/10 border-green-500/20"
-              delay={0.1}
-            />
-            <DashboardCard
-              title="Siembras Activas"
-              value="5"
-              icon={<Leaf className="w-8 h-8 text-emerald-500" />}
-              color="bg-emerald-500/10 border-emerald-500/20"
-              delay={0.2}
-            />
-          </>
-        )}
-
         {user.role === 'tecnico' && (
           <DashboardCard
             title="Inspecciones Asignadas"

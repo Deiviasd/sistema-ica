@@ -11,6 +11,7 @@ const createUser = async (userData) => {
             contraseña: userData.password,
             id_rol: userData.id_rol || 'PRODUCTOR',
             id_region: userData.id_region,
+            id_auth_supabase: userData.id_auth_supabase,
             estado: userData.estado || 'inactivo'
         }])
         .select()

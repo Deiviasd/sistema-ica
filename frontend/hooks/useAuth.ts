@@ -12,8 +12,8 @@ export const useAuth = () => {
   useEffect(() => {
     const initializeAuth = async () => {
       const localToken = localStorage.getItem('token');
-      
-      // Si no hay token y estamos en una ruta protegida -> a login
+
+      // Si no hay token y estamos en una ruta protegida -> redirigir a login
       if (!localToken) {
         if (pathname?.startsWith('/dashboard')) {
           router.push('/login');
@@ -22,32 +22,41 @@ export const useAuth = () => {
         return;
       }
 
-      // Si hay token pero no hay usuario en el store, intentamos cargar perfil
+      // Si hay token pero no hay usuario en el store, intentamos cargar el perfil desde el Gateway
       if (!user) {
         try {
-          // Validamos el token contra nuestro Gateway
+          // El Gateway valida el token y nos devuelve los datos del usuario + rol
           const res = await api.get('/auth/profile');
+          const data = res.data.user;
+
+          // Mapeamos el rol a minúsculas para consistencia en el Front
+          const rawRole = data.app_metadata?.role || data.role || 'guest';
+          const normalizedRole = rawRole.toLowerCase().includes('admin') ? 'admin' :
+            rawRole.toLowerCase().includes('productor') ? 'productor' : 'tecnico';
+
           const userData = {
-            id: res.data.user.id,
-            email: res.data.user.email,
-            role: res.data.user.app_metadata?.role || 'guest'
+            id: data.id,                     // UUID de Supabase
+            id_usuario: data.id_usuario || 0, // ID Numérico interno (clave para el dashboard)
+            email: data.email,
+            role: normalizedRole
           };
+
           setSession(userData, localToken);
-          
+
           if (pathname === '/login' || pathname === '/') {
             router.push('/dashboard');
           }
         } catch (error) {
-          console.error("Error validando sesión:", error);
+          console.error("Error validando sesión con el Gateway:", error);
           handleLogout();
         }
       } else {
-        // Si ya tenemos sesión y estamos en login, saltamos al dashboard
+        // Redirección si ya está autenticado e intenta ir a login
         if (pathname === '/login' || pathname === '/') {
           router.push('/dashboard');
         }
       }
-      
+
       setIsLoading(false);
     };
 
