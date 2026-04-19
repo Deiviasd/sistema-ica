@@ -24,13 +24,20 @@ function authenticateToken(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Token requerido' });
 
     try {
-        token = token.trim().replace(/\s/g, '');
-        // 🔐 Validamos con la llave maestra de Auth (Supabase) - Se requiere el Buffer del Base64
-        const secretStr = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET).trim();
-        const secret = Buffer.from(secretStr, 'base64');
+        // En ms-auth firmamos con el secreto como string, aquí validamos igual
+        const secret = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET || "").trim();
         
-        // 🔒 Forzamos algoritmo HS256 para evitar 'invalid algorithm'
-        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+            try {
+                const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
+                console.log(`🔍 [JWT DEBUG] Header:`, JSON.stringify(header));
+            } catch (e) {}
+        }
+        console.log(`🔍 [JWT DEBUG] Secret Length: ${secret.length}`);
+
+        // jwt.verify detecta el algoritmo automáticamente
+        const decoded = jwt.verify(token, secret);
 
         // 🔄 Mapeo de compatibilidad
         req.user = {
@@ -40,20 +47,19 @@ function authenticateToken(req, res, next) {
         };
         
         console.log(`🔑 [JWT DEBUG] Token decodificado para: ${req.user.email}`);
-        console.log(`📦 [JWT DEBUG] app_metadata:`, JSON.stringify(req.user.app_metadata));
-
         next();
     } catch (err) {
         console.error('❌ Error de validación en Gateway:', err.message);
-        return res.status(403).json({ error: 'Token inválido o expirado', details: err.message });
+        // 🚨 IMPORTANTE: 401 para que el frontend limpie el localStorage
+        return res.status(401).json({ error: 'Sesión expirada o inválida', details: err.message });
     }
 }
 
 // 🛡️ Middleware de Autorización por Roles
 const restrictTo = (...roles) => {
     return (req, res, next) => {
-        // En tu Supabase el rol viene en app_metadata.user_role
-        const userRole = req.user?.app_metadata?.user_role;
+        // El rol viene en app_metadata.role según el JWT de ms-auth
+        const userRole = req.user?.app_metadata?.role;
         
         console.log(`🛡️ [AUTH DEBUG] Ruta: ${req.originalUrl} | Rol Usuario: ${userRole} | Requerido: ${roles}`);
 
@@ -169,13 +175,27 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
     }));
 };
 
-// 🔓 Rutas públicas de Auth (No requieren token)
-setupProxy('/auth/login', process.env.AUTH_SERVICE_URL, [], false);
-setupProxy('/auth/register', process.env.AUTH_SERVICE_URL, [], false);
+// 🔓 Rutas públicas de Auth
+// 🔐 Microservicio de Autenticación (ms-auth)
+app.use('/auth', createProxyMiddleware({ 
+    target: process.env.AUTH_SERVICE_URL, 
+    pathRewrite: { '^/auth': '' },
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req, res) => {
+        // 🔥 FIX: Re-inyectar el body si express.json() ya lo procesó
+        if (req.body) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Type', 'application/json');
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
+        console.log(`📡 [PROXY] Forwarding ${req.method} ${req.url} -> ms-auth`);
+    }
+}));
 
-// 🔐 Rutas de gestión de Usuarios (Necesitan Swap hacia ms-auth)
-setupProxy('/auth/users', process.env.AUTH_SERVICE_URL, [], true, 'JWT_SECRET_MS_AUTH');
-setupProxy('/auth/pending', process.env.AUTH_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_MS_AUTH');
+// 🔐 Rutas de gestión de Usuarios (Mapeo: /auth/users -> /users)
+setupProxy('/auth/users', process.env.AUTH_SERVICE_URL, [], true, 'JWT_SECRET_AUTH');
+setupProxy('/auth/pending', process.env.AUTH_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_AUTH');
 setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists], true, 'JWT_SECRET_PREDIOS');
 setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists], true, 'JWT_SECRET_CULTIVOS');
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');

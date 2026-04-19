@@ -105,7 +105,7 @@ export default function UsuariosPendientes() {
                   <div className="space-y-3 mb-6 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground w-16">Región:</span>
-                      <span className="capitalize">{user.id_region.toLowerCase()}</span>
+                      <span className="capitalize">{user.id_region?.toLowerCase() || 'Sin región'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground w-16">Registro:</span>

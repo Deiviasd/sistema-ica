@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
-import { createClient } from "@/lib/supabase/client"
+
 import { motion } from "framer-motion"
 import { Leaf } from "lucide-react"
 
@@ -18,29 +18,34 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    // AHORA ENTRAMOS DIRECTO A SUPABASE
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Llamamos a NUESTRO Gateway, no a Supabase directamente
+      const res = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (authError) {
-      setError("Credenciales incorrectas o cuenta no existe en Supabase.")
-      setLoading(false)
-      return
-    }
+      const data = await res.json()
 
-    // Si Supabase lo aprueba, guardamos local y forzamos recarga al dashboard
-    if (data.session) {
-      localStorage.setItem("token", data.session.access_token)
+      if (!res.ok) {
+        setError(data.error || "Credenciales incorrectas.")
+        setLoading(false)
+        return
+      }
+
+      // Guardamos el token de ms-auth (HS256) que entiende el Gateway
+      localStorage.setItem("token", data.token)
       window.location.href = "/dashboard"
+    } catch {
+      setError("No se pudo conectar con el servidor. ¿Está el backend corriendo?")
+      setLoading(false)
     }
   }
 

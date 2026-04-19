@@ -1,78 +1,60 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUserStore } from '@/lib/store';
-import { createClient } from '@/lib/supabase/client';
+import api from '@/lib/api';
 
 export const useAuth = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, token, setSession, logout } = useUserStore();
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Pedimos la sesión actual directamente a Supabase
-      const { data: { session } } = await supabase.auth.getSession();
+      const localToken = localStorage.getItem('token');
       
-      if (session) {
-        // En Supabase el token es safe
-        const accessToken = session.access_token;
-        const authUser = session.user;
-        
-        // Vamos a la tabla tuya 'usuario' para traer el rol correcto.
-        const { data: profile } = await supabase
-          .from('usuario')
-          .select('id_rol')
-          .eq('correo', authUser.email)
-          .single();
-
-        let role = 'guest';
-        if (profile) {
-           role = profile.id_rol === 'ADMIN_ICA' ? 'admin' : 
-                  profile.id_rol === 'PRODUCTOR' ? 'productor' : 'tecnico';
-        }
-
-        const userData = {
-          id: authUser.id,
-          email: authUser.email || '',
-          role: role
-        };
-
-        // Guardamos para que el interceptor de Axios también lo pueda usar
-        localStorage.setItem('token', accessToken);
-        setSession(userData, accessToken);
-        
-        if (pathname === '/login' || pathname === '/') {
-          router.push('/dashboard');
-        }
-      } else {
-        // Redirigir a login si intenta ir a rutas protegidas sin sesión
+      // Si no hay token y estamos en una ruta protegida -> a login
+      if (!localToken) {
         if (pathname?.startsWith('/dashboard')) {
           router.push('/login');
         }
+        setIsLoading(false);
+        return;
       }
+
+      // Si hay token pero no hay usuario en el store, intentamos cargar perfil
+      if (!user) {
+        try {
+          // Validamos el token contra nuestro Gateway
+          const res = await api.get('/auth/profile');
+          const userData = {
+            id: res.data.user.id,
+            email: res.data.user.email,
+            role: res.data.user.app_metadata?.role || 'guest'
+          };
+          setSession(userData, localToken);
+          
+          if (pathname === '/login' || pathname === '/') {
+            router.push('/dashboard');
+          }
+        } catch (error) {
+          console.error("Error validando sesión:", error);
+          handleLogout();
+        }
+      } else {
+        // Si ya tenemos sesión y estamos en login, saltamos al dashboard
+        if (pathname === '/login' || pathname === '/') {
+          router.push('/dashboard');
+        }
+      }
+      
       setIsLoading(false);
     };
 
     initializeAuth();
+  }, [pathname, router, user, setSession]);
 
-    // Suscribirse a cambios si cierra sesión en otra pestaña
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-         if (event === 'SIGNED_OUT') {
-           handleLogout();
-         }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    }
-  }, [pathname, router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     localStorage.removeItem('token');
     logout();
     router.push('/login');
