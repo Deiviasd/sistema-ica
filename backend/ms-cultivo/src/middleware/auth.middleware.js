@@ -1,22 +1,21 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
+    const userId = req.headers['x-user-id'];
+    const userRole = req.headers['x-user-role'];
 
-    try {
-        const secret = process.env.JWT_SECRET || "";
-        const decoded = jwt.verify(token, secret);
-        // Adaptamos al formato que esperan los controladores
-        req.user = { 
-            ...decoded,
-            id: decoded.id_usuario // Compatibilidad con req.user.id
-        };
-        next();
-    } catch (error) {
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+    if (!userId) {
+        console.error('❌ Acceso directo denegado en MS-CULTIVO (Sin header de identidad)');
+        return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
     }
+
+    // Adaptamos al formato que esperan los controladores y servicios
+    req.user = { 
+        id: userId,
+        id_usuario: userId,
+        role: userRole
+    };
+    next();
 }
 
 module.exports = { verifyToken }

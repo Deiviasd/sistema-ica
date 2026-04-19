@@ -19,19 +19,18 @@ const CULTIVO_URL = process.env.CULTIVO_SERVICE_URL || 'http://ms-cultivo:4002';
 
 const jwt = require('jsonwebtoken');
 
-const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
-
-    try {
-        const secret = process.env.JWT_SECRET || "";
-        const decoded = jwt.verify(token, secret);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+// 🛡️ Middleware de Identidad Inyectada (Confiamos en el Gateway)
+const authenticateInternal = (req, res, next) => {
+    const userId = req.headers['x-user-id'];
+    const userRole = req.headers['x-user-role'];
+    
+    if (!userId) {
+        console.error('❌ Acceso directo denegado en MS-INSPECCIONES (Sin header de identidad)');
+        return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
     }
+
+    req.user = { id_usuario: userId, role: userRole };
+    next();
 };
 
 const getSupabaseAdmin = () => {
@@ -41,7 +40,7 @@ const getSupabaseAdmin = () => {
 // ==========================================
 // 🎯 CONTEXTO MEJORADO PARA EL TÉCNICO (RLS DELEGADO)
 // ==========================================
-app.get('/:id/contexto', verifyToken, async (req, res) => {
+app.get('/:id/contexto', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
@@ -93,7 +92,7 @@ app.get('/:id/contexto', verifyToken, async (req, res) => {
 // ==========================================
 // 📝 REGISTRO DE HALLAZGOS (PROTEGIDO POR RLS)
 // ==========================================
-app.post('/:id/detalles', verifyToken, async (req, res) => {
+app.post('/:id/detalles', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
@@ -115,7 +114,7 @@ app.post('/:id/detalles', verifyToken, async (req, res) => {
 // ==========================================
 // 📊 REPORTES ENRIQUECIDOS (CON RLS)
 // ==========================================
-app.get('/reporte', verifyToken, async (req, res) => {
+app.get('/reporte', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id_usuario, role } = req.user;
@@ -134,7 +133,7 @@ app.get('/reporte', verifyToken, async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Error en reporte', details: error.message }); }
 });
 
-app.patch('/:id/finalizar', verifyToken, async (req, res) => {
+app.patch('/:id/finalizar', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
@@ -152,7 +151,7 @@ app.patch('/:id/finalizar', verifyToken, async (req, res) => {
 // ==========================================
 // 📅 AGENDAMIENTO AUTOMÁTICO (PRODUCTOR)
 // ==========================================
-app.post('/agendar', verifyToken, async (req, res) => {
+app.post('/agendar', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id_lugar_produccion, fecha_sugerida } = req.body;

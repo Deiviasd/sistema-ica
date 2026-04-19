@@ -17,10 +17,9 @@ const getSiembras = async (userId = null, role = 'productor') => {
         .from('siembra')
         .select('*, variedad(nombre_variedad, especie(nombre_comun))');
 
-    if (role !== 'ADMIN_ICA' && role !== 'admin' && userId) {
-        const producerId = Number(userId);
-        if (isNaN(producerId)) return [];
-        query = query.eq('productor_id', producerId);
+    if (role !== 'ADMIN_ICA' && role !== 'admin') {
+        console.log(`🧹 [MS-CULTIVO] Limpiando dashboard para productor (columna productor_id no existe aún)`);
+        return []; 
     }
 
     const { data, error } = await query;

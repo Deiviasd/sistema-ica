@@ -16,7 +16,8 @@ export const useAuth = () => {
       // Si no hay token y estamos en una ruta protegida -> redirigir a login
       if (!localToken) {
         if (pathname?.startsWith('/dashboard')) {
-          router.push('/login');
+          console.warn("⚠️ [DEBUG] No hay token, pero la redirección a login está desactivada.");
+          // router.push('/login');
         }
         setIsLoading(false);
         return;
@@ -47,8 +48,8 @@ export const useAuth = () => {
             router.push('/dashboard');
           }
         } catch (error) {
-          console.error("Error validando sesión con el Gateway:", error);
-          handleLogout();
+          console.error("⚠️ [DEBUG] Error validando sesión con el Gateway:", error);
+          // handleLogout(); // Desactivado para depuración
         }
       } else {
         // Redirección si ya está autenticado e intenta ir a login

@@ -19,23 +19,22 @@ const getSupabaseAdmin = () => {
 
 const jwt = require('jsonwebtoken');
 
-const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
-
-    try {
-        const secret = process.env.JWT_SECRET || "";
-        const decoded = jwt.verify(token, secret);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+// 🛡️ Middleware de Identidad Inyectada (Confiamos en el Gateway)
+const authenticateInternal = (req, res, next) => {
+    const userId = req.headers['x-user-id'];
+    const userRole = req.headers['x-user-role'];
+    
+    if (!userId) {
+        console.error('❌ Acceso directo denegado en MS-PREDIOS (Sin header de identidad)');
+        return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
     }
+
+    req.user = { id_usuario: userId, role: userRole };
+    next();
 };
 
 // --- GESTIÓN DE LUGARES DE PRODUCCIÓN ---
-app.get('/lugares-produccion', verifyToken, async (req, res) => {
+app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id_usuario, role } = req.user;
@@ -63,7 +62,7 @@ app.get('/lugares-produccion', verifyToken, async (req, res) => {
 });
 
 // Registrar nuevo lugar
-app.post('/lugares-produccion', verifyToken, async (req, res) => {
+app.post('/lugares-produccion', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { nombre_lugar, area_total_m2, numero_predial } = req.body;
@@ -88,7 +87,7 @@ app.post('/lugares-produccion', verifyToken, async (req, res) => {
 });
 
 // Registrar nuevo lote
-app.post('/lotes', verifyToken, async (req, res) => {
+app.post('/lotes', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { nombre_lote, area_m2, id_lugar_produccion } = req.body;
