@@ -25,10 +25,23 @@ function authenticateToken(req, res, next) {
 
     try {
         token = token.trim().replace(/\s/g, '');
-        // 🔐 Validamos con la llave maestra de Auth
-        const secret = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET).trim();
-        const decoded = jwt.verify(token, secret);
-        req.user = decoded;
+        // 🔐 Validamos con la llave maestra de Auth (Supabase) - Se requiere el Buffer del Base64
+        const secretStr = (process.env.JWT_SECRET_AUTH || process.env.JWT_SECRET).trim();
+        const secret = Buffer.from(secretStr, 'base64');
+        
+        // 🔒 Forzamos algoritmo HS256 para evitar 'invalid algorithm'
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+
+        // 🔄 Mapeo de compatibilidad
+        req.user = {
+            ...decoded,
+            id: decoded.id || decoded.sub,
+            id_usuario: decoded.id_usuario || decoded.sub
+        };
+        
+        console.log(`🔑 [JWT DEBUG] Token decodificado para: ${req.user.email}`);
+        console.log(`📦 [JWT DEBUG] app_metadata:`, JSON.stringify(req.user.app_metadata));
+
         next();
     } catch (err) {
         console.error('❌ Error de validación en Gateway:', err.message);
@@ -39,12 +52,14 @@ function authenticateToken(req, res, next) {
 // 🛡️ Middleware de Autorización por Roles
 const restrictTo = (...roles) => {
     return (req, res, next) => {
-        // El rol viene en app_metadata.role según el JWT de ms-auth
-        const userRole = req.user?.app_metadata?.role;
+        // En tu Supabase el rol viene en app_metadata.user_role
+        const userRole = req.user?.app_metadata?.user_role;
         
+        console.log(`🛡️ [AUTH DEBUG] Ruta: ${req.originalUrl} | Rol Usuario: ${userRole} | Requerido: ${roles}`);
+
         if (!roles.includes(userRole)) {
-            return res.status(403).json({ 
-                error: 'No tienes permisos para acceder a este recurso' 
+            return res.status(403).json({
+                error: 'No tienes permisos para acceder a este recurso'
             });
         }
         next();
@@ -65,15 +80,15 @@ app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, 
         const loteResponse = await internalApi.predios.post('/lotes', {
             id_lugar_produccion, nombre_lote, area_m2, estado: 'ocupado'
         }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_PREDIOS'));
-        
+
         loteId = loteResponse.data.id_lote;
 
         const siembraResponse = await internalApi.cultivo.post('/siembras', {
-            id_lote: loteId, 
-            id_variedad: 1, 
+            id_lote: loteId,
+            id_variedad: 1,
             fecha_siembra
         }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_CULTIVOS'));
-        
+
         siembraId = siembraResponse.data.id_siembra;
 
         eventBus.publish('audit_queue', {
@@ -111,8 +126,18 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
         onProxyReq: (proxyReq, req, res) => {
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
-                const targetSecret = process.env[targetSecretEnv].trim();
-                const newToken = jwt.sign(req.user, targetSecret);
+                const rawSecret = process.env[targetSecretEnv].trim();
+                // 🔐 Decodificar secreto si es Base64 (Llaves de Supabase)
+                const targetSecret = rawSecret.length > 40 ? Buffer.from(rawSecret, 'base64') : rawSecret;
+                
+                // 🎭 Payload compatible con Supabase RLS y Microservicios internos
+                const payload = {
+                    ...req.user,
+                    aud: 'authenticated',
+                    role: req.user.app_metadata?.user_role || 'authenticated'
+                };
+
+                const newToken = jwt.sign(payload, targetSecret);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
             }
 
@@ -127,7 +152,7 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
             // 🕵️ AUDITORÍA GLOBAL DESDE EL ORQUESTADOR
             const isModifying = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
             const isSuccess = proxyRes.statusCode >= 200 && proxyRes.statusCode < 300;
-            
+
             // Si el Gateway ve que pasó una creación/edición de cualquier microservicio, ¡él mismo levanta el evento!
             if (isModifying && isSuccess) {
                 const actorId = req.user?.id_usuario || req.user?.sub || 'sistema';
@@ -144,11 +169,17 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
     }));
 };
 
-setupProxy('/auth', process.env.AUTH_SERVICE_URL, [], false);
+// 🔓 Rutas públicas de Auth (No requieren token)
+setupProxy('/auth/login', process.env.AUTH_SERVICE_URL, [], false);
+setupProxy('/auth/register', process.env.AUTH_SERVICE_URL, [], false);
+
+// 🔐 Rutas de gestión de Usuarios (Necesitan Swap hacia ms-auth)
+setupProxy('/auth/users', process.env.AUTH_SERVICE_URL, [], true, 'JWT_SECRET_MS_AUTH');
+setupProxy('/auth/pending', process.env.AUTH_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_MS_AUTH');
 setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists], true, 'JWT_SECRET_PREDIOS');
 setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists], true, 'JWT_SECRET_CULTIVOS');
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');
-setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('admin')], true, 'JWT_SECRET_AUDITORIA');
+setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_AUDITORIA');
 
 app.get('/health', (req, res) => res.json({ status: 'Orchestrator Online [Token Swapper Active]' }));
 
