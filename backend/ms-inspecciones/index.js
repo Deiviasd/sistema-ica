@@ -52,31 +52,68 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
             details: inspErr?.message || 'No se encontró el registro'
         });
 
-        const prodRes = await axios.get(`${AUTH_URL}/usuarios/${insp.productor_id}`).catch(() => ({ data: { nombre: 'N/A' } }));
-        const lotesRes = await axios.get(`${PREDIOS_URL}/lugares-produccion?id=${insp.id_lugar_produccion}`, {
-            headers: { Authorization: req.headers.authorization }
-        }).catch(() => ({ data: [] }));
+        const headers = { 
+            'x-user-id': req.user.id_usuario, 
+            'x-user-role': req.user.role 
+        };
 
-        const infoLugar = lotesRes.data[0];
+        const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${insp.productor_id}`, { headers })
+            .catch((e) => {
+                console.error('⚠️ MS-AUTH Error:', e.message);
+                return { data: { nombre: 'Productor Desconocido', region: 'Sin Región' } };
+            });
+
+        const lotesRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, { headers })
+            .catch((e) => {
+                console.error('⚠️ MS-PREDIOS Error:', e.message);
+                return { data: [] };
+            });
+
+        const infoLugar = lotesRes.data.find(p => p.id_lugar_produccion === insp.id_lugar_produccion);
         const lotes = infoLugar?.lote || [];
 
         const contextoLotes = await Promise.all(lotes.map(async (lote) => {
-            const siembraRes = await axios.get(`${CULTIVO_URL}/siembras?id_lote=${lote.id_lote}&estado=activa`).catch(() => ({ data: [] }));
+            const siembraRes = await axios.get(`${CULTIVO_URL}/siembras?id_lote=${lote.id_lote}`, { headers })
+                .catch((e) => {
+                    console.error(`⚠️ MS-CULTIVO Error (Lote ${lote.id_lote}):`, e.message);
+                    return { data: [] };
+                });
+
             const siembra = siembraRes.data[0] || null;
-            const { data: hallazgos } = await supabase.from('detalle_inspeccion').select('*').eq('id_lote', lote.id_lote).order('fecha_registro', { ascending: false }).limit(1);
+            let edadCronologica = null;
+
+            if (siembra && siembra.fecha_siembra) {
+                const fSiembra = new Date(siembra.fecha_siembra);
+                const hoy = new Date();
+                const diffTime = Math.abs(hoy.getTime() - fSiembra.getTime());
+                edadCronologica = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            }
 
             return {
                 id_lote: lote.id_lote,
                 nombre_lote: lote.nombre_lote,
-                siembra_activa: siembra ? { id_siembra: siembra.id_siembra, especie: siembra.especie } : null,
-                ultimo_hallazgo: hallazgos ? hallazgos[0] : null
+                area: lote.area,
+                estado_lote: lote.estado,
+                siembra_activa: siembra ? {
+                    id_siembra: siembra.id_siembra,
+                    especie: siembra.variedad?.especie?.nombre_comun || 'No especificado',
+                    variedad: siembra.variedad?.nombre_variedad || 'Genérica',
+                    ciclo: siembra.variedad?.especie?.ciclo || 'N/A',
+                    fecha_siembra: siembra.fecha_siembra,
+                    cantidad_plantas: siembra.cantidad_plantas,
+                    edad_dias: edadCronologica
+                } : null
             };
         }));
 
         res.json({
             id_inspeccion: insp.id_inspeccion,
-            lugar_nombre: infoLugar?.nombre_lugar,
-            productor: { nombre: prodRes.data.nombre, region: prodRes.data.region },
+            lugar_nombre: infoLugar?.nombre_lugar || 'Finca sin nombre',
+            numero_predial: infoLugar?.numero_predial || 'N/A',
+            productor: { 
+                nombre: prodRes.data.nombre || 'N/A', 
+                region: prodRes.data.region || 'N/A' 
+            },
             lotes: contextoLotes
         });
 
@@ -103,10 +140,11 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
 
         res.status(201).json(data ? data[0] : { message: 'Detalle registrado' });
     } catch (error) {
-        console.error('❌ Error en POST /detalles:', error);
-        res.status(403).json({ 
-            error: 'No autorizado para registrar hallazgos', 
-            details: error.message || error 
+        console.error('❌ Error crítico en POST /detalles:', error);
+        res.status(error.status || 500).json({ 
+            error: 'Fallo al registrar hallazgo', 
+            details: error.message || error,
+            hints: 'Verifique que los nombres de las columnas coincidan con el esquema de Supabase'
         });
     }
 });
@@ -133,67 +171,145 @@ app.get('/reporte', authenticateInternal, async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Error en reporte', details: error.message }); }
 });
 
+// ==========================================
+// 📅 INSPECCIONES ASIGNADAS AL TÉCNICO
+// ==========================================
+app.get('/asignadas', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id_usuario, role } = req.user;
+
+        if (role?.toLowerCase() !== 'tecnico' && role !== 'admin') {
+            return res.status(403).json({ error: 'Solo los técnicos pueden ver sus asignaciones.' });
+        }
+
+        let query = supabase.from('inspeccion').select('*');
+        if (role?.toLowerCase() === 'tecnico') {
+            query = query.eq('tecnico_id', id_usuario);
+        }
+
+        const { data: asignaciones, error } = await query;
+        
+        if (error) {
+            console.error('❌ Error de Supabase:', error);
+            return res.status(500).json({ error: 'Fallo en Supabase', details: error.message });
+        }
+
+        // 🔗 ENRIQUECER CON DATOS DE MS-PREDIOS
+        const enriched = await Promise.all(asignaciones.map(async (ins) => {
+            try {
+                // Consultamos el nombre del lugar al otro microservicio
+                const predioRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, {
+                    headers: { 'x-user-id': id_usuario, 'x-user-role': role }
+                });
+                const predio = predioRes.data.find(p => p.id_lugar_produccion === ins.id_lugar_produccion);
+                
+                return {
+                    ...ins,
+                    lugar_produccion: predio ? {
+                        nombre_lugar: predio.nombre_lugar,
+                        numero_predial: predio.numero_predial
+                    } : { nombre_lugar: 'Predio Desconocido', numero_predial: 'N/A' }
+                };
+            } catch (err) {
+                return { ...ins, lugar_produccion: { nombre_lugar: 'Error de conexión', numero_predial: 'N/A' } };
+            }
+        }));
+
+        res.json(enriched || []);
+    } catch (error) {
+        console.error('❌ Error general en /asignadas:', error);
+        res.status(500).json({ error: 'Error interno del servidor', message: error.message });
+    }
+});
+
 app.patch('/:id/finalizar', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
-        const { observaciones_generales } = req.body;
+        const { observaciones_generales, estado } = req.body;
 
         const { error } = await supabase.from('inspeccion')
-            .update({ estado: 'finalizada', observaciones_generales })
+            .update({ estado: estado, observaciones_generales })
             .eq('id_inspeccion', id);
 
         if (error) throw error;
         res.json({ message: 'Inspección finalizada con éxito' });
-    } catch (error) { res.status(403).json({ error: 'Error al finalizar: No autorizado' }); }
+    } catch (error) { 
+        console.error('❌ Error en PATCH /finalizar:', error);
+        res.status(500).json({ error: 'Error interno al finalizar la inspección', details: error.message }); 
+    }
 });
 
 // ==========================================
-// 📅 AGENDAMIENTO AUTOMÁTICO (PRODUCTOR)
+// 📅 AGENDAMIENTO AUTOMÁTICO (BALANCEO DE CARGA)
 // ==========================================
 app.post('/agendar', authenticateInternal, async (req, res) => {
     try {
+        console.log('📝 Iniciando agendamiento automático...');
         const supabase = getSupabaseAdmin();
-        const { id_lugar_produccion, fecha_sugerida } = req.body;
-        const productor_id = req.user.id_usuario; // Extraído del token por el Gateway
+        const { id_lugar_produccion, fecha, hora } = req.body;
+        const productor_id = Number(req.user.id_usuario);
 
-        if (!id_lugar_produccion) return res.status(400).json({ error: 'id_lugar_produccion es requerido' });
+        if (!id_lugar_produccion || !fecha || !hora) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios (predio, fecha u hora).' });
+        }
 
-        // 1. Obtener técnicos disponibles desde MS-AUTH
+        // 1. Obtener técnicos desde MS-AUTH
         const techRes = await axios.get(`${AUTH_URL}/auth/usuarios/rol/tecnico`).catch(e => {
-            console.error('Error obteniendo técnicos:', e.message);
+            console.error('❌ Error llamando a MS-AUTH:', e.message);
             return { data: [] };
         });
 
         const tecnicos = techRes.data;
-        if (tecnicos.length === 0) {
-            return res.status(503).json({ error: 'No hay técnicos disponibles para asignación automática en este momento.' });
+        console.log(`👷 Técnicos encontrados: ${tecnicos.length}`);
+
+        if (!tecnicos || tecnicos.length === 0) {
+            return res.status(503).json({ error: 'No hay técnicos activos en el sistema para asignación automática.' });
         }
 
-        // 2. Asignación automática (Round Robin simple o Aleatorio)
-        const tecnicoAsignado = tecnicos[Math.floor(Math.random() * tecnicos.length)];
+        // 2. Consultar carga de trabajo
+        const { data: carga, error: loadErr } = await supabase
+            .from('inspeccion')
+            .select('tecnico_id')
+            .eq('estado', 'programada');
 
-        // 3. Crear la inspección en Supabase
-        const { data, error } = await supabase.from('inspeccion').insert([{
+        if (loadErr) throw loadErr;
+
+        // 3. Calcular quién tiene menos trabajo
+        const workload = {};
+        tecnicos.forEach(t => workload[t.id_usuario] = 0);
+        carga.forEach(ins => {
+            if (workload[ins.tecnico_id] !== undefined) workload[ins.tecnico_id]++;
+        });
+
+        const elegible = tecnicos.sort((a,b) => workload[a.id_usuario] - workload[b.id_usuario])[0];
+        console.log(`🎯 Técnico asignado por carga mínima: ${elegible.nombre} (ID: ${elegible.id_usuario})`);
+
+        // 4. Crear registro
+        const { data: nueva, error: insErr } = await supabase.from('inspeccion').insert([{
             productor_id,
-            tecnico_id: tecnicoAsignado.id_usuario,
-            id_lugar_produccion,
+            tecnico_id: elegible.id_usuario,
+            id_lugar_produccion: Number(id_lugar_produccion),
             estado: 'programada',
-            fecha_inspeccion: fecha_sugerida || new Date(Date.now() + 86400000 * 3).toISOString(), // +3 días por defecto
-            observaciones_generales: 'Agendada automáticamente por el productor'
+            fecha_programada: `${fecha}T${hora}:00`,
+            observaciones_generales: 'Cita agendada por el portal del productor'
         }]).select();
 
-        if (error) throw error;
+        if (insErr) throw insErr;
 
         res.status(201).json({
-            message: 'Inspección agendada con éxito',
-            detalle: data[0],
-            tecnico: tecnicoAsignado.nombre
+            message: 'Inspección agendada',
+            tecnico_asignado: elegible.nombre,
+            detalle: nueva[0]
         });
 
     } catch (error) {
-        console.error('❌ Error en /agendar:', error);
-        res.status(500).json({ error: 'Error al agendar inspección', details: error.message });
+        console.error('💥 ERROR CRÍTICO EN AGENDAMIENTO:', error);
+        res.status(500).json({ 
+            error: 'No se pudo procesar la asignación automática', 
+            details: error.message 
+        });
     }
 });
 

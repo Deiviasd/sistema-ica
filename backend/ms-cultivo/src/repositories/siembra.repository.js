@@ -11,15 +11,14 @@ const createSiembra = async (siembraData) => {
     return data
 }
 
-const getSiembras = async (userId = null, role = 'productor') => {
+const getSiembras = async (userId = null, role = 'productor', id_lote = null) => {
     // 🛡️ SEGURIDAD: Filtramos por productor_id para que el productor solo vea su propia información.
     let query = supabase
         .from('siembra')
-        .select('*, variedad(nombre_variedad, especie(nombre_comun))');
+        .select('*, variedad(nombre_variedad, especie(nombre_comun, ciclo))');
 
-    if (role !== 'ADMIN_ICA' && role !== 'admin') {
-        console.log(`🧹 [MS-CULTIVO] Limpiando dashboard para productor (columna productor_id no existe aún)`);
-        return []; 
+    if (id_lote) {
+        query = query.eq('id_lote', id_lote).is('fecha_fin', null);
     }
 
     const { data, error } = await query;

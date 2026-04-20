@@ -3,8 +3,7 @@ const eventBus = require('./eventBus')
 
 const registerSiembraService = async (siembraData, userId) => {
     const siembra = await createSiembra({
-        ...siembraData,
-        productor_id: userId
+        ...siembraData
     })
 
     // 📣 Notificar a Auditoría
@@ -19,8 +18,8 @@ const registerSiembraService = async (siembraData, userId) => {
     return siembra
 }
 
-const listSiembrasService = async (userId, role) => {
-    return await getSiembras(userId, role)
+const listSiembrasService = async (userId, role, id_lote = null) => {
+    return await getSiembras(userId, role, id_lote)
 }
 
 const finishSiembraService = async (id, userId, fechaFin = new Date().toISOString().split('T')[0]) => {

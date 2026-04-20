@@ -58,6 +58,9 @@ function authenticateToken(req, res, next) {
 // 🛡️ Middleware de Autorización por Roles
 const restrictTo = (...roles) => {
     return (req, res, next) => {
+        // Permitir OPTIONS preflight
+        if (req.method === 'OPTIONS') return next();
+
         // El rol viene en app_metadata.role según el JWT de ms-auth
         const userRole = req.user?.app_metadata?.role;
 
@@ -192,7 +195,7 @@ app.use('/auth', (req, res, next) => {
 
     // Rutas que requieren ADMIN_ICA
     if (req.path.startsWith('/pending') || req.path.startsWith('/users')) {
-        return authenticateToken(req, res, () => restrictTo('ADMIN_ICA')(req, res, next));
+        return authenticateToken(req, res, () => restrictTo('admin')(req, res, next));
     }
 
     // El resto requiere al menos estar autenticado (profile, etc)
@@ -213,9 +216,9 @@ app.use('/auth', (req, res, next) => {
 
 // 🚜 Microservicios de Negocio (Usan pathRewrite porque no esperan /predios o /cultivos internamente)
 setupProxy('/predios', process.env.PREDIOS_SERVICE_URL, [validator.productorExists], true, 'JWT_SECRET_PREDIOS');
-setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [validator.loteExists], true, 'JWT_SECRET_CULTIVOS');
+setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [], true, 'JWT_SECRET_CULTIVOS');
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');
-setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('ADMIN_ICA')], true, 'JWT_SECRET_AUDITORIA');
+setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('admin')], true, 'JWT_SECRET_AUDITORIA');
 
 app.get('/health', (req, res) => res.json({ status: 'Orchestrator Online [Token Swapper Active]' }));
 

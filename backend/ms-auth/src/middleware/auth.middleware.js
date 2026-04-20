@@ -24,9 +24,10 @@ const verifyToken = (req, res, next) => {
 }
 
 const requireAdmin = (req, res, next) => {
-    // Se asume que el objeto req.user ya existe gracias a verifyToken
-    const role = req.user?.app_metadata?.role
-
+    // Se asume que el objeto req.user ya existe
+    const role = req.user?.app_metadata?.role;
+    console.log("👀 [MS-AUTH] JWT Analizado en requireAdmin:", JSON.stringify(req.user));
+    
     if (role !== 'admin') {
         return res.status(403).json({ error: 'Acceso denegado: Se requieren privilegios de Administrador ICA' })
     }

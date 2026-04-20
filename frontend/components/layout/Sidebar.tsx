@@ -4,9 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { useUserStore } from "@/lib/store"
-import { 
-  Users, Leaf, FileText, ClipboardCheck, LayoutDashboard, 
-  Map, Sprout, FileStack 
+import {
+  Users, Leaf, FileText, ClipboardCheck, LayoutDashboard,
+  Map, Sprout, FileStack, Calendar
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +22,7 @@ export function Sidebar() {
     { name: "Auditoría", href: "/dashboard/auditoria", icon: FileText, roles: ["admin"] },
     { name: "Lugares de Producción", href: "/dashboard/predios", icon: Map, roles: ["productor"] },
     { name: "Lotes y Siembras", href: "/dashboard/siembras", icon: Sprout, roles: ["productor"] },
+    { name: "Agendar Inspección", href: "/dashboard/inspecciones/agendar", icon: Calendar, roles: ["productor", "admin"] },
     { name: "Registro Integral", href: "/dashboard/registro-integral", icon: Leaf, roles: ["productor"] },
     { name: "Inspecciones", href: "/dashboard/inspecciones", icon: ClipboardCheck, roles: ["tecnico"] },
     { name: "Reportes", href: "/dashboard/reportes", icon: FileStack, roles: ["tecnico"] },
@@ -30,7 +31,7 @@ export function Sidebar() {
   const allowedRoutes = routes.filter(r => r.roles.includes(role))
 
   return (
-    <motion.aside 
+    <motion.aside
       initial={{ x: -250 }}
       animate={{ x: 0 }}
       className="w-64 h-screen border-r border-border/50 bg-card/40 backdrop-blur-xl flex flex-col p-4 fixed left-0 top-0 z-40 transition-all"
@@ -52,8 +53,8 @@ export function Sidebar() {
               <div
                 className={cn(
                   "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group overflow-hidden",
-                  isActive 
-                    ? "text-primary font-medium" 
+                  isActive
+                    ? "text-primary font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >

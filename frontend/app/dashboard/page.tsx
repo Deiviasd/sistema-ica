@@ -4,9 +4,22 @@ import { useUserStore } from "@/lib/store"
 import { motion } from "framer-motion"
 import { Leaf, FileCheck, ShieldAlert } from "lucide-react"
 import ProductorDashboard from "@/components/dashboard/ProductorDashboard"
+import TecnicoDashboard from "@/components/dashboard/TecnicoDashboard"
+
+import { useEffect, useState } from "react"
+import api from "@/lib/api"
 
 export default function Dashboard() {
   const { user } = useUserStore()
+  const [pendingCount, setPendingCount] = useState<number>(0)
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      api.get("/auth/users/pending")
+        .then(res => setPendingCount(res.data.length))
+        .catch(err => console.error("Error cargando conteo pendientes", err))
+    }
+  }, [user])
 
   if (!user) return null
 
@@ -39,6 +52,28 @@ export default function Dashboard() {
     )
   }
 
+  // Si es técnico, mostramos su dashboard especializado (Case-insensitive check)
+  if (user.role?.toLowerCase() === 'tecnico') {
+    return (
+        <div className="space-y-4">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="mb-2"
+          >
+            <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+              Panel Técnico ICA [Sincronizado] <span className="text-blue-500">| {user.email.split('@')[0]}</span> 📝
+            </h1>
+            <p className="text-slate-400 text-lg">
+              Registro y control fitosanitario de predios asignados.
+            </p>
+          </motion.div>
+          
+          <TecnicoDashboard />
+        </div>
+      )
+  }
+
   return (
     <div className="space-y-8">
       <motion.div 
@@ -60,17 +95,17 @@ export default function Dashboard() {
         {user.role === 'admin' && (
           <DashboardCard
             title="Aprobaciones Pendientes"
-            value="3"
+            value={pendingCount.toString()}
             icon={<ShieldAlert className="w-8 h-8 text-amber-500" />}
             color="bg-amber-500/10 border-amber-500/20"
             delay={0.1}
           />
         )}
         
-        {user.role === 'tecnico' && (
+        {(user.role === 'tecnico' || user.role === 'TECNICO') && (
           <DashboardCard
             title="Inspecciones Asignadas"
-            value="8"
+            value="0"
             icon={<FileCheck className="w-8 h-8 text-blue-500" />}
             color="bg-blue-500/10 border-blue-500/20"
             delay={0.1}

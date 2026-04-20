@@ -14,7 +14,8 @@ const getSiembrasController = async (req, res) => {
     try {
         const userId = req.user.id
         const role = req.user.role
-        const result = await listSiembrasService(userId, role)
+        const { id_lote } = req.query
+        const result = await listSiembrasService(userId, role, id_lote)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({ error: error.message })

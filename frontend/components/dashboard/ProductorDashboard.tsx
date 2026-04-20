@@ -64,16 +64,8 @@ export default function ProductorDashboard() {
     if (user) fetchData()
   }, [user])
 
-  const handleAgendar = async (idLugar: number, nombreLugar: string) => {
-    try {
-      const res = await api.post("/inspecciones/agendar", {
-        id_lugar_produccion: idLugar,
-        fecha_sugerida: new Date(Date.now() + 86400000 * 3).toISOString() // +3 días
-      });
-      alert(`✅ Inspección agendada para ${nombreLugar}.\nTécnico asignado: ${res.data.tecnico}`);
-    } catch (error: any) {
-      alert(error.response?.data?.error || "Error al agendar inspección");
-    }
+  const handleAgendar = (idLugar: number) => {
+    window.location.href = `/dashboard/inspecciones/agendar?id_lugar_produccion=${idLugar}`;
   }
 
   const container = {
@@ -175,11 +167,16 @@ export default function ProductorDashboard() {
                           variant="outline"
                           size="sm"
                           className="text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                          onClick={() => handleAgendar(predio.id_lugar_produccion, predio.nombre_lugar)}
+                          onClick={() => handleAgendar(predio.id_lugar_produccion)}
                         >
                           <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Agendar Inspección
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-slate-500 hover:text-emerald-400">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-slate-500 hover:text-emerald-400"
+                          onClick={() => handleAgendar(predio.id_lugar_produccion)}
+                        >
                           <ArrowRight className="w-5 h-5" />
                         </Button>
                       </div>
@@ -195,34 +192,74 @@ export default function ProductorDashboard() {
           </div>
         </div>
 
-        {/* Panel Lateral: Siembras Recientes */}
+        {/* Panel Lateral: Estado de Lotes y Siembras REAL */}
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white">Lotes y Siembras</h2>
-          <div className="space-y-4">
-            {siembras.slice(0, 4).map((siembra) => (
-              <Card key={siembra.id_siembra} className="bg-slate-900/30 border-slate-800/50">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                    <Sprout className="w-5 h-5 text-teal-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
-                      {siembra.variedad?.nombre_variedad || 'Cultivo Nuevo'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(siembra.fecha_siembra).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-teal-500">{siembra.cantidad_plantas}</p>
-                    <p className="text-[10px] text-slate-600 uppercase">Plantas</p>
-                  </div>
-                </CardContent>
-              </Card>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Sprout className="w-5 h-5 text-teal-400" />
+            Lotes y Producción
+          </h2>
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            {predios.map((predio) => (
+              predio.lote?.map((l) => {
+                const siembraActiva = siembras.find(s => s.id_lote === l.id_lote);
+                
+                return (
+                  <Card key={l.id_lote} className={`bg-slate-900/30 border-slate-800/50 transition-all ${!siembraActiva && l.estado === 'disponible' ? 'border-emerald-500/20' : ''}`}>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        siembraActiva ? 'bg-teal-500/10' : 
+                        l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-slate-800'
+                      }`}>
+                        <Sprout className={`w-5 h-5 ${
+                          siembraActiva ? 'text-teal-500' : 
+                          l.estado === 'disponible' ? 'text-emerald-500' : 'text-slate-500'
+                        }`} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-white truncate">
+                            {l.nombre_lote}
+                          </p>
+                          {!siembraActiva && (
+                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'
+                            }`}>
+                              {l.estado === 'disponible' ? 'Disponible' : 'Inactivo'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 italic">
+                          {predio.nombre_lugar}
+                        </p>
+                        {siembraActiva ? (
+                          <p className="text-xs font-medium text-teal-500 mt-1">
+                            🌱 {siembraActiva.variedad?.nombre_variedad || 'En cultivo'}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-600 mt-1">
+                            {l.estado === 'disponible' ? 'Listo para nueva siembra' : 'Finalizado - Inactivo'}
+                          </p>
+                        )}
+                      </div>
+
+                      {siembraActiva && (
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-teal-500">{siembraActiva.cantidad_plantas}</p>
+                          <p className="text-[10px] text-slate-600 uppercase">Plantas</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
             ))}
-            <Button variant="ghost" className="w-full text-slate-400 hover:text-white text-sm">
-              Ver todas las siembras <ExternalLink className="w-3.5 h-3.5 ml-2" />
-            </Button>
+            
+            {predios.every(p => !p.lote || p.lote.length === 0) && (
+              <div className="text-center py-10 opacity-50">
+                <p className="text-xs text-slate-500 italic">No hay lotes configurados</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -43,12 +43,17 @@ app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
 
         let query = supabase.from('lugar_produccion').select('*, lote(*)');
 
-        if (role !== 'ADMIN_ICA' && role !== 'admin') {
-             const producerId = Number(id_usuario);
-             if (isNaN(producerId)) {
-                 return res.json([]); // Si no hay ID válido, devolvemos vacío en lugar de error 400
-             }
+        const userRole = role?.toLowerCase();
+        const producerId = Number(id_usuario);
+
+        // LÓGICA DE PRIVACIDAD:
+        // 1. Administradores y Técnicos ven todo (para poder gestionar agendamientos).
+        // 2. Productores solo ven lo suyo.
+        if (userRole === 'productor') {
+            console.log(`🔐 Privacidad Activa (Productor): Filtrando por ID ${producerId}`);
             query = query.eq('productor_id', producerId);
+        } else {
+            console.log(`🔓 Acceso de Gestión (Rol: ${userRole}): Viendo todos los predios`);
         }
 
         const { data, error } = await query;
@@ -95,9 +100,9 @@ app.post('/lotes', authenticateInternal, async (req, res) => {
         const { data, error } = await supabase
             .from('lote')
             .insert([{ 
-                nombre_lote, 
-                area: area_m2, 
-                id_lugar_produccion,
+                nombre_lote: nombre_lote, 
+                area: area_m2, // Usando el nombre de columna correcto 'area'
+                id_lugar_produccion: id_lugar_produccion,
                 estado: 'disponible'
             }])
             .select();
