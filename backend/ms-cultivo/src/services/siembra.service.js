@@ -19,7 +19,30 @@ const registerSiembraService = async (siembraData, userId) => {
 }
 
 const listSiembrasService = async (userId, role, id_lote = null) => {
-    return await getSiembras(userId, role, id_lote)
+    let authorizedLoteIds = null;
+
+    // 🛡️ ORQUESTACIÓN: Si es productor, pedimos sus lotes a MS-PREDIOS para filtrar localmente
+    if (role?.toLowerCase() === 'productor' && userId) {
+        try {
+            const prediosUrl = process.env.PREDIOS_SERVICE_URL || 'http://ms-predios:4001';
+            const res = await fetch(`${prediosUrl}/lugares-produccion`, {
+                headers: { 'x-user-id': userId, 'x-user-role': role }
+            });
+            
+            if (res.ok) {
+                const predios = await res.json();
+                authorizedLoteIds = predios.flatMap(p => p.lote?.map(l => l.id_lote) || []);
+                
+                // Si el productor no tiene lotes, no tiene siembras propias que ver
+                if (authorizedLoteIds.length === 0) return [];
+            }
+        } catch (error) {
+            console.error('⚠️ MS-CULTIVO: Error de conexión con MS-PREDIOS:', error.message);
+            return []; // Por seguridad, si no podemos validar, no mostramos nada
+        }
+    }
+
+    return await getSiembras(userId, role, id_lote, authorizedLoteIds)
 }
 
 const finishSiembraService = async (id, userId, fechaFin = new Date().toISOString().split('T')[0]) => {

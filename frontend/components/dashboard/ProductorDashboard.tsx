@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Plus,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Maximize2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,8 +22,10 @@ import { useUserStore } from "@/lib/store"
 interface Predio {
   id_lugar_produccion: number
   nombre_lugar: string
-  area_total_m2: number
+  area_total: number
   numero_predial: string
+  nombre_predio: string
+  created_at: string
   lote?: any[]
 }
 
@@ -43,21 +46,29 @@ export default function ProductorDashboard() {
   const [inspecciones, setInspecciones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const fetchPredios = async () => {
+    try {
+      setLoading(true)
+      // Añadimos un timestamp para evitar cache del navegador
+      const res = await api.get(`/predios/lugares-produccion?t=${Date.now()}`)
+      setPredios(res.data)
+    } catch (error) {
+      console.error("Error fetching predios:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [prediosRes, siembrasRes, inspRes] = await Promise.all([
-          api.get("/predios/lugares-produccion"),
-          api.get("/cultivos/siembras"),
-          api.get("/inspecciones/reporte")
+        await Promise.all([
+          fetchPredios(),
+          api.get("/cultivos/siembras").then(res => setSiembras(res.data)),
+          api.get("/inspecciones/reporte").then(res => setInspecciones(res.data))
         ])
-        setPredios(prediosRes.data)
-        setSiembras(siembrasRes.data)
-        setInspecciones(inspRes.data)
       } catch (error) {
         console.error("Error cargando datos del dashboard:", error)
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -83,6 +94,22 @@ export default function ProductorDashboard() {
     show: { opacity: 1, y: 0 }
   }
 
+  const handleUpdateLugar = (id: number, newName: string) => {
+    setPredios(prev => prev.map(p =>
+      p.id_lugar_produccion === id ? { ...p, nombre_lugar: newName } : p
+    ))
+  }
+
+  const handleDeleteLugar = (id: number) => {
+    if (confirm("¿Estás seguro de eliminar este lugar de producción?")) {
+      api.delete(`/predios/lugares-produccion/${id}`)
+        .then(() => {
+          setPredios(prev => prev.filter(p => p.id_lugar_produccion !== id))
+        })
+        .catch(err => console.error("Error eliminando:", err))
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -90,6 +117,13 @@ export default function ProductorDashboard() {
       </div>
     )
   }
+
+  // 📊 Cálculos Dinámicos de Tendencias
+  const ahora = new Date();
+  const prediosEsteMes = predios.filter((p: any) => {
+    const fecha = new Date(p.created_at || ahora); // Fallback al hoy si no hay fecha
+    return fecha.getMonth() === ahora.getMonth() && fecha.getFullYear() === ahora.getFullYear();
+  }).length;
 
   return (
     <motion.div
@@ -104,7 +138,7 @@ export default function ProductorDashboard() {
           title="Lugares de Producción"
           value={predios.length.toString()}
           icon={<MapPin className="w-6 h-6 text-emerald-500" />}
-          trend="+1 este mes"
+          trend={`+${prediosEsteMes} este mes`}
           color="emerald"
         />
         <StatCard
@@ -138,52 +172,42 @@ export default function ProductorDashboard() {
               <Leaf className="w-6 h-6 text-emerald-500" />
               Lugares de Producción
             </h2>
-            <Button variant="outline" className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10">
-              <Plus className="w-4 h-4 mr-2" /> Nuevo Lugar
-            </Button>
           </div>
 
-          <div className="grid gap-4">
-            {predios.length > 0 ? predios.map((predio) => (
-              <motion.div key={predio.id_lugar_produccion} variants={item}>
-                <Card className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-semibold text-white group-hover:text-emerald-400 transition-colors">
-                          {predio.nombre_lugar}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <IdCard className="w-3.5 h-3.5" /> Predio: {predio.numero_predial}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="w-3.5 h-3.5" /> {predio.area_total_m2} m²
-                          </span>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+            {predios.length > 0 ? predios.slice(0, 5).map((predio) => (
+              <Card key={predio.id_lugar_produccion} className="bg-slate-900/40 border-slate-800/50 hover:border-emerald-500/30 transition-all group overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-slate-800/50 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                        <Sprout className="text-emerald-500 w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold text-white truncate">{predio.nombre_lugar}</h3>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                          <MapPin className="w-3 h-3 text-emerald-500" />
+                          <span className="truncate">{user?.nombre_predio || "Principal"}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                          onClick={() => handleAgendar(predio.id_lugar_produccion)}
-                        >
-                          <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Agendar Inspección
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-slate-500 hover:text-emerald-400"
-                          onClick={() => handleAgendar(predio.id_lugar_produccion)}
-                        >
-                          <ArrowRight className="w-5 h-5" />
-                        </Button>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+
+                    <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 px-4 border-x border-slate-800">
+                      <Maximize2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>{predio.area_total} m²</span>
+                    </div>
+
+                    <Button 
+                      size="sm"
+                      className="bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-slate-700 transition-all font-bold h-9 px-4 shrink-0 rounded-xl"
+                      onClick={() => handleAgendar(predio.id_lugar_produccion)}
+                    >
+                      <ClipboardCheck className="w-4 h-4 mr-2" />
+                      Agendar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )) : (
               <div className="text-center py-12 bg-slate-900/20 rounded-3xl border border-dashed border-slate-800">
                 <p className="text-slate-500">No tienes lugares de producción registrados aún.</p>
@@ -202,29 +226,26 @@ export default function ProductorDashboard() {
             {predios.map((predio) => (
               predio.lote?.map((l) => {
                 const siembraActiva = siembras.find(s => s.id_lote === l.id_lote);
-                
+
                 return (
                   <Card key={l.id_lote} className={`bg-slate-900/30 border-slate-800/50 transition-all ${!siembraActiva && l.estado === 'disponible' ? 'border-emerald-500/20' : ''}`}>
                     <CardContent className="p-4 flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        siembraActiva ? 'bg-teal-500/10' : 
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-teal-500/10' :
                         l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-slate-800'
-                      }`}>
-                        <Sprout className={`w-5 h-5 ${
-                          siembraActiva ? 'text-teal-500' : 
+                        }`}>
+                        <Sprout className={`w-5 h-5 ${siembraActiva ? 'text-teal-500' :
                           l.estado === 'disponible' ? 'text-emerald-500' : 'text-slate-500'
-                        }`} />
+                          }`} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold text-white truncate">
                             {l.nombre_lote}
                           </p>
                           {!siembraActiva && (
-                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'
-                            }`}>
+                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'
+                              }`}>
                               {l.estado === 'disponible' ? 'Disponible' : 'Inactivo'}
                             </span>
                           )}
@@ -254,7 +275,7 @@ export default function ProductorDashboard() {
                 );
               })
             ))}
-            
+
             {predios.every(p => !p.lote || p.lote.length === 0) && (
               <div className="text-center py-10 opacity-50">
                 <p className="text-xs text-slate-500 italic">No hay lotes configurados</p>

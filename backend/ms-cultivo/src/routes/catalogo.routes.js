@@ -1,10 +1,14 @@
 const express = require('express')
 const router = express.Router()
-const { getEspecies, getVariedades } = require('../controllers/catalogo.controller')
+const { getEspecies, addEspecie, getVariedades, addVariedad } = require('../controllers/catalogo.controller')
 const { verifyToken } = require('../middleware/auth.middleware')
 
-// Protegemos las rutas para asegurar que solo usuarios autenticados consulten catálogos
+// Consultas
 router.get('/especies', verifyToken, getEspecies)
 router.get('/variedades', verifyToken, getVariedades)
+
+// Creación manual
+router.post('/especies', verifyToken, addEspecie)
+router.post('/variedades', verifyToken, addVariedad)
 
 module.exports = router

@@ -37,9 +37,12 @@ export const useAuth = () => {
 
           const userData = {
             id: data.id,                     // UUID de Supabase
-            id_usuario: data.id_usuario || 0, // ID Numérico interno (clave para el dashboard)
+            id_usuario: data.id_usuario || 0, // ID Numérico interno
             email: data.email,
-            role: normalizedRole
+            nombre: data.nombre || data.user_metadata?.nombre || 'Usuario',
+            role: normalizedRole,
+            nombre_predio: data.nombre_predio || '',
+            numero_predial: data.numero_predial || ''
           };
 
           setSession(userData, localToken);

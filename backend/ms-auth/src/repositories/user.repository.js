@@ -25,7 +25,7 @@ const createUser = async (userData) => {
 const findUserByEmail = async (email) => {
     const { data, error } = await supabase
         .from('usuario')
-        .select('*, rol(*)') // Include role info
+        .select('*, rol(*), region(*), usuario_predio(*)') // Incluimos info de la finca y región
         .eq('correo', email)
         .single()
 
@@ -70,7 +70,9 @@ const findUserById = async (id) => {
         query = query.eq('id_usuario', id);
     }
 
-    const { data, error } = await query.single();
+    const { data, error } = await query
+        .select('*, rol(*), region(*), usuario_predio(*)')
+        .single();
 
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
     return data;

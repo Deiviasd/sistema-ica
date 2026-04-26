@@ -21,4 +21,31 @@ const listVariedadesByEspecie = async (idEspecie) => {
     return data
 }
 
-module.exports = { listEspecies, listVariedadesByEspecie }
+const createEspecie = async (nombreComun, ciclo) => {
+    const { data, error } = await supabase
+        .from('especie')
+        .insert([{ nombre_comun: nombreComun, ciclo }])
+        .select()
+        .single()
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+const createVariedad = async (idEspecie, nombreVariedad) => {
+    const { data, error } = await supabase
+        .from('variedad')
+        .insert([{ id_especie: idEspecie, nombre_variedad: nombreVariedad }])
+        .select()
+        .single()
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+module.exports = { 
+    listEspecies, 
+    listVariedadesByEspecie,
+    createEspecie,
+    createVariedad 
+}

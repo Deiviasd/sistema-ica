@@ -34,19 +34,19 @@ export default function Dashboard() {
   if (user.role === 'productor') {
     return (
       <div className="space-y-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="mb-2"
         >
           <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
-            {getGreeting()}, <span className="text-emerald-500">{user.email.split('@')[0]}</span> 🌿
+            {getGreeting()}, <span className="text-emerald-500">{user.nombre}</span> 🌿
           </h1>
           <p className="text-slate-400 text-lg">
             Aquí tienes el resumen de tu producción fitosanitaria.
           </p>
         </motion.div>
-        
+
         <ProductorDashboard />
       </div>
     )
@@ -55,35 +55,35 @@ export default function Dashboard() {
   // Si es técnico, mostramos su dashboard especializado (Case-insensitive check)
   if (user.role?.toLowerCase() === 'tecnico') {
     return (
-        <div className="space-y-4">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="mb-2"
-          >
-            <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
-              Panel Técnico ICA [Sincronizado] <span className="text-blue-500">| {user.email.split('@')[0]}</span> 📝
-            </h1>
-            <p className="text-slate-400 text-lg">
-              Registro y control fitosanitario de predios asignados.
-            </p>
-          </motion.div>
-          
-          <TecnicoDashboard />
-        </div>
-      )
+      <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-2"
+        >
+          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+            Panel Técnico ICA [Sincronizado] <span className="text-blue-500">| {user.nombre}</span> 📝
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Registro y control fitosanitario de predios asignados.
+          </p>
+        </motion.div>
+
+        <TecnicoDashboard />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex mb-8"
       >
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {getGreeting()}, <span className="text-primary">{user.email.split('@')[0]}</span>
+            {getGreeting()}, <span className="text-primary">{user.nombre}</span>
           </h1>
           <p className="text-muted-foreground text-lg">
             Bienvenido a tu panel de control {user.role}.
@@ -101,7 +101,7 @@ export default function Dashboard() {
             delay={0.1}
           />
         )}
-        
+
         {(user.role === 'tecnico' || user.role === 'TECNICO') && (
           <DashboardCard
             title="Inspecciones Asignadas"

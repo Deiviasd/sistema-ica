@@ -55,18 +55,34 @@ export default function SiembrasPage() {
   const [variedades, setVariedades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
-  const [showRegisterModal, setShowRegisterModal] = useState(false) // Nuevo Lote + Siembra
-  const [showAssignModal, setShowAssignModal] = useState(false)     // Siembra en Lote Existente
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [showAssignModal, setShowAssignModal] = useState(false)
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null)
   const [selectedSiembra, setSelectedSiembra] = useState<Siembra | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   
+  const [isManualEspecie, setIsManualEspecie] = useState(false)
+  const [isManualVariedad, setIsManualVariedad] = useState(false)
+
   const [formData, setFormData] = useState({
     id_lugar_produccion: "", nombre_lote: "", area_lote: "",
     id_especie: "", id_variedad: "",
+    nombre_especie_manual: "", nombre_variedad_manual: "",
+    ciclo_manual: "corto", // Default value
     fecha_siembra: new Date().toISOString().split('T')[0],
     cantidad_plantas: "100"
   })
+
+  const lotesConEstado = useMemo(() => {
+    const allLotes: (Lote & { nombre_lugar: string, siembraActiva?: Siembra })[] = []
+    lugares.forEach(lugar => {
+      lugar.lote?.forEach(lote => {
+        const siembraActiva = siembras.find(s => s.id_lote === lote.id_lote && !s.fecha_fin)
+        allLotes.push({ ...lote, nombre_lugar: lugar.nombre_lugar, siembraActiva })
+      })
+    })
+    return allLotes
+  }, [lugares, siembras])
 
   useEffect(() => {
     fetchInitialData()
@@ -87,39 +103,58 @@ export default function SiembrasPage() {
     }
   }
 
-  // Mapeo dinámico: Unimos Lotes con sus Siembras Activas
-  const lotesConEstado = useMemo(() => {
-    const allLotes: any[] = []
-    lugares.forEach(lugar => {
-      lugar.lote?.forEach(l => {
-        const activeSiembra = siembras.find(s => s.id_lote === l.id_lote && !s.fecha_fin)
-        allLotes.push({
-          ...l,
-          nombre_lugar: lugar.nombre_lugar,
-          siembraActiva: activeSiembra
-        })
-      })
-    })
-    return allLotes
-  }, [lugares, siembras])
+  const toTitleCase = (str: string) => {
+    return str.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  }
 
   useEffect(() => {
-    if (formData.id_especie) {
+    if (formData.id_especie && formData.id_especie !== 'manual') {
       api.get(`/cultivos/catalogos/variedades?id_especie=${formData.id_especie}`).then(res => setVariedades(res.data))
+    } else {
+      setVariedades([])
     }
   }, [formData.id_especie])
+
+  const resolveIds = async () => {
+    let finalEspecieId = formData.id_especie;
+    let finalVariedadId = formData.id_variedad;
+
+    // 1. Resolver Especie Manual
+    if (isManualEspecie) {
+      const res = await api.post("/cultivos/catalogos/especies", { 
+        nombre_comun: toTitleCase(formData.nombre_especie_manual),
+        ciclo: formData.ciclo_manual
+      });
+      finalEspecieId = res.data.id_especie;
+    }
+
+    // 2. Resolver Variedad Manual
+    if (isManualVariedad) {
+      const res = await api.post("/cultivos/catalogos/variedades", { 
+        id_especie: Number(finalEspecieId),
+        nombre_variedad: toTitleCase(formData.nombre_variedad_manual) 
+      });
+      finalVariedadId = res.data.id_variedad;
+    }
+
+    return { finalEspecieId, finalVariedadId };
+  }
 
   const handleRegisterNew = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
     try {
+      const { finalVariedadId } = await resolveIds();
+      
       const loteRes = await api.post("/predios/lotes", {
         nombre_lote: formData.nombre_lote, area_m2: Number(formData.area_lote), id_lugar_produccion: Number(formData.id_lugar_produccion)
       })
       await api.post("/cultivos/siembras", {
-        fecha_siembra: formData.fecha_siembra, id_variedad: Number(formData.id_variedad), cantidad_plantas: Number(formData.cantidad_plantas), id_lote: loteRes.data.id_lote
+        fecha_siembra: formData.fecha_siembra, id_variedad: Number(finalVariedadId), cantidad_plantas: Number(formData.cantidad_plantas), id_lote: loteRes.data.id_lote
       })
-      setShowRegisterModal(false); await fetchInitialData()
+      resetAndClose();
+    } catch (err) {
+      alert("Error al registrar: " + (err as any).response?.data?.error || "Error desconocido");
     } finally { setIsSaving(false) }
   }
 
@@ -128,11 +163,31 @@ export default function SiembrasPage() {
     if (!selectedLote) return
     setIsSaving(true)
     try {
+      const { finalVariedadId } = await resolveIds();
+      
       await api.post("/cultivos/siembras", {
-        fecha_siembra: formData.fecha_siembra, id_variedad: Number(formData.id_variedad), cantidad_plantas: Number(formData.cantidad_plantas), id_lote: selectedLote.id_lote
+        fecha_siembra: formData.fecha_siembra, id_variedad: Number(finalVariedadId), cantidad_plantas: Number(formData.cantidad_plantas), id_lote: selectedLote.id_lote
       })
-      setShowAssignModal(false); await fetchInitialData()
+      resetAndClose();
+    } catch (err) {
+      alert("Error al registrar siembra: " + (err as any).response?.data?.error || "Error desconocido");
     } finally { setIsSaving(false) }
+  }
+
+  const resetAndClose = async () => {
+    setShowRegisterModal(false)
+    setShowAssignModal(false)
+    setIsManualEspecie(false)
+    setIsManualVariedad(false)
+    setFormData({
+      id_lugar_produccion: "", nombre_lote: "", area_lote: "",
+      id_especie: "", id_variedad: "",
+      nombre_especie_manual: "", nombre_variedad_manual: "",
+      ciclo_manual: "corto",
+      fecha_siembra: new Date().toISOString().split('T')[0],
+      cantidad_plantas: "100"
+    })
+    await fetchInitialData()
   }
 
   const handleFinalizarCiclo = async (id: number) => {
@@ -207,7 +262,6 @@ export default function SiembrasPage() {
                   </div>
                 )}
               </CardContent>
-              {/* Overlay de Clic para el usuario */}
               {lote.siembraActiva && (
                 <div className="absolute bottom-2 right-4 text-[9px] text-slate-600 font-black uppercase italic opacity-0 group-hover:opacity-100 transition-opacity">Doble Clic para detalles</div>
               )}
@@ -216,7 +270,7 @@ export default function SiembrasPage() {
         ))}
       </div>
 
-      {/* MODAL DE DETALLE (Para finalizar ciclo) */}
+      {/* MODAL DE DETALLE */}
       <AnimatePresence>
         {selectedSiembra && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -246,24 +300,80 @@ export default function SiembrasPage() {
         {showAssignModal && selectedLote && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 text-left">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/95 backdrop-blur-md" onClick={() => !isSaving && setShowAssignModal(false)} />
-            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
+            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-[3rem] p-10 overflow-y-auto max-h-[90vh]">
                 <h2 className="text-3xl font-black text-white italic mb-2 tracking-tighter uppercase">ASIGNAR CULTIVO</h2>
                 <p className="text-teal-500 font-bold text-[10px] uppercase tracking-[0.2em] mb-10">Reutilización de Lote: {selectedLote.nombre_lote}</p>
                 <form onSubmit={handleAssignToExisting} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select required className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 transition-all text-sm" value={formData.id_especie} onChange={(e) => setFormData({...formData, id_especie: e.target.value, id_variedad: ""})}>
-                        <option value="">Especie...</option>
-                        {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
-                    </select>
-                    <select required disabled={!formData.id_especie} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 transition-all text-sm disabled:opacity-20" value={formData.id_variedad} onChange={(e) => setFormData({...formData, id_variedad: e.target.value})}>
-                        <option value="">Variedad...</option>
-                        {variedades.map(v => <option key={v.id_variedad} value={v.id_variedad}>{v.nombre_variedad}</option>)}
-                    </select>
+                    {/* Especie */}
+                    {!isManualEspecie ? (
+                      <select required className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 transition-all text-sm" 
+                        value={formData.id_especie} 
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualEspecie(true);
+                            setIsManualVariedad(true); // Si la especie es nueva, la variedad también debe serlo
+                            setFormData({...formData, id_especie: 'manual', id_variedad: 'manual'})
+                          } else {
+                            setFormData({...formData, id_especie: e.target.value, id_variedad: ""})
+                          }
+                        }}>
+                          <option value="">Especie...</option>
+                          {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
+                          <option value="manual" className="text-teal-500 font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input required className="w-full bg-slate-950 border-2 border-teal-500/50 p-4 rounded-2xl text-white font-bold outline-none text-sm placeholder:text-slate-700" 
+                            placeholder="Nombre Nueva Especie"
+                            value={formData.nombre_especie_manual}
+                            onChange={(e) => setFormData({...formData, nombre_especie_manual: e.target.value})}
+                          />
+                          <button type="button" onClick={() => {setIsManualEspecie(false); setFormData({...formData, id_especie: ""})}} className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full"><X className="w-3 h-3"/></button>
+                        </div>
+                        <select required className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white text-[10px] font-black uppercase outline-none focus:border-teal-500"
+                          value={formData.ciclo_manual}
+                          onChange={(e) => setFormData({...formData, ciclo_manual: e.target.value})}>
+                          <option value="corto">Ciclo Corto</option>
+                          <option value="mediano">Ciclo Mediano</option>
+                          <option value="largo">Ciclo Largo</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Variedad */}
+                    {!isManualVariedad ? (
+                      <select required disabled={!formData.id_especie || formData.id_especie === 'manual'} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 transition-all text-sm disabled:opacity-20" 
+                        value={formData.id_variedad} 
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualVariedad(true);
+                            setFormData({...formData, id_variedad: 'manual'})
+                          } else {
+                            setFormData({...formData, id_variedad: e.target.value})
+                          }
+                        }}>
+                          <option value="">Variedad...</option>
+                          {variedades.map(v => <option key={v.id_variedad} value={v.id_variedad}>{v.nombre_variedad}</option>)}
+                          <option value="manual" className="text-teal-500 font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                    ) : (
+                      <div className="relative">
+                        <input required className="w-full bg-slate-950 border-2 border-teal-500/50 p-4 rounded-2xl text-white font-bold outline-none text-sm placeholder:text-slate-700" 
+                          placeholder="Nombre Nueva Variedad"
+                          value={formData.nombre_variedad_manual}
+                          onChange={(e) => setFormData({...formData, nombre_variedad_manual: e.target.value})}
+                        />
+                        <button type="button" onClick={() => {setIsManualVariedad(false); setFormData({...formData, id_variedad: ""})}} className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full"><X className="w-3 h-3"/></button>
+                      </div>
+                    )}
+
                     <input required type="date" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-mono text-sm focus:border-teal-500 outline-none" value={formData.fecha_siembra} onChange={(e) => setFormData({...formData, fecha_siembra: e.target.value})} />
                     <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500 outline-none" placeholder="Población" value={formData.cantidad_plantas} onChange={(e) => setFormData({...formData, cantidad_plantas: e.target.value})} />
                   </div>
                   <Button disabled={isSaving} className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all">
-                     {isSaving ? "REACTIVANDO..." : "REACTIVAR LOTE CON SIEMBRA"}
+                     {isSaving ? "PROCESANDO..." : "REACTIVAR LOTE CON SIEMBRA"}
                   </Button>
                 </form>
             </motion.div>
@@ -288,19 +398,75 @@ export default function SiembrasPage() {
                     <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500 outline-none" placeholder="Área (m²)" value={formData.area_lote} onChange={(e) => setFormData({...formData, area_lote: e.target.value})} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                    <select required className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 text-sm" value={formData.id_especie} onChange={(e) => setFormData({...formData, id_especie: e.target.value, id_variedad: ""})}>
-                        <option value="">Especie...</option>
-                        {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
-                    </select>
-                    <select required disabled={!formData.id_especie} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 disabled:opacity-20 text-sm" value={formData.id_variedad} onChange={(e) => setFormData({...formData, id_variedad: e.target.value})}>
-                        <option value="">Variedad...</option>
-                        {variedades.map(v => <option key={v.id_variedad} value={v.id_variedad}>{v.nombre_variedad}</option>)}
-                    </select>
+                    {/* Especie */}
+                    {!isManualEspecie ? (
+                      <select required className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 text-sm" 
+                        value={formData.id_especie} 
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualEspecie(true);
+                            setIsManualVariedad(true);
+                            setFormData({...formData, id_especie: 'manual', id_variedad: 'manual'})
+                          } else {
+                            setFormData({...formData, id_especie: e.target.value, id_variedad: ""})
+                          }
+                        }}>
+                          <option value="">Especie...</option>
+                          {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
+                          <option value="manual" className="text-teal-500 font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input required className="w-full bg-slate-950 border-2 border-teal-500/50 p-4 rounded-2xl text-white font-bold outline-none text-sm placeholder:text-slate-700" 
+                            placeholder="Nombre Nueva Especie"
+                            value={formData.nombre_especie_manual}
+                            onChange={(e) => setFormData({...formData, nombre_especie_manual: e.target.value})}
+                          />
+                          <button type="button" onClick={() => {setIsManualEspecie(false); setFormData({...formData, id_especie: ""})}} className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full"><X className="w-3 h-3"/></button>
+                        </div>
+                        <select required className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white text-[10px] font-black uppercase outline-none focus:border-teal-500"
+                          value={formData.ciclo_manual}
+                          onChange={(e) => setFormData({...formData, ciclo_manual: e.target.value})}>
+                          <option value="corto">Ciclo Corto</option>
+                          <option value="mediano">Ciclo Mediano</option>
+                          <option value="largo">Ciclo Largo</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Variedad */}
+                    {!isManualVariedad ? (
+                      <select required disabled={!formData.id_especie || formData.id_especie === 'manual'} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold outline-none focus:border-teal-500 disabled:opacity-20 text-sm" 
+                        value={formData.id_variedad} 
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualVariedad(true);
+                            setFormData({...formData, id_variedad: 'manual'})
+                          } else {
+                            setFormData({...formData, id_variedad: e.target.value})
+                          }
+                        }}>
+                          <option value="">Variedad...</option>
+                          {variedades.map(v => <option key={v.id_variedad} value={v.id_variedad}>{v.nombre_variedad}</option>)}
+                          <option value="manual" className="text-teal-500 font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                    ) : (
+                      <div className="relative">
+                        <input required className="w-full bg-slate-950 border-2 border-teal-500/50 p-4 rounded-2xl text-white font-bold outline-none text-sm placeholder:text-slate-700" 
+                          placeholder="Nombre Nueva Variedad"
+                          value={formData.nombre_variedad_manual}
+                          onChange={(e) => setFormData({...formData, nombre_variedad_manual: e.target.value})}
+                        />
+                        <button type="button" onClick={() => {setIsManualVariedad(false); setFormData({...formData, id_variedad: ""})}} className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full"><X className="w-3 h-3"/></button>
+                      </div>
+                    )}
+
                     <input required type="date" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-mono text-sm focus:border-teal-500" value={formData.fecha_siembra} onChange={(e) => setFormData({...formData, fecha_siembra: e.target.value})} />
                     <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500" placeholder="Población" value={formData.cantidad_plantas} onChange={(e) => setFormData({...formData, cantidad_plantas: e.target.value})} />
                   </div>
                   <Button disabled={isSaving} className="w-full h-16 bg-teal-600 hover:bg-teal-500 text-white font-black text-xl rounded-2xl">
-                    REGISTRAR LOTE Y SIEMBRA
+                    {isSaving ? "GUARDANDO CATÁLOGOS..." : "REGISTRAR LOTE Y SIEMBRA"}
                   </Button>
                 </form>
             </motion.div>

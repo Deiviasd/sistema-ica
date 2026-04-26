@@ -29,4 +29,45 @@ const listAllPlagas = async () => {
     return data
 }
 
-module.exports = { getPlagasByEspecie, listAllPlagas }
+const upsertPlaga = async (nombre, idEspecie) => {
+    // 1. Intentar buscar si la plaga ya existe por nombre (insensible a mayúsculas)
+    const { data: existingPlaga, error: searchError } = await supabase
+        .from('plaga')
+        .select('id_plaga')
+        .ilike('nombre_comun', nombre)
+        .maybeSingle()
+
+    if (searchError) throw new Error(searchError.message)
+
+    let idPlaga
+
+    if (existingPlaga) {
+        idPlaga = existingPlaga.id_plaga
+    } else {
+        // 2. Si no existe, crearla
+        const { data: newPlaga, error: insertError } = await supabase
+            .from('plaga')
+            .insert([{ 
+                nombre_comun: nombre, 
+                nombre_cientifico: `${nombre} (Pendiente identificación)` 
+            }])
+            .select()
+            .single()
+        
+        if (insertError) throw new Error(insertError.message)
+        idPlaga = newPlaga.id_plaga
+    }
+
+    // 3. Asegurar la relación con la especie en plaga_especie
+    const { error: relError } = await supabase
+        .from('plaga_especie')
+        .upsert([{ id_plaga: idPlaga, id_especie: idEspecie }], {
+            onConflict: 'id_plaga,id_especie'
+        })
+
+    if (relError) throw new Error(relError.message)
+
+    return idPlaga
+}
+
+module.exports = { getPlagasByEspecie, listAllPlagas, upsertPlaga }

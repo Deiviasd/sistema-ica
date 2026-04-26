@@ -143,6 +143,9 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
                     id_usuario: req.user.id_usuario || req.user.id, // Para MS-AUTH/PREDIOS
                     sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
                     email: req.user.email,
+                    nombre: req.user.nombre, // ✨ Mantenemos el nombre en el intercambio
+                    nombre_predio: req.user.nombre_predio, // ✨ Nueva info de la finca
+                    numero_predial: req.user.numero_predial, // ✨ Criterio oficial del predio
                     role: req.user.app_metadata?.role || req.user.role || 'authenticated',
                     aud: 'authenticated',
                     app_metadata: req.user.app_metadata || {}
@@ -155,6 +158,7 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
                 // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
                 proxyReq.setHeader('x-user-id', payload.id_usuario);
                 proxyReq.setHeader('x-user-role', payload.role);
+                proxyReq.setHeader('x-user-predio-id', payload.numero_predial || '');
             }
 
             if (req.body) {

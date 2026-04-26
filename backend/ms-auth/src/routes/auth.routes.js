@@ -7,16 +7,12 @@ const {
     getPendingController, 
     updateStatusController,
     getUserController,
-    getUsersByRoleController
+    getUsersByRoleController,
+    getProfileController
 } = require('../controllers/auth.controller')
 const { verifyToken, requireAdmin } = require('../middleware/auth.middleware')
 
-router.get('/profile', verifyToken, (req, res) => {
-    res.json({
-        message: 'Ruta protegida 🔐',
-        user: req.user
-    })
-})
+router.get('/profile', verifyToken, getProfileController)
 router.post('/register', registerController)
 router.post('/login', loginController)
 

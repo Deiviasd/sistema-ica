@@ -57,8 +57,12 @@ app.get('/lugares-produccion', authenticateInternal, async (req, res) => {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error Supabase /lugares-produccion:', error);
+            throw error;
+        }
         
+        console.log(`✅ [MS-PREDIOS] Se encontraron ${data?.length || 0} lugares.`);
         res.json(data || []);
     } catch (error) {
         console.error('❌ Error en MS-PREDIOS:', error.message);
@@ -88,6 +92,48 @@ app.post('/lugares-produccion', authenticateInternal, async (req, res) => {
         res.status(201).json(data[0]);
     } catch (error) {
         res.status(403).json({ error: error.message });
+    }
+});
+
+// Editar nombre de lugar de producción
+app.put('/lugares-produccion/:id', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id } = req.params;
+        const { nombre_lugar } = req.body;
+        const productor_id = req.user.id_usuario;
+
+        const { data, error } = await supabase
+            .from('lugar_produccion')
+            .update({ nombre_lugar, updated_at: new Date().toISOString() })
+            .eq('id_lugar_produccion', id)
+            .eq('productor_id', productor_id) // Seguridad: Solo el dueño edita
+            .select();
+
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Eliminar lugar de producción
+app.delete('/lugares-produccion/:id', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id } = req.params;
+        const productor_id = req.user.id_usuario;
+
+        const { error } = await supabase
+            .from('lugar_produccion')
+            .delete()
+            .eq('id_lugar_produccion', id)
+            .eq('productor_id', productor_id); // Seguridad: Solo el dueño elimina
+
+        if (error) throw error;
+        res.json({ message: 'Lugar eliminado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

@@ -1,7 +1,9 @@
 const bcrypt = require('bcrypt')
 const { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById, findUsersByRole } = require('../repositories/user.repository')
+const { createRegion } = require('../repositories/catalogo.repository')
 const jwt = require('jsonwebtoken')
 const eventBus = require('./eventBus')
+const { supabase } = require('../config/supabase') // ✨ Centralizado al inicio
 
 const registerService = async (userData) => {
     const { email, password } = userData;
@@ -18,29 +20,52 @@ const registerService = async (userData) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // 📍 1. Si trae datos de ubicación física, creamos la región
+    let finalRegionId = userData.id_region;
+    if (userData.departamento && userData.municipio) {
+        const newRegion = await createRegion({
+            id_region: `LOC-${Date.now()}`, // ID único para la ubicación
+            departamento: userData.departamento,
+            municipio: userData.municipio,
+            vereda: userData.vereda,
+            direccion: userData.direccion
+        });
+        finalRegionId = newRegion.id_region;
+    }
+
     const user = await createUser({
         nombre: userData.nombre,
         documento: userData.documento,
         email,
         password: hashedPassword,
         id_rol: userData.id_rol,
-        id_region: userData.id_region,
+        id_region: finalRegionId,
         id_auth_supabase: userData.id_auth_supabase,
-        estado: 'inactivo' // ⏳ Pendiente de aprobación por Admin ICA
+        estado: 'inactivo'
     })
 
-    // 🏘️ Si es productor y trae número predial, lo asociamos de una vez
+    // 🏘️ 2. Si es productor y trae número predial, lo asociamos con su NOMBRE DE PREDIO
+    console.log(`🔎 [AUTH DEBUG] Evaluando asociación: Rol=${userData.id_rol}, Predial=${userData.numero_predial}`);
+    
     if (userData.id_rol === 'PRODUCTOR' && userData.numero_predial) {
         try {
-            const { supabase } = require('../repositories/user.repository'); // Importamos repo local
-            await supabase.from('usuario_predio').insert([{
+            console.log(`✍️ [AUTH DEBUG] Intentando insertar en usuario_predio para ID: ${user.id_usuario}`);
+            const { data: predioData, error: predioError } = await supabase.from('usuario_predio').insert([{
                 id_usuario: user.id_usuario,
                 numero_predial: parseInt(userData.numero_predial),
-                fecha_asociacion: new Date().toISOString()
-            }]);
-        } catch (predioError) {
-            console.error('⚠️ Error al asociar predio en registro:', predioError.message);
+                nombre_predio: userData.nombre_predio
+            }]).select();
+
+            if (predioError) {
+                console.error('❌ [AUTH DEBUG] Error de Supabase al insertar predio:', predioError.message);
+            } else {
+                console.log('✅ [AUTH DEBUG] Asociación exitosa:', predioData);
+            }
+        } catch (err) {
+            console.error('⚠️ [AUTH DEBUG] Error crítico en catch de asociación:', err.message);
         }
+    } else {
+        console.warn('⚠️ [AUTH DEBUG] No se cumplieron condiciones para asociar predio.');
     }
 
     return {
@@ -79,21 +104,39 @@ const loginService = async ({ email, password }) => {
     }
     const userRole = roleMap[user.id_rol] || 'guest'
 
+    // ✨ Extraemos la información del predio asociado (si existe)
+    const predio = user.usuario_predio && user.usuario_predio.length > 0 
+        ? user.usuario_predio[0] 
+        : null;
+
     const token = jwt.sign(
-        { 
+        {
             sub: user.id_auth_supabase || user.id_usuario,
             id: user.id_usuario, // Gateway compat: "req.user.id"
             email: user.correo,
+            nombre: user.nombre,
+            nombre_predio: predio?.nombre_predio || '', // ✨ Nombre de la finca
+            numero_predial: predio?.numero_predial || '', // ✨ Número predial oficial
             app_metadata: {
                 role: userRole
             },
             id_usuario: user.id_usuario
         },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '24h' }
     )
 
-    return { token, user: { email: user.correo, role: userRole } }
+    return { 
+
+        token, 
+        user: { 
+            email: user.correo, 
+            role: userRole, 
+            nombre: user.nombre,
+            nombre_predio: predio?.nombre_predio || '',
+            numero_predial: predio?.numero_predial || ''
+        } 
+    }
 }
 
 const getPendingUsersService = async () => {

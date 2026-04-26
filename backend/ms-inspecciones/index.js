@@ -60,8 +60,20 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
         const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${insp.productor_id}`, { headers })
             .catch((e) => {
                 console.error('⚠️ MS-AUTH Error:', e.message);
-                return { data: { nombre: 'Productor Desconocido', region: 'Sin Región' } };
+                return { data: { nombre: 'Productor Desconocido', region: null, usuario_predio: [] } };
             });
+
+        const prod = prodRes.data;
+        const region = prod.region;
+        
+        const ubicacionParts = [];
+        if (region?.vereda) ubicacionParts.push(region.vereda);
+        if (region?.municipio) ubicacionParts.push(region.municipio);
+        if (region?.departamento) ubicacionParts.push(region.departamento);
+        
+        const ubicacionFull = ubicacionParts.length > 0 ? ubicacionParts.join(', ') : 'Sin Ubicación';
+
+        const predioOficial = prod.usuario_predio?.[0]?.nombre_predio || 'Finca ICA';
 
         const lotesRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, { headers })
             .catch((e) => {
@@ -69,10 +81,19 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
                 return { data: [] };
             });
 
-        const infoLugar = lotesRes.data.find(p => p.id_lugar_produccion === insp.id_lugar_produccion);
-        const lotes = infoLugar?.lote || [];
+        console.log(`🔎 [MS-INSPECCIONES] Contexto: insp.productor_id=${insp.productor_id}`);
+        console.log(`🔎 [MS-INSPECCIONES] Lugares recibidos: ${lotesRes.data?.length || 0}`);
 
-        const contextoLotes = await Promise.all(lotes.map(async (lote) => {
+        // FILTRAR: Solo los lugares que pertenecen al productor de esta inspección
+        const todosLugares = lotesRes.data.filter(p => {
+            const matches = String(p.productor_id) === String(insp.productor_id);
+            return matches;
+        });
+
+        console.log(`🔎 [MS-INSPECCIONES] Lugares filtrados: ${todosLugares.length}`);
+
+        // Helper: enriquecer un lote con datos de siembra/cultivo
+        const enriquecerLote = async (lote) => {
             const siembraRes = await axios.get(`${CULTIVO_URL}/siembras?id_lote=${lote.id_lote}`, { headers })
                 .catch((e) => {
                     console.error(`⚠️ MS-CULTIVO Error (Lote ${lote.id_lote}):`, e.message);
@@ -83,10 +104,8 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
             let edadCronologica = null;
 
             if (siembra && siembra.fecha_siembra) {
-                const fSiembra = new Date(siembra.fecha_siembra);
-                const hoy = new Date();
-                const diffTime = Math.abs(hoy.getTime() - fSiembra.getTime());
-                edadCronologica = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                const diff = Math.abs(new Date() - new Date(siembra.fecha_siembra));
+                edadCronologica = Math.ceil(diff / (1000 * 60 * 60 * 24)); 
             }
 
             return {
@@ -97,6 +116,7 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
                 siembra_activa: siembra ? {
                     id_siembra: siembra.id_siembra,
                     especie: siembra.variedad?.especie?.nombre_comun || 'No especificado',
+                    id_especie: siembra.variedad?.id_especie, // 🌿 Agregado para el catálogo de plagas
                     variedad: siembra.variedad?.nombre_variedad || 'Genérica',
                     ciclo: siembra.variedad?.especie?.ciclo || 'N/A',
                     fecha_siembra: siembra.fecha_siembra,
@@ -104,17 +124,47 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
                     edad_dias: edadCronologica
                 } : null
             };
+        };
+
+        // Enriquecer TODOS los lugares con sus lotes y cultivos
+        const lugaresEnriquecidos = await Promise.all(todosLugares.map(async (lugar) => {
+            const lotes = lugar.lote || [];
+            const lotesEnriquecidos = await Promise.all(lotes.map(enriquecerLote));
+            return {
+                id_lugar_produccion: lugar.id_lugar_produccion,
+                nombre_lugar: lugar.nombre_lugar,
+                area_total: lugar.area_total,
+                es_lugar_inspeccion: lugar.id_lugar_produccion === insp.id_lugar_produccion,
+                lotes: lotesEnriquecidos
+            };
         }));
+
+        // Lotes planos del lugar de la inspección (para el formulario de evaluación)
+        const lugarInspeccion = lugaresEnriquecidos.find(l => l.es_lugar_inspeccion);
+
+        const totalLotes = lugaresEnriquecidos.reduce((acc, l) => acc + l.lotes.length, 0);
+        const areaTotal = lugaresEnriquecidos.reduce((acc, l) => acc + (Number(l.area_total) || 0), 0);
+
+        // 🔍 Rescatar detalles (hallazgos) guardados si la inspección estaba 'en_proceso'
+        const { data: detallesPrevios } = await supabase
+            .from('detalle_inspeccion')
+            .select('*')
+            .eq('id_inspeccion', insp.id_inspeccion)
+            .order('id_detalle', { ascending: true });
 
         res.json({
             id_inspeccion: insp.id_inspeccion,
-            lugar_nombre: infoLugar?.nombre_lugar || 'Finca sin nombre',
-            numero_predial: infoLugar?.numero_predial || 'N/A',
+            hallazgos_previos: detallesPrevios || [],
+            lugar_nombre: lugarInspeccion?.nombre_lugar || 'Sin nombre',
+            nombre_predio_oficial: predioOficial,
+            area_lugar: areaTotal,
             productor: { 
-                nombre: prodRes.data.nombre || 'N/A', 
-                region: prodRes.data.region || 'N/A' 
+                nombre: prod.nombre || 'N/A', 
+                ubicacion: ubicacionFull
             },
-            lotes: contextoLotes
+            lotes: lugarInspeccion?.lotes || [],
+            lugares_produccion: lugaresEnriquecidos,
+            total_lotes: totalLotes
         });
 
     } catch (error) {
@@ -126,6 +176,8 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
     }
 });
 
+
+
 // ==========================================
 // 📝 REGISTRO DE HALLAZGOS (PROTEGIDO POR RLS)
 // ==========================================
@@ -133,12 +185,33 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
-        const { data, error } = await supabase.from('detalle_inspeccion').insert([{ ...req.body, id_inspeccion: id }]).select();
-        if (error) throw error;
+        const items = Array.isArray(req.body) ? req.body : [req.body];
+        
+        const toInsert = items.filter(i => !i.id_detalle).map(i => {
+            const { id_detalle, ...rest } = i;
+            return { ...rest, id_inspeccion: id };
+        });
+        const toUpdate = items.filter(i => i.id_detalle).map(i => ({ ...i, id_inspeccion: id }));
+
+        let results = [];
+        
+        if (toInsert.length > 0) {
+            const { data, error } = await supabase.from('detalle_inspeccion').insert(toInsert).select();
+            if (error) throw error;
+            if (data) results.push(...data);
+        }
+        
+        if (toUpdate.length > 0) {
+            const { data, error } = await supabase.from('detalle_inspeccion').upsert(toUpdate, { onConflict: 'id_detalle' }).select();
+            if (error) throw error;
+            if (data) results.push(...data);
+        }
+
+        const data = results;
         // Cambiar estado si estaba en 'programada'
         await supabase.from('inspeccion').update({ estado: 'en_proceso' }).eq('id_inspeccion', id).eq('estado', 'programada');
 
-        res.status(201).json(data ? data[0] : { message: 'Detalle registrado' });
+        res.status(201).json(results);
     } catch (error) {
         console.error('❌ Error crítico en POST /detalles:', error);
         res.status(error.status || 500).json({ 
@@ -178,48 +251,72 @@ app.get('/asignadas', authenticateInternal, async (req, res) => {
     try {
         const supabase = getSupabaseAdmin();
         const { id_usuario, role } = req.user;
+        const userRole = role?.toLowerCase();
 
-        if (role?.toLowerCase() !== 'tecnico' && role !== 'admin') {
+        console.log(`🔍 [MS-INSPECCIONES] /asignadas: user=${id_usuario}, role=${userRole}`);
+
+        if (userRole !== 'tecnico' && userRole !== 'admin') {
             return res.status(403).json({ error: 'Solo los técnicos pueden ver sus asignaciones.' });
         }
 
         let query = supabase.from('inspeccion').select('*');
-        if (role?.toLowerCase() === 'tecnico') {
-            query = query.eq('tecnico_id', id_usuario);
+        if (userRole === 'tecnico') {
+            // Aseguramos que el ID sea numérico si la DB espera INT
+            const tId = parseInt(id_usuario);
+            query = query.eq('tecnico_id', isNaN(tId) ? id_usuario : tId);
         }
 
         const { data: asignaciones, error } = await query;
-        
         if (error) {
-            console.error('❌ Error de Supabase:', error);
-            return res.status(500).json({ error: 'Fallo en Supabase', details: error.message });
+            console.error('❌ Error Supabase /asignadas:', error);
+            return res.status(500).json({ error: 'Error en base de datos', details: error.message });
         }
 
-        // 🔗 ENRIQUECER CON DATOS DE MS-PREDIOS
+        if (!asignaciones || asignaciones.length === 0) {
+            console.log('⚠️ No se encontraron inspecciones asignadas');
+            return res.json([]);
+        }
+
         const enriched = await Promise.all(asignaciones.map(async (ins) => {
             try {
-                // Consultamos el nombre del lugar al otro microservicio
-                const predioRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, {
-                    headers: { 'x-user-id': id_usuario, 'x-user-role': role }
-                });
-                const predio = predioRes.data.find(p => p.id_lugar_produccion === ins.id_lugar_produccion);
+                const headers = { 'x-user-id': id_usuario, 'x-user-role': role };
+
+                const predioRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, { headers });
+                const lugar = predioRes.data.find(p => p.id_lugar_produccion === ins.id_lugar_produccion);
                 
+                const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${ins.productor_id}`, { headers });
+                const prod = prodRes.data;
+                const region = prod.region;
+                
+                // Obtener el nombre del predio principal (usuario_predio es un array en Supabase por el join 1:N)
+                const predioInfo = Array.isArray(prod?.usuario_predio) ? prod.usuario_predio[0] : prod?.usuario_predio;
+                const nombrePredio = predioInfo?.nombre_predio || 'Finca sin nombre';
+                
+                const ubicacionParts = [];
+                if (region?.vereda) ubicacionParts.push(region.vereda);
+                if (region?.municipio) ubicacionParts.push(region.municipio);
+                if (region?.departamento) ubicacionParts.push(region.departamento);
+                
+                const ubicacion = ubicacionParts.length > 0 ? ubicacionParts.join(', ') : 'Ubicación no registrada';
+
                 return {
                     ...ins,
-                    lugar_produccion: predio ? {
-                        nombre_lugar: predio.nombre_lugar,
-                        numero_predial: predio.numero_predial
-                    } : { nombre_lugar: 'Predio Desconocido', numero_predial: 'N/A' }
+                    lugar_produccion: {
+                        nombre_lugar: nombrePredio,
+                        ubicacion: ubicacion
+                    }
                 };
+
             } catch (err) {
-                return { ...ins, lugar_produccion: { nombre_lugar: 'Error de conexión', numero_predial: 'N/A' } };
+                console.error(`⚠️ Error enriqueciendo inspección ${ins.id_inspeccion}:`, err.message);
+                return { ...ins, lugar_produccion: { nombre_lugar: 'Inspección #'+ins.id_inspeccion, ubicacion: 'Sin ubicación' } };
             }
         }));
 
-        res.json(enriched || []);
+        res.json(enriched);
     } catch (error) {
-        console.error('❌ Error general en /asignadas:', error);
-        res.status(500).json({ error: 'Error interno del servidor', message: error.message });
+        console.error('❌ Error fatal en /asignadas:', error);
+        res.status(500).json({ error: 'Error en asignaciones', message: error.message });
     }
 });
 

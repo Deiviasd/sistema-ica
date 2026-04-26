@@ -12,4 +12,14 @@ const getRegiones = async () => {
     return data
 }
 
-module.exports = { getRoles, getRegiones }
+const createRegion = async (regionData) => {
+    const { data, error } = await supabase
+        .from('region')
+        .insert([regionData])
+        .select()
+        .single()
+    if (error) throw new Error(error.message)
+    return data
+}
+
+module.exports = { getRoles, getRegiones, createRegion }

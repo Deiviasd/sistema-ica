@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
@@ -25,18 +25,7 @@ const ROLES = [
   { id: "PRODUCTOR", name: "Productor Agrícola" }
 ]
 
-const REGIONES = [
-  { id: "REG-001", name: "Antioquia" },
-  { id: "REG-002", name: "Cundinamarca" },
-  { id: "REG-003", name: "Valle del Cauca" },
-  { id: "REG-004", name: "Tolima" },
-  { id: "REG-005", name: "Huila" },
-  { id: "REG-006", name: "Boyacá" },
-  { id: "REG-007", name: "Santander" },
-  { id: "REG-008", name: "Nariño" },
-  { id: "REG-009", name: "Cesar" },
-  { id: "REG-010", name: "Meta" }
-]
+
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -45,18 +34,46 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 🗺️ Estados para la API de Colombia
+  const [departamentos, setDepartamentos] = useState<any[]>([])
+  const [municipios, setMunicipios] = useState<any[]>([])
+
   const [formData, setFormData] = useState({
     nombre: "",
     documento: "",
     email: "",
     password: "",
     id_rol: "",
-    id_region: "",
-    numero_predial: "" // 🆕 Nuevo campo
+    id_region: "", // Se mantiene para compatibilidad pero se llenará dinámicamente
+    numero_predial: "",
+    nombre_predio: "",
+    departamento: "",
+    municipio: "",
+    vereda: "",
+    direccion: ""
   })
 
-  // 💡 Mostrar campo predial solo si es Productor
+  // 💡 Cargar Departamentos al montar
+  useEffect(() => {
+    fetch("https://api-colombia.com/api/v1/Department")
+      .then(res => res.json())
+      .then(data => setDepartamentos(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
+      .catch(err => console.error("Error cargando departamentos:", err))
+  }, [])
+
+  // 💡 Cargar Municipios cuando cambie el departamento
+  const handleDepartamentoChange = (deptId: string, deptName: string) => {
+    setFormData({ ...formData, departamento: deptName, municipio: "" })
+    setMunicipios([])
+    
+    fetch(`https://api-colombia.com/api/v1/Department/${deptId}/cities`)
+      .then(res => res.json())
+      .then(data => setMunicipios(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
+      .catch(err => console.error("Error cargando municipios:", err))
+  }
+
   const isProductor = formData.id_rol === "PRODUCTOR"
+  const isTecnico = formData.id_rol === "TECNICO"
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +89,13 @@ export default function RegisterPage() {
         password: formData.password.trim(),
         id_rol: formData.id_rol,
         id_region: formData.id_region,
-        numero_predial: formData.id_rol === "PRODUCTOR" ? formData.numero_predial : null
+        // Datos de ubicación (comunes o específicos según rol)
+        numero_predial: isProductor ? formData.numero_predial : null,
+        nombre_predio: isProductor ? formData.nombre_predio : (isTecnico ? `Zona ${formData.nombre}` : null),
+        departamento: formData.departamento,
+        municipio: formData.municipio,
+        vereda: formData.vereda,
+        direccion: isProductor ? formData.direccion : `Zona de Cobertura Técnico`
       })
 
       if (res.status !== 201 && res.status !== 200) {
@@ -187,7 +210,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Rol */}
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label className="text-slate-300">Tipo de Usuario</Label>
                   <Select
                     onValueChange={(val) => setFormData({ ...formData, id_rol: val })}
@@ -206,54 +229,124 @@ export default function RegisterPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Región */}
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Región Fitosanitaria</Label>
-                  <Select
-                    onValueChange={(val) => setFormData({ ...formData, id_region: val })}
-                    required
-                  >
-                    <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-slate-500" />
-                        <SelectValue placeholder="Seleccione su región" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
-                      {REGIONES.map(reg => (
-                        <SelectItem key={reg.id} value={reg.id}>{reg.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
-              {/* 🆕 Campo condicional para Productor */}
+              {/* 🆕 Sección de Ubicación Dinámica (Aparece para ambos roles) */}
               <AnimatePresence>
-                {isProductor && (
+                {(isProductor || isTecnico) && (
                   <motion.div
                     initial={{ opacity: 0, height: 0, marginTop: 0 }}
                     animate={{ opacity: 1, height: "auto", marginTop: 24 }}
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-2xl space-y-4">
-                      <div className="flex items-center gap-2 text-emerald-400 font-medium">
-                        <IdCard className="w-5 h-5" />
-                        Información del Predio
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-2xl space-y-6">
+                      <div className="flex items-center gap-2 text-emerald-400 font-medium border-b border-emerald-500/10 pb-3">
+                        <MapPin className="w-5 h-5" />
+                        {isProductor ? "Ubicación Física del Predio" : "Zona de Cobertura y Asignación"}
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="numero_predial" className="text-slate-300">Número de Registro Predial (ICA)</Label>
-                        <Input
-                          id="numero_predial"
-                          placeholder="Código de 10 dígitos"
-                          className="bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:border-emerald-500"
-                          required={isProductor}
-                          value={formData.numero_predial}
-                          onChange={e => setFormData({ ...formData, numero_predial: e.target.value })}
-                        />
-                        <p className="text-xs text-slate-500">Este número nos permite vincular tus cultivos automáticamente.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Nombre del Predio (Solo Productor) */}
+                        {isProductor && (
+                          <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="nombre_predio" className="text-slate-300">Nombre de la Finca / Predio</Label>
+                            <Input
+                              id="nombre_predio"
+                              placeholder="Ej: Finca La Esperanza"
+                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              required={isProductor}
+                              value={formData.nombre_predio}
+                              onChange={e => setFormData({ ...formData, nombre_predio: e.target.value })}
+                            />
+                          </div>
+                        )}
+
+                        {/* Departamento / Región (Consumiendo API) */}
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">{isTecnico ? "Región (Departamento)" : "Departamento"}</Label>
+                          <Select
+                            onValueChange={(val) => {
+                              const dept = departamentos.find(d => d.id.toString() === val);
+                              if(dept) handleDepartamentoChange(val, dept.name);
+                            }}
+                            required
+                          >
+                            <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
+                              <SelectValue placeholder="Seleccione Departamento" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                              {departamentos.map(dept => (
+                                <SelectItem key={dept.id} value={dept.id.toString()}>{dept.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Municipio (Consumiendo API) */}
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Municipio</Label>
+                          <Select
+                            onValueChange={(val) => setFormData({ ...formData, municipio: val })}
+                            required
+                            disabled={!formData.departamento}
+                          >
+                            <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
+                              <SelectValue placeholder={formData.departamento ? "Seleccione Municipio" : "Elija un depto primero"} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                              {municipios.map(city => (
+                                <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Vereda (Solo Productor - Con normalización) */}
+                        {isProductor && (
+                          <div className="space-y-2">
+                            <Label htmlFor="vereda" className="text-slate-300">Vereda / Corregimiento</Label>
+                            <Input
+                              id="vereda"
+                              placeholder="Nombre de la vereda"
+                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500 uppercase"
+                              required={isProductor}
+                              value={formData.vereda}
+                              onChange={e => setFormData({ ...formData, vereda: e.target.value.toUpperCase() })}
+                            />
+                            <p className="text-[10px] text-slate-500">Ej: EL PLACER</p>
+                          </div>
+                        )}
+
+                        {/* Número Predial (Solo Productor) */}
+                        {isProductor && (
+                          <div className="space-y-2">
+                            <Label htmlFor="numero_predial" className="text-slate-300">Número de Registro (ICA)</Label>
+                            <Input
+                              id="numero_predial"
+                              placeholder="Código de 10 dígitos"
+                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              required={isProductor}
+                              value={formData.numero_predial}
+                              onChange={e => setFormData({ ...formData, numero_predial: e.target.value })}
+                            />
+                          </div>
+                        )}
+
+                        {/* Dirección (Solo Productor) */}
+                        {isProductor && (
+                          <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="direccion" className="text-slate-300">Dirección o Indicaciones</Label>
+                            <Input
+                              id="direccion"
+                              placeholder="Ej: Km 5 vía al mar, entrada portón azul"
+                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              required={isProductor}
+                              value={formData.direccion}
+                              onChange={e => setFormData({ ...formData, direccion: e.target.value })}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
