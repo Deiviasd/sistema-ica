@@ -160,6 +160,26 @@ app.post('/lotes', authenticateInternal, async (req, res) => {
     }
 });
 
+// Actualizar estado de lote
+app.patch('/lotes/:id/estado', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id } = req.params;
+        const { estado } = req.body;
+
+        const { data, error } = await supabase
+            .from('lote')
+            .update({ estado })
+            .eq('id_lote', id)
+            .select();
+
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 const amqp = require('amqplib');
 const RABBIT_URL = process.env.RABBIT_URL || 'amqp://guest:guest@rabbitmq:5672';
 
@@ -177,11 +197,11 @@ async function startConsumer() {
                 const event = JSON.parse(msg.content.toString());
                 
                 if (event.tipo === 'SIEMBRA_FINALIZADA') {
-                    console.log(`🌿 [MS-PREDIOS]: Desactivando lote ${event.id_lote} por fin de siembra...`);
+                    console.log(`🌿 [MS-PREDIOS]: Marcando lote ${event.id_lote} como DISPONIBLE por fin de siembra...`);
                     const supabase = getSupabaseAdmin();
                     await supabase
                         .from('lote')
-                        .update({ estado: 'inactivo' })
+                        .update({ estado: 'disponible' })
                         .eq('id_lote', event.id_lote);
                 }
                 channel.ack(msg);

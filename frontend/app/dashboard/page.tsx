@@ -15,7 +15,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      api.get("/auth/users/pending")
+      api.get("/auth/users/by-status?status=inactivo")
         .then(res => setPendingCount(res.data.length))
         .catch(err => console.error("Error cargando conteo pendientes", err))
     }

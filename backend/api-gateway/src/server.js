@@ -117,7 +117,7 @@ app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, 
     } catch (error) {
         console.error('❌ Error en Registro Integral:', error.message);
         if (loteId && !siembraId) {
-            await internalApi.predios.patch(`/lotes/${loteId}/estado`, { estado: 'inactivo' }).catch(() => { });
+            await internalApi.predios.patch(`/lotes/${loteId}/estado`, { estado: 'disponible' }).catch(() => { });
         }
         next(error);
     }

@@ -1,23 +1,28 @@
 const jwt = require('jsonwebtoken')
+const { findUserById } = require('../repositories/user.repository')
 
-const verifyToken = (req, res, next) => {
-    // 1️⃣ Obtener header Authorization
+const verifyToken = async (req, res, next) => {
     const authHeader = req.headers.authorization
+    if (!authHeader) return res.status(401).json({ error: 'Token requerido' })
 
-    if (!authHeader) {
-        return res.status(401).json({ error: 'Token requerido' })
-    }
-
-    // 2️⃣ Extraer token (Bearer TOKEN)
     const token = authHeader.split(' ')[1]
 
     try {
-        // 3️⃣ Verificar token
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        
+        // 🔒 VERIFICACIÓN DE ESTADO EN VIVO:
+        // No basta con que el token sea válido, el usuario debe estar ACTIVO en DB
+        const user = await findUserById(decoded.id_usuario || decoded.sub)
+        
+        if (!user || user.estado !== 'activo') {
+            return res.status(403).json({ 
+                error: 'CUENTA_BLOQUEADA',
+                message: 'Tu cuenta ha sido deshabilitada por un administrador del ICA.' 
+            })
+        }
 
         req.user = decoded
-
-        next() // Permitir acceso
+        next()
     } catch (error) {
         return res.status(401).json({ error: 'Token inválido' })
     }

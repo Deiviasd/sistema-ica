@@ -1,4 +1,4 @@
-const { loginService, registerService, getPendingUsersService, updateUserService, getUserService, getUsersByRoleService } = require('../services/auth.service')
+const { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService } = require('../services/auth.service')
 
 const registerController = async (req, res) => {
     try {
@@ -17,11 +17,23 @@ const loginController = async (req, res) => {
     }
 }
 
-const getPendingController = async (req, res) => {
+const getUsersByStatusController = async (req, res) => {
     try {
-        const result = await getPendingUsersService()
+        const { status } = req.query
+        const result = await getUsersByStatusService(status || 'inactivo')
         res.status(200).json(result)
     } catch (error) {
+        console.error('❌ Error en getUsersByStatusController:', error)
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const getAllController = async (req, res) => {
+    try {
+        const result = await getAllUsersService()
+        res.status(200).json(result)
+    } catch (error) {
+        console.error('❌ Error en getAllController:', error)
         res.status(400).json({ error: error.message })
     }
 }
@@ -31,6 +43,17 @@ const updateStatusController = async (req, res) => {
         const { id } = req.params
         const adminId = req.user.id // ID del Admin ICA (extraído del token)
         const result = await updateUserService(adminId, id, req.body)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const deleteController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const adminId = req.user.id
+        const result = await deleteUserService(adminId, id)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({ error: error.message })
@@ -97,4 +120,4 @@ const getUsersByRoleController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController, getPendingController, updateStatusController, getUserController, getUsersByRoleController, getProfileController }
+module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController }

@@ -1,6 +1,6 @@
 const express = require('express');
 const amqp = require('amqplib');
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
@@ -10,11 +10,10 @@ const PORT = process.env.PORT || 4004;
 const RABBIT_URL = process.env.RABBIT_URL || 'amqp://guest:guest@rabbitmq:5672';
 
 // 📡 CONFIGURACIÓN DE BASE DE DATOS (Supabase Cloud)
-// Usamos la URL de conexión directa con la contraseña proporcionada
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres",
-    ssl: { rejectUnauthorized: false }
-});
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // 👂 CONSUMIDOR DE RABBITMQ
 async function startConsumer() {
@@ -32,38 +31,25 @@ async function startConsumer() {
                 console.log('📝 [MS-AUDITORIA]: Procesando evento:', auditData.tipo_accion);
 
                 try {
-                    // Mapeo de datos para la tabla 'auditoria'
-                    const query = `
-                        INSERT INTO auditoria (
-                            modulo, 
-                            tipo_accion, 
-                            id_referencia, 
-                            id_usuario, 
-                            fecha, 
-                            descripcion, 
-                            datos_anteriores, 
-                            datos_nuevos
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                    `;
+                    const { error: dbError } = await supabase
+                        .from('auditoria')
+                        .insert([{
+                            modulo: auditData.modulo || 'SISTEMA',
+                            tipo_accion: auditData.tipo_accion,
+                            id_referencia: auditData.id_referencia || null,
+                            id_usuario: auditData.id_usuario || null,
+                            fecha: auditData.timestamp || new Date(),
+                            descripcion: auditData.mensaje || auditData.descripcion || 'Acción registrada por el sistema',
+                            datos_anteriores: auditData.datos_anteriores || {},
+                            datos_nuevos: auditData.datos_nuevos || {}
+                        }]);
 
-                    const values = [
-                        auditData.modulo || 'SISTEMA',
-                        auditData.tipo_accion,
-                        auditData.id_referencia || null,
-                        auditData.id_usuario || null,
-                        auditData.timestamp || new Date(),
-                        auditData.mensaje || auditData.descripcion || 'Acción registrada por el sistema',
-                        JSON.stringify(auditData.datos_anteriores || {}),
-                        JSON.stringify(auditData.datos_nuevos || {})
-                    ];
-
-                    await pool.query(query, values);
-                    console.log('✅ [MS-AUDITORIA]: Evento guardado con éxito en la nube.');
-
-                    channel.ack(msg); // Confirmar procesamiento
+                    if (dbError) throw dbError;
+                    
+                    console.log('✅ [MS-AUDITORIA]: Evento guardado con éxito en Supabase.');
+                    channel.ack(msg);
                 } catch (dbError) {
-                    console.error('❌ [MS-AUDITORIA]: Error guardando en DB:', dbError.message);
-                    // No hacemos ack para que el mensaje vuelva a la cola si falló la DB
+                    console.error('❌ [MS-AUDITORIA]: Error guardando en Supabase:', dbError.message);
                 }
             }
         });
@@ -79,14 +65,15 @@ startConsumer();
 // Health check para el Orquestador
 app.get('/health', async (req, res) => {
     try {
-        const dbStatus = await pool.query('SELECT NOW()');
+        const { data, error } = await supabase.from('auditoria').select('fecha').limit(1);
+        if (error) throw error;
         res.json({
             status: 'Auditoría Activa',
             db_connected: true,
-            server_time: dbStatus.rows[0].now
+            sync_time: new Date()
         });
     } catch (e) {
-        res.status(500).json({ status: 'Error', db_connected: false });
+        res.status(500).json({ status: 'Error', db_connected: false, message: e.message });
     }
 });
 

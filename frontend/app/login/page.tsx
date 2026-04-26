@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { motion, AnimatePresence } from "framer-motion"
 import { Leaf, UserPlus, CheckCircle2 } from "lucide-react"
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function Login() {
+function LoginForm() {
   const { isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,8 +29,6 @@ export default function Login() {
     setLoading(true)
 
     try {
-      // Llamamos a NUESTRO Gateway (Puerto 5000), no a Supabase directamente
-      // Esto asegura que el token sea HS256 y compatible con los microservicios
       const res = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,7 +43,6 @@ export default function Login() {
         return
       }
 
-      // Guardamos el token de ms-auth que entiende el Gateway
       localStorage.setItem("token", data.token)
       window.location.href = "/dashboard"
     } catch {
@@ -160,5 +157,13 @@ export default function Login() {
         </Card>
       </motion.div>
     </div>
+  )
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

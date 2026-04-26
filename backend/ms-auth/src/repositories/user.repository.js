@@ -36,11 +36,21 @@ const findUserByEmail = async (email) => {
     return data
 }
 
-const getPendingUsers = async () => {
+const getUsersByStatus = async (status = 'inactivo') => {
     const { data, error } = await supabase
         .from('usuario')
-        .select('id_usuario, nombre, correo, fecha_registro, id_rol, id_region')
-        .eq('estado', 'inactivo')
+        .select('*, region(*), usuario_predio(*)')
+        .eq('estado', status)
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+const getAllUsers = async () => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .select('*, region(*), usuario_predio(*)')
+        .order('id_usuario', { ascending: false })
 
     if (error) throw new Error(error.message)
     return data
@@ -89,4 +99,16 @@ const findUsersByRole = async (role) => {
     return data;
 }
 
-module.exports = { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById, findUsersByRole }
+const deleteUser = async (id) => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .delete()
+        .eq('id_usuario', id)
+        .select()
+        .single()
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+module.exports = { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, findUserById, findUsersByRole, deleteUser }

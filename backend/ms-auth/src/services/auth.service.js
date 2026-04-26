@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const { createUser, findUserByEmail, getPendingUsers, updateStatus, findUserById, findUsersByRole } = require('../repositories/user.repository')
+const { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, findUserById, findUsersByRole, deleteUser } = require('../repositories/user.repository')
 const { createRegion } = require('../repositories/catalogo.repository')
 const jwt = require('jsonwebtoken')
 const eventBus = require('./eventBus')
@@ -139,8 +139,12 @@ const loginService = async ({ email, password }) => {
     }
 }
 
-const getPendingUsersService = async () => {
-    return await getPendingUsers()
+const getUsersByStatusService = async (status) => {
+    return await getUsersByStatus(status)
+}
+
+const getAllUsersService = async () => {
+    return await getAllUsers()
 }
 
 const updateUserService = async (adminId, userId, { estado }) => {
@@ -159,6 +163,22 @@ const updateUserService = async (adminId, userId, { estado }) => {
     return user
 }
 
+const deleteUserService = async (adminId, userId) => {
+    const user = await deleteUser(userId)
+
+    // 📣 Notificar a Auditoría
+    eventBus.publish('audit_queue', {
+        modulo: 'seguridad',
+        tipo_accion: 'USER_DELETE',
+        id_referencia: userId,
+        id_usuario: adminId,
+        detalles: `Admin ICA eliminó permanentemente al usuario ${user?.correo || userId}`,
+        timestamp: new Date().toISOString()
+    })
+
+    return user
+}
+
 const getUserService = async (id) => {
     const user = await findUserById(id)
     if (!user) throw new Error(`Usuario ${id} no encontrado`)
@@ -169,4 +189,4 @@ const getUsersByRoleService = async (role) => {
     return await findUsersByRole(role)
 }
 
-module.exports = { loginService, registerService, getPendingUsersService, updateUserService, getUserService, getUsersByRoleService }
+module.exports = { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService }
