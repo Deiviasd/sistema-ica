@@ -39,10 +39,10 @@ export default function Dashboard() {
           animate={{ opacity: 1, x: 0 }}
           className="mb-2"
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
             {getGreeting()}, <span className="text-emerald-500">{user.nombre}</span> 🌿
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Aquí tienes el resumen de tu producción fitosanitaria.
           </p>
         </motion.div>
@@ -58,13 +58,13 @@ export default function Dashboard() {
       <div className="space-y-4">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          animate={{ opacity: 1, x: -0 }}
           className="mb-2"
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
-            Panel Técnico ICA [Sincronizado] <span className="text-blue-500">| {user.nombre}</span> 📝
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
+            Panel Técnico ICA Hub [Sincronizado] <span className="text-blue-500">| {user.nombre}</span> 📝
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Registro y control fitosanitario de predios asignados.
           </p>
         </motion.div>
@@ -122,7 +122,7 @@ function DashboardCard({ title, value, icon, color, delay }: { title: string, va
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, type: "spring" }}
-      className={`p-6 rounded-3xl border ${color} bg-card/60 backdrop-blur-sm flex items-start gap-4 shadow-sm hover:shadow-md transition-all`}
+      className={`p-6 rounded-3xl border ${color} bg-card backdrop-blur-sm flex items-start gap-4 shadow-sm hover:shadow-md transition-all`}
     >
       <div className="p-3 bg-background/50 rounded-2xl shadow-sm">
         {icon}

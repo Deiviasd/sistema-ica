@@ -106,7 +106,7 @@ export default function DirectorioUsuarios() {
       case 'inactivo': return 'bg-amber-500/10 text-amber-500 border-amber-500/20'
       case 'rechazado':
       case 'bloqueado': return 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+      default: return 'bg-muted text-muted-foreground border-border'
     }
   }
 
@@ -116,34 +116,34 @@ export default function DirectorioUsuarios() {
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
         <div className="flex items-center gap-4 mb-2">
           <Link href="/dashboard/usuarios">
-            <button className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400">
+            <button className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground">
                 <ChevronLeft className="w-5 h-5" />
             </button>
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter">Directorio Maestro</h1>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Base de Datos General de Usuarios • Sistema ICA</p>
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter">Directorio Maestro</h1>
+            <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em]">Base de Datos General de Usuarios • ICA Hub</p>
           </div>
         </div>
       </motion.div>
 
       {/* Filters & Search */}
-      <Card className="bg-slate-900/40 border-slate-800 p-4 rounded-3xl backdrop-blur-xl">
+      <Card className="bg-card border-border p-4 rounded-3xl backdrop-blur-xl shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Buscar por nombre, correo o documento..."
-              className="w-full bg-slate-950 border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full bg-muted border-border rounded-2xl py-3 pl-12 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <select 
-              className="w-full bg-slate-950 border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm text-white appearance-none focus:outline-none"
+              className="w-full bg-muted border-border rounded-2xl py-3 pl-12 pr-4 text-sm text-foreground appearance-none focus:outline-none"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -154,9 +154,9 @@ export default function DirectorioUsuarios() {
             </select>
           </div>
           <div className="relative">
-             <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+             <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
              <select 
-              className="w-full bg-slate-950 border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm text-white appearance-none focus:outline-none"
+              className="w-full bg-muted border-border rounded-2xl py-3 pl-12 pr-4 text-sm text-foreground appearance-none focus:outline-none"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -173,7 +173,7 @@ export default function DirectorioUsuarios() {
       {/* List */}
       <div className="grid gap-4">
         {loading ? (
-             <p className="text-center py-20 text-slate-500 animate-pulse">Cargando base de datos...</p>
+             <p className="text-center py-20 text-muted-foreground animate-pulse">Cargando base de datos...</p>
         ) : (
           <AnimatePresence>
             {filteredUsers.map((user, idx) => (
@@ -183,19 +183,19 @@ export default function DirectorioUsuarios() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
               >
-                <Card className="bg-slate-900/60 border-slate-800 hover:border-slate-700 p-4 rounded-3xl transition-all group overflow-hidden relative">
+                <Card className="bg-card border-border hover:border-primary/20 p-4 rounded-3xl transition-all group overflow-hidden relative shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center group-hover:border-primary/30 transition-colors">
-                            <UserIcon className="w-6 h-6 text-slate-500 group-hover:text-primary transition-colors" />
+                        <div className="w-12 h-12 bg-muted rounded-2xl border border-border flex items-center justify-center group-hover:border-primary/30 transition-colors">
+                            <UserIcon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <div>
-                            <h3 className="text-white font-bold tracking-tight">{user.nombre}</h3>
+                            <h3 className="font-bold tracking-tight">{user.nombre}</h3>
                             <div className="flex items-center gap-4 mt-1">
-                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-black tracking-widest">
                                     <Mail className="w-3 h-3" /> {user.correo}
                                 </span>
-                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-black tracking-widest">
                                     <Shield className="w-3 h-3" /> {user.id_rol}
                                 </span>
                             </div>
@@ -204,9 +204,9 @@ export default function DirectorioUsuarios() {
 
                     <div className="flex flex-wrap items-center gap-2">
                         {user.region && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl mr-2">
-                                <MapPin className="w-3 h-3 text-slate-500" />
-                                <span className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[120px]">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded-xl mr-2">
+                                <MapPin className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-[10px] text-muted-foreground font-bold uppercase truncate max-w-[120px]">
                                     {user.region.municipio || "Sin municipio"}, {user.region.departamento || "Sin Depto"}
                                 </span>
                             </div>
@@ -215,7 +215,7 @@ export default function DirectorioUsuarios() {
                             {user.estado}
                         </Badge>
                         
-                        <div className="flex items-center gap-1 bg-slate-950/50 p-1 rounded-2xl border border-slate-800/50">
+                        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-2xl border border-border">
                             <button 
                               onClick={() => handleToggleStatus(user.id_usuario, user.estado)}
                               disabled={isUpdating === user.id_usuario}
@@ -224,7 +224,7 @@ export default function DirectorioUsuarios() {
                                 user.estado === 'activo' 
                                   ? 'hover:bg-rose-500/10 hover:text-rose-500' 
                                   : 'hover:bg-emerald-500/10 hover:text-emerald-500'
-                              } text-slate-500`}
+                              } text-muted-foreground`}
                             >
                                 {isUpdating === user.id_usuario ? (
                                   <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -239,7 +239,7 @@ export default function DirectorioUsuarios() {
                               onClick={() => handleDeleteUser(user.id_usuario, user.nombre)}
                               disabled={isUpdating === user.id_usuario}
                               title="Eliminar permanentemente"
-                              className="p-2 hover:bg-rose-500/10 hover:text-rose-600 text-slate-600 transition-all rounded-xl"
+                              className="p-2 hover:bg-rose-500/10 hover:text-rose-600 text-muted-foreground/60 transition-all rounded-xl"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -247,7 +247,7 @@ export default function DirectorioUsuarios() {
                     </div>
                   </div>
                   {/* Decorative background number */}
-                  <span className="absolute -right-4 -bottom-6 text-8xl font-black text-white/[0.02] italic pointer-events-none">
+                  <span className="absolute -right-4 -bottom-6 text-8xl font-black text-foreground/[0.03] italic pointer-events-none">
                     #{idx + 1}
                   </span>
                 </Card>

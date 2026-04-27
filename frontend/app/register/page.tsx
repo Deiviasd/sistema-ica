@@ -114,22 +114,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-2xl"
       >
-        <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-2xl overflow-hidden">
+        <Card className="bg-card backdrop-blur-xl border-border shadow-2xl overflow-hidden rounded-3xl">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
 
           <CardHeader className="space-y-1 pb-8 pt-8 text-center">
             <div className="mx-auto bg-emerald-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-emerald-500/20">
               <UserPlus className="w-8 h-8 text-emerald-500" />
             </div>
-            <CardTitle className="text-3xl font-bold tracking-tight text-white">Únete al Sistema ICA</CardTitle>
-            <CardDescription className="text-slate-400 text-lg">
+            <CardTitle className="text-3xl font-bold tracking-tight">Únete a ICA Hub</CardTitle>
+            <CardDescription className="text-muted-foreground text-lg">
               Crea tu cuenta para gestionar predios e inspecciones fitosanitarias
             </CardDescription>
           </CardHeader>
@@ -145,13 +147,13 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Nombre Completo */}
                 <div className="space-y-2">
-                  <Label htmlFor="nombre" className="text-slate-300">Nombre Completo</Label>
+                  <Label htmlFor="nombre" className="text-muted-foreground">Nombre Completo</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="nombre"
                       placeholder="Ej: Juan Pérez"
-                      className="pl-10 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="pl-10 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                       required
                       value={formData.nombre}
                       onChange={e => setFormData({ ...formData, nombre: e.target.value })}
@@ -161,13 +163,13 @@ export default function RegisterPage() {
 
                 {/* Documento */}
                 <div className="space-y-2">
-                  <Label htmlFor="documento" className="text-slate-300">Número de Documento</Label>
+                  <Label htmlFor="documento" className="text-muted-foreground">Número de Documento</Label>
                   <div className="relative">
-                    <IdCard className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="documento"
                       placeholder="CC o NIT"
-                      className="pl-10 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="pl-10 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                       required
                       value={formData.documento}
                       onChange={e => setFormData({ ...formData, documento: e.target.value })}
@@ -177,14 +179,14 @@ export default function RegisterPage() {
 
                 {/* Correo */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-300">Correo Electrónico</Label>
+                  <Label htmlFor="email" className="text-muted-foreground">Correo Electrónico</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="correo@ejemplo.com"
-                      className="pl-10 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="pl-10 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                       required
                       value={formData.email}
                       onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -194,14 +196,14 @@ export default function RegisterPage() {
 
                 {/* Contraseña */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300">Contraseña</Label>
+                  <Label htmlFor="password" className="text-muted-foreground">Contraseña</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type="password"
                       placeholder="••••••••"
-                      className="pl-10 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="pl-10 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                       required
                       value={formData.password}
                       onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -211,18 +213,18 @@ export default function RegisterPage() {
 
                 {/* Rol */}
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-300">Tipo de Usuario</Label>
+                  <Label className="text-muted-foreground">Tipo de Usuario</Label>
                   <Select
                     onValueChange={(val) => setFormData({ ...formData, id_rol: val })}
                     required
                   >
-                    <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
+                    <SelectTrigger className="bg-muted/50 border-border text-foreground">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-slate-500" />
+                        <Briefcase className="w-4 h-4 text-muted-foreground" />
                         <SelectValue placeholder="Seleccione su rol" />
                       </div>
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                    <SelectContent className="bg-card border-border">
                       {ROLES.map(rol => (
                         <SelectItem key={rol.id} value={rol.id}>{rol.name}</SelectItem>
                       ))}
@@ -240,7 +242,7 @@ export default function RegisterPage() {
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-2xl space-y-6">
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-2xl space-y-6 shadow-inner">
                       <div className="flex items-center gap-2 text-emerald-400 font-medium border-b border-emerald-500/10 pb-3">
                         <MapPin className="w-5 h-5" />
                         {isProductor ? "Ubicación Física del Predio" : "Zona de Cobertura y Asignación"}
@@ -250,11 +252,11 @@ export default function RegisterPage() {
                         {/* Nombre del Predio (Solo Productor) */}
                         {isProductor && (
                           <div className="md:col-span-2 space-y-2">
-                            <Label htmlFor="nombre_predio" className="text-slate-300">Nombre de la Finca / Predio</Label>
+                            <Label htmlFor="nombre_predio" className="text-muted-foreground">Nombre de la Finca / Predio</Label>
                             <Input
                               id="nombre_predio"
                               placeholder="Ej: Finca La Esperanza"
-                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              className="bg-muted/30 border-border text-foreground focus:border-emerald-500"
                               required={isProductor}
                               value={formData.nombre_predio}
                               onChange={e => setFormData({ ...formData, nombre_predio: e.target.value })}
@@ -264,7 +266,7 @@ export default function RegisterPage() {
 
                         {/* Departamento / Región (Consumiendo API) */}
                         <div className="space-y-2">
-                          <Label className="text-slate-300">{isTecnico ? "Región (Departamento)" : "Departamento"}</Label>
+                          <Label className="text-muted-foreground">{isTecnico ? "Región (Departamento)" : "Departamento"}</Label>
                           <Select
                             onValueChange={(val) => {
                               const dept = departamentos.find(d => d.id.toString() === val);
@@ -272,10 +274,10 @@ export default function RegisterPage() {
                             }}
                             required
                           >
-                            <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
+                            <SelectTrigger className="bg-muted/30 border-border text-foreground">
                               <SelectValue placeholder="Seleccione Departamento" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                            <SelectContent className="bg-card border-border">
                               {departamentos.map(dept => (
                                 <SelectItem key={dept.id} value={dept.id.toString()}>{dept.name}</SelectItem>
                               ))}
@@ -285,16 +287,16 @@ export default function RegisterPage() {
 
                         {/* Municipio (Consumiendo API) */}
                         <div className="space-y-2">
-                          <Label className="text-slate-300">Municipio</Label>
+                          <Label className="text-muted-foreground">Municipio</Label>
                           <Select
                             onValueChange={(val) => setFormData({ ...formData, municipio: val })}
                             required
                             disabled={!formData.departamento}
                           >
-                            <SelectTrigger className="bg-slate-950/50 border-slate-800 text-white focus:ring-emerald-500/20">
+                            <SelectTrigger className="bg-muted/30 border-border text-foreground">
                               <SelectValue placeholder={formData.departamento ? "Seleccione Municipio" : "Elija un depto primero"} />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                            <SelectContent className="bg-card border-border text-foreground">
                               {municipios.map(city => (
                                 <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
                               ))}
@@ -305,27 +307,27 @@ export default function RegisterPage() {
                         {/* Vereda (Solo Productor - Con normalización) */}
                         {isProductor && (
                           <div className="space-y-2">
-                            <Label htmlFor="vereda" className="text-slate-300">Vereda / Corregimiento</Label>
+                            <Label htmlFor="vereda" className="text-muted-foreground">Vereda / Corregimiento</Label>
                             <Input
                               id="vereda"
                               placeholder="Nombre de la vereda"
-                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500 uppercase"
+                              className="bg-muted/30 border-border text-foreground focus:border-emerald-500 uppercase"
                               required={isProductor}
                               value={formData.vereda}
                               onChange={e => setFormData({ ...formData, vereda: e.target.value.toUpperCase() })}
                             />
-                            <p className="text-[10px] text-slate-500">Ej: EL PLACER</p>
+                            <p className="text-[10px] text-muted-foreground">Ej: EL PLACER</p>
                           </div>
                         )}
 
                         {/* Número Predial (Solo Productor) */}
                         {isProductor && (
                           <div className="space-y-2">
-                            <Label htmlFor="numero_predial" className="text-slate-300">Número de Registro (ICA)</Label>
+                            <Label htmlFor="numero_predial" className="text-muted-foreground">Número de Registro (ICA)</Label>
                             <Input
                               id="numero_predial"
                               placeholder="Código de 10 dígitos"
-                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              className="bg-muted/30 border-border text-foreground focus:border-emerald-500"
                               required={isProductor}
                               value={formData.numero_predial}
                               onChange={e => setFormData({ ...formData, numero_predial: e.target.value })}
@@ -336,11 +338,11 @@ export default function RegisterPage() {
                         {/* Dirección (Solo Productor) */}
                         {isProductor && (
                           <div className="md:col-span-2 space-y-2">
-                            <Label htmlFor="direccion" className="text-slate-300">Dirección o Indicaciones</Label>
+                            <Label htmlFor="direccion" className="text-muted-foreground">Dirección o Indicaciones</Label>
                             <Input
                               id="direccion"
                               placeholder="Ej: Km 5 vía al mar, entrada portón azul"
-                              className="bg-slate-950/50 border-slate-800 text-white focus:border-emerald-500"
+                              className="bg-muted/30 border-border text-foreground focus:border-emerald-500"
                               required={isProductor}
                               value={formData.direccion}
                               onChange={e => setFormData({ ...formData, direccion: e.target.value })}
@@ -372,12 +374,12 @@ export default function RegisterPage() {
 
           <CardFooter className="pb-8 pt-4 flex flex-col space-y-4">
             <div className="relative w-full">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-800"></span></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-950 px-2 text-slate-500">¿Ya tienes una cuenta?</span></div>
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border"></span></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">¿Ya tienes una cuenta?</span></div>
             </div>
             <Link
               href="/login"
-              className="text-slate-400 hover:text-emerald-400 text-sm transition-colors flex items-center justify-center gap-2"
+              className="text-muted-foreground hover:text-emerald-500 text-sm transition-colors flex items-center justify-center gap-2"
             >
               Volver al inicio de sesión
             </Link>

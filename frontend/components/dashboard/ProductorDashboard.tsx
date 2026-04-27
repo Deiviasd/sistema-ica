@@ -168,7 +168,7 @@ export default function ProductorDashboard() {
         {/* Lista de Predios */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <Leaf className="w-6 h-6 text-emerald-500" />
               Lugares de Producción
             </h2>
@@ -176,30 +176,30 @@ export default function ProductorDashboard() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
             {predios.length > 0 ? predios.slice(0, 5).map((predio) => (
-              <Card key={predio.id_lugar_produccion} className="bg-slate-900/40 border-slate-800/50 hover:border-emerald-500/30 transition-all group overflow-hidden">
+              <Card key={predio.id_lugar_produccion} className="bg-card border-border hover:border-emerald-500/50 transition-all group overflow-hidden shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-10 h-10 bg-slate-800/50 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                         <Sprout className="text-emerald-500 w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-bold text-white truncate">{predio.nombre_lugar}</h3>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                        <h3 className="text-base font-bold truncate">{predio.nombre_lugar}</h3>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           <MapPin className="w-3 h-3 text-emerald-500" />
                           <span className="truncate">{user?.nombre_predio || "Principal"}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 px-4 border-x border-slate-800">
+                    <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground px-4 border-x border-border">
                       <Maximize2 className="w-3.5 h-3.5 text-emerald-500" />
                       <span>{predio.area_total} m²</span>
                     </div>
 
                     <Button 
                       size="sm"
-                      className="bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-slate-700 transition-all font-bold h-9 px-4 shrink-0 rounded-xl"
+                      className="bg-muted hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border border-border transition-all font-bold h-9 px-4 shrink-0 rounded-xl"
                       onClick={() => handleAgendar(predio.id_lugar_produccion)}
                     >
                       <ClipboardCheck className="w-4 h-4 mr-2" />
@@ -218,7 +218,7 @@ export default function ProductorDashboard() {
 
         {/* Panel Lateral: Estado de Lotes y Siembras REAL */}
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold flex items-center gap-2">
             <Sprout className="w-5 h-5 text-teal-400" />
             Lotes y Producción
           </h2>
@@ -228,10 +228,10 @@ export default function ProductorDashboard() {
                 const siembraActiva = siembras.find(s => s.id_lote === l.id_lote);
 
                 return (
-                  <Card key={l.id_lote} className={`bg-slate-900/30 border-slate-800/50 transition-all ${!siembraActiva && l.estado === 'disponible' ? 'border-emerald-500/20' : ''}`}>
+                  <Card key={l.id_lote} className={`bg-card border-border transition-all shadow-sm ${!siembraActiva && l.estado === 'disponible' ? 'ring-1 ring-emerald-500/20' : ''}`}>
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-teal-500/10' :
-                        l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-slate-800'
+                        l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-muted'
                         }`}>
                         <Sprout className={`w-5 h-5 ${siembraActiva ? 'text-teal-500' :
                           l.estado === 'disponible' ? 'text-emerald-500' : 'text-slate-500'
@@ -240,7 +240,7 @@ export default function ProductorDashboard() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-white truncate">
+                          <p className="text-sm font-bold truncate">
                             {l.nombre_lote}
                           </p>
                           {!siembraActiva && (
@@ -258,7 +258,7 @@ export default function ProductorDashboard() {
                             🌱 {siembraActiva.variedad?.nombre_variedad || 'En cultivo'}
                           </p>
                         ) : (
-                          <p className="text-xs text-slate-600 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {l.estado === 'disponible' ? 'Listo para nueva siembra' : 'Finalizado - Inactivo'}
                           </p>
                         )}
@@ -298,17 +298,17 @@ function StatCard({ title, value, icon, trend, color }: any) {
 
   return (
     <motion.div variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
-      <Card className={`bg-slate-900/40 border-0 shadow-xl overflow-hidden relative group`}>
+      <Card className={`bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg`}>
         <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[color]} opacity-50`} />
         <CardContent className="p-6 relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-slate-950/50 rounded-lg border border-white/5">
+            <div className="p-2 bg-muted rounded-lg border border-border">
               {icon}
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{trend}</span>
           </div>
           <div className="space-y-1">
-            <p className="text-3xl font-bold text-white tracking-tight">{value}</p>
+            <p className="text-3xl font-bold tracking-tight">{value}</p>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-tighter">{title}</p>
           </div>
         </CardContent>

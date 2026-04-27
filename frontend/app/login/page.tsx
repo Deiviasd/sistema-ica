@@ -68,14 +68,14 @@ function LoginForm() {
           <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
             <Leaf className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Sistema ICA</h1>
+          <h1 className="text-3xl font-bold tracking-tight">ICA Hub</h1>
           <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">Portal de Autenticación</p>
         </div>
 
         <Card className="shadow-2xl rounded-3xl border-border/50 bg-card/60 backdrop-blur-xl">
           <CardHeader className="space-y-1 pb-6 pt-8 px-8">
-            <CardTitle className="text-2xl font-bold text-center text-white">¡Bienvenido!</CardTitle>
-            <CardDescription className="text-center text-slate-400">
+            <CardTitle className="text-2xl font-bold text-center">¡Bienvenido!</CardTitle>
+            <CardDescription className="text-center text-muted-foreground">
               Ingresa tus credenciales seguras para acceder
             </CardDescription>
           </CardHeader>
@@ -90,7 +90,7 @@ function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary h-12 text-white"
+                  className="rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary h-12"
                 />
               </div>
 
@@ -102,7 +102,7 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary h-12 text-white"
+                  className="rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary h-12"
                 />
               </div>
 
@@ -146,7 +146,7 @@ function LoginForm() {
                 <Button 
                   type="button" 
                   variant="outline"
-                  className="w-full rounded-xl h-12 text-base font-medium border-border/50 hover:bg-muted/50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-slate-300"
+                  className="w-full rounded-xl h-12 text-base font-medium border-border/50 hover:bg-muted transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-muted-foreground"
                 >
                   <UserPlus className="w-4 h-4" />
                   Regístrate ahora
