@@ -11,9 +11,13 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, User } from "lucide-react"
+import { LogOut, User, Menu } from "lucide-react"
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick?: () => void
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const { user } = useUserStore()
   const { handleLogout } = useAuth()
 
@@ -23,9 +27,17 @@ export function Topbar() {
   const initials = user.email.substring(0, 2).toUpperCase()
 
   return (
-    <header className="h-16 border-b border-border/50 bg-background/60 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 transition-all">
-      <div className="flex-1">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground/90">
+    <header className="h-16 border-b border-border/50 bg-background/60 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 transition-all">
+      <div className="flex items-center gap-4">
+        {/* Botón menú móvil */}
+        <button 
+          onClick={onMenuClick}
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-lg md:hidden transition-colors"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        
+        <h1 className="text-xl font-bold tracking-tight text-foreground/90 hidden sm:block">
           Panel de Control
         </h1>
       </div>

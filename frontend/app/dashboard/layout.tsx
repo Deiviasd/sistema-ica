@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Topbar } from "@/components/layout/Topbar"
@@ -11,6 +12,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { isLoading, user } = useAuth()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Pantalla de carga hermosa
   if (isLoading) {
@@ -37,17 +39,31 @@ export default function DashboardLayout({
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background/50 dark:bg-background/95">
-      <Sidebar />
-      <div className="pl-64 flex flex-col min-h-screen transition-all">
-        <Topbar />
+    <div className="min-h-screen bg-background/50 dark:bg-background/95 flex overflow-hidden">
+      {/* Overlay para móvil */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 md:pl-64 overflow-y-auto">
+        <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
         <AnimatePresence mode="wait">
           <motion.main 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 p-8"
+            className="flex-1 p-4 md:p-8"
           >
             {children}
           </motion.main>
