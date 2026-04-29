@@ -144,7 +144,7 @@ export default function TecnicoDashboard() {
           <ClipboardList className="w-6 h-6 text-emerald-400" />
         </div>
       </div>
-      <p className="text-slate-400 font-bold text-lg animate-pulse uppercase tracking-[0.2em]">
+      <p className="text-muted-foreground font-bold text-lg animate-pulse uppercase tracking-[0.2em]">
         Sincronizando Agenda
       </p>
     </div>
@@ -175,16 +175,16 @@ export default function TecnicoDashboard() {
                   <History className="text-emerald-500 w-8 h-8" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase">
+                  <h1 className="text-4xl font-black italic tracking-tighter uppercase">
                     Inspecciones Programadas
                   </h1>
-                  <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.3em]">
+                  <p className="text-muted-foreground font-bold text-xs uppercase tracking-[0.3em]">
                     Gestión de cumplimiento fitosanitario • ICA
                   </p>
                 </div>
               </div>
-              <div className="flex bg-slate-900/50 p-2 rounded-2xl border border-slate-800">
-                <div className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black italic uppercase tracking-tighter shadow-lg shadow-emerald-900/40">
+              <div className="flex bg-card p-2 rounded-2xl border border-border">
+                <div className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black italic uppercase tracking-tighter shadow-lg shadow-emerald-500/20">
                   {inspecciones.length} CITAS HOY
                 </div>
               </div>
@@ -203,12 +203,12 @@ export default function TecnicoDashboard() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {inspecciones.length === 0 ? (
-                    <div className="col-span-full py-32 text-center bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-[3rem]">
-                      <Search className="w-20 h-20 text-slate-700 mx-auto mb-6" />
-                      <p className="text-slate-400 text-2xl font-black italic tracking-tighter uppercase">
+                    <div className="col-span-full py-32 text-center bg-muted/20 border-2 border-dashed border-border rounded-[3rem]">
+                      <Search className="w-20 h-20 text-muted-foreground mx-auto mb-6 opacity-20" />
+                      <p className="text-muted-foreground text-2xl font-black italic tracking-tighter uppercase opacity-50">
                         Sin asignaciones pendientes
                       </p>
-                      <p className="text-slate-600 font-bold mt-2">
+                      <p className="text-muted-foreground font-bold mt-2 opacity-40">
                         Todo el equipo está al día con las verificaciones agrícolas.
                       </p>
                     </div>

@@ -41,7 +41,7 @@ export function Sidebar() {
           ICA
         </div>
         <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-500">
-          Sistema ICA
+          ICA Hub
         </h2>
       </div>
 

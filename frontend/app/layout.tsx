@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema ICA - Plataforma del Agro",
+  title: "ICA Hub - Plataforma del Agro",
   description: "Plataforma Integral de Control Agrícola",
 };
 
