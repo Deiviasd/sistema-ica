@@ -15,6 +15,16 @@ const registerSiembraService = async (siembraData, userId) => {
         timestamp: new Date().toISOString()
     })
 
+    // 🚜 EVENTO DE NEGOCIO: Notificar a Inspecciones y a Predios (Colas separadas para evitar competencia)
+    const businessEvent = {
+        tipo: 'NUEVA_SIEMBRA',
+        id_lote: siembra.id_lote,
+        id_siembra: siembra.id_siembra
+    };
+    
+    eventBus.publish('inspecciones_queue', businessEvent);
+    eventBus.publish('lotes_queue', businessEvent);
+
     return siembra
 }
 
@@ -58,14 +68,17 @@ const finishSiembraService = async (id, userId, fechaFin = new Date().toISOStrin
         timestamp: new Date().toISOString()
     })
 
-    // 🚜 EVENTO DE NEGOCIO: Programar Inspección Automática y desactivar lote!
-    eventBus.publish('inspecciones_queue', {
+    // 🚜 EVENTO DE NEGOCIO: Notificar a Inspecciones y a Predios
+    const finishEvent = {
         tipo: 'SIEMBRA_FINALIZADA',
         id_siembra: siembra.id_siembra,
         id_lote: siembra.id_lote,
         productor_id: userId,
         fecha: fechaFin
-    });
+    };
+
+    eventBus.publish('inspecciones_queue', finishEvent);
+    eventBus.publish('lotes_queue', finishEvent);
 
     return siembra
 }

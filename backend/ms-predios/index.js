@@ -187,7 +187,7 @@ async function startConsumer() {
     try {
         const connection = await amqp.connect(RABBIT_URL);
         const channel = await connection.createChannel();
-        const queue = 'inspecciones_queue'; 
+        const queue = 'lotes_queue'; 
 
         await channel.assertQueue(queue, { durable: true });
         console.log(`📡 [MS-PREDIOS]: Sincronizado con Lotes en [${queue}]...`);
@@ -196,13 +196,34 @@ async function startConsumer() {
             if (msg !== null) {
                 const event = JSON.parse(msg.content.toString());
                 
+                const supabase = getSupabaseAdmin();
+
                 if (event.tipo === 'SIEMBRA_FINALIZADA') {
-                    console.log(`🌿 [MS-PREDIOS]: Marcando lote ${event.id_lote} como DISPONIBLE por fin de siembra...`);
-                    const supabase = getSupabaseAdmin();
+                    console.log(`🌿 [MS-PREDIOS]: Procesando FIN de siembra para lote ${event.id_lote}...`);
                     await supabase
                         .from('lote')
                         .update({ estado: 'disponible' })
                         .eq('id_lote', event.id_lote);
+                }
+
+                if (event.tipo === 'NUEVA_SIEMBRA') {
+                    console.log(`🚜 [MS-PREDIOS]: Procesando INICIO de siembra para lote ${event.id_lote}...`);
+                    // Solo marcamos ocupado si el lote está disponible o inactivo (evita sobrescribir si ya se finalizó)
+                    const { data: lote } = await supabase
+                        .from('lote')
+                        .select('estado')
+                        .eq('id_lote', event.id_lote)
+                        .single();
+
+                    if (lote && (lote.estado === 'disponible' || lote.estado === 'inactivo')) {
+                        await supabase
+                            .from('lote')
+                            .update({ estado: 'ocupado' })
+                            .eq('id_lote', event.id_lote);
+                        console.log(`✅ [MS-PREDIOS]: Lote ${event.id_lote} marcado como OCUPADO.`);
+                    } else {
+                        console.log(`⚠️ [MS-PREDIOS]: Lote ${event.id_lote} ya estaba ${lote?.estado}, ignorando 'ocupado'.`);
+                    }
                 }
                 channel.ack(msg);
             }

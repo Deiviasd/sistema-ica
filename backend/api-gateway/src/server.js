@@ -87,7 +87,7 @@ app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, 
         } = req.body;
 
         const loteResponse = await internalApi.predios.post('/lotes', {
-            id_lugar_produccion, nombre_lote, area_m2, estado: 'ocupado'
+            id_lugar_produccion, nombre_lote, area_m2
         }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_PREDIOS'));
 
         loteId = loteResponse.data.id_lote;
