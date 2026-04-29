@@ -175,10 +175,16 @@ export function DossierModal({ context, onClose }: Props) {
                                   <div className="text-right flex items-center justify-end gap-2">
                                     <span className="text-[8px] text-slate-500 font-bold">{lote.area} m²</span>
                                     <span className={`text-[7px] font-black px-2 py-1 rounded-full uppercase ${
-                                      lote.estado_lote === 'disponible'
-                                        ? 'bg-emerald-500/10 text-emerald-500'
-                                        : 'bg-amber-500/10 text-amber-500'
-                                    }`}>{lote.estado_lote || 'N/A'}</span>
+                                      (lote.siembra_activa || lote.estado_lote === 'ocupado')
+                                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                        : lote.estado_lote === 'disponible'
+                                        ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                                        : lote.estado_lote === 'en_inspeccion'
+                                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                        : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                    }`}>
+                                      {lote.siembra_activa ? 'Ocupado' : (lote.estado_lote || 'N/A')}
+                                    </span>
                                   </div>
                                 </div>
                                 <ChevronRight className={`w-4 h-4 text-slate-600 transition-transform flex-shrink-0 ${isLoteOpen ? 'rotate-90 text-emerald-500' : ''}`} />

@@ -26,6 +26,9 @@ interface Siembra {
   cantidad_plantas: number
   id_lote: number
   fecha_fin?: string
+  nombre_lote?: string // Added for detail view
+  nombre_lugar?: string // Added for detail view
+  area?: number // Added for detail view
   variedad: {
     nombre_variedad: string
     especie: {
@@ -222,7 +225,7 @@ export default function SiembrasPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lotesConEstado.map((lote, idx) => (
           <motion.div key={lote.id_lote} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }} 
-            onDoubleClick={() => lote.siembraActiva && setSelectedSiembra(lote.siembraActiva)}
+            onClick={() => lote.siembraActiva && setSelectedSiembra({ ...lote.siembraActiva, nombre_lote: lote.nombre_lote, nombre_lugar: lote.nombre_lugar, area: lote.area })}
             className="cursor-pointer select-none"
           >
             <Card className={`relative overflow-hidden transition-all border-2 ${lote.siembraActiva ? 'bg-slate-900/50 border-slate-800 hover:border-teal-500' : 'bg-slate-950/40 border-slate-900 border-dashed hover:border-slate-700'}`}>
@@ -263,7 +266,7 @@ export default function SiembrasPage() {
                 )}
               </CardContent>
               {lote.siembraActiva && (
-                <div className="absolute bottom-2 right-4 text-[9px] text-slate-600 font-black uppercase italic opacity-0 group-hover:opacity-100 transition-opacity">Doble Clic para detalles</div>
+                <div className="absolute bottom-2 right-4 text-[9px] text-slate-600 font-black uppercase italic opacity-100 transition-opacity">Ver detalles</div>
               )}
             </Card>
           </motion.div>
@@ -280,15 +283,58 @@ export default function SiembrasPage() {
                    <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">GESTIÓN DE CICLO</h2>
                    <button onClick={() => setSelectedSiembra(null)} className="p-3 bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
                 </div>
-                <div className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800 mb-8">
-                   <p className="text-[10px] text-teal-500 font-black uppercase mb-4 tracking-widest">Información de Producción</p>
-                   <div className="space-y-2">
-                      <p className="text-white font-bold uppercase italic text-xl">{selectedSiembra.variedad?.nombre_variedad} <span className="text-slate-500 text-sm tracking-widest">• {selectedSiembra.cantidad_plantas} Unidades</span></p>
-                      <p className="text-slate-500 text-xs font-medium">Iniciado el: {new Date(selectedSiembra.fecha_siembra).toLocaleDateString()}</p>
+                <div className="bg-slate-950/50 p-8 rounded-[2rem] border border-slate-800 mb-8 space-y-8 text-left">
+                   <div>
+                      <p className="text-xs text-teal-500 font-black uppercase mb-6 tracking-[0.2em] flex items-center gap-2">
+                        <MapPin className="w-4 h-4" /> Lugar de Producción y Lote
+                      </p>
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-slate-500 text-[10px] font-black uppercase mb-1">Nombre Lugar de Producción</p>
+                          <p className="text-white font-black text-2xl uppercase italic tracking-tighter">{selectedSiembra.nombre_lugar}</p>
+                        </div>
+                        <div className="flex justify-between items-end gap-4 border-t border-slate-800/30 pt-4">
+                          <div>
+                            <p className="text-slate-500 text-[10px] font-black uppercase mb-1">Nombre Lote</p>
+                            <p className="text-white font-bold text-xl uppercase italic tracking-widest">{selectedSiembra.nombre_lote}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-slate-500 text-[10px] font-black uppercase mb-1">Área del Lote</p>
+                            <p className="text-white font-bold text-xl italic">{selectedSiembra.area} <span className="text-[10px] text-slate-500 uppercase not-italic font-black">m²</span></p>
+                          </div>
+                        </div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-8 py-6 border-y border-slate-800/50">
+                      <div>
+                        <p className="text-xs text-teal-500 font-black uppercase mb-2 tracking-widest">Nombre Especie</p>
+                        <p className="text-white font-black text-xl uppercase italic">{selectedSiembra.variedad?.especie?.nombre_comun || 'No definida'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-teal-500 font-black uppercase mb-2 tracking-widest">Nombre Variedad</p>
+                        <p className="text-white font-black text-xl uppercase italic">{selectedSiembra.variedad?.nombre_variedad}</p>
+                      </div>
+                   </div>
+
+                   <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <p className="text-xs text-teal-500 font-black uppercase tracking-widest flex items-center gap-2">
+                          <Calendar className="w-4 h-4" /> Fecha de Siembra
+                        </p>
+                        <p className="text-white font-bold text-lg italic uppercase">{new Date(selectedSiembra.fecha_siembra).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <p className="text-xs text-teal-500 font-black uppercase tracking-widest flex items-center gap-2 justify-end">
+                          <TreePine className="w-4 h-4" /> Cantidad Plantas
+                        </p>
+                        <p className="text-white font-black text-2xl italic">{selectedSiembra.cantidad_plantas} <span className="text-xs text-slate-500 uppercase not-italic font-bold">Unidades</span></p>
+                      </div>
                    </div>
                 </div>
-                <Button onClick={() => handleFinalizarCiclo(selectedSiembra.id_siembra)} disabled={isSaving} className="w-full h-16 bg-rose-600 hover:bg-rose-500 text-white font-black text-lg rounded-2xl shadow-xl transition-all">
-                   FINALIZAR CICLO • LIBERAR LOTE
+                <Button onClick={() => handleFinalizarCiclo(selectedSiembra.id_siembra)} disabled={isSaving} className="w-full h-20 bg-rose-600 hover:bg-rose-500 text-white font-black text-xl rounded-3xl shadow-2xl shadow-rose-900/40 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-0 group">
+                   <span>FINALIZAR CICLO</span>
+                   <span className="text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">LIBERAR LOTE PARA NUEVA PRODUCCIÓN</span>
                 </Button>
             </motion.div>
           </div>
