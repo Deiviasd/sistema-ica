@@ -91,7 +91,7 @@ const findUserById = async (id) => {
 const findUsersByRole = async (role) => {
     const { data, error } = await supabase
         .from('usuario')
-        .select('id_usuario, nombre, correo, id_region')
+        .select('id_usuario, nombre, correo, region(*)')
         .eq('id_rol', role.toUpperCase())
         .eq('estado', 'activo');
 

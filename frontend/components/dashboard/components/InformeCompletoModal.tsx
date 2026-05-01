@@ -34,7 +34,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   const evals = liveFormData
     ? liveFormData.evaluations
     : (context?.hallazgos_previos?.map((hp: any) => ({
-        id_lote: hp.siembra_id,
+        id_lote: hp.id_lote || hp.siembra_id,
         siembra: { id_siembra: hp.siembra_id },
         afectadas: hp.cantidad_plantas_afectadas,
         totales: hp.plantas_totales || hp.cantidad_plantas_afectadas,
@@ -61,7 +61,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
       }
       const lugarKey = targetLugar ? (targetLugar as any).nombre_lugar : 'Sin Lugar Identificado'
       const loteKey = targetLote
-        ? ((targetLote as any).nombre_lote + " (" + ((targetLote as any).siembra_activa?.especie || '') + ")")
+        ? ((targetLote as any).nombre_lote + ((targetLote as any).siembra_activa?.especie ? " (" + (targetLote as any).siembra_activa.especie + ")" : " (Sin Siembra Activa)"))
         : 'Sin Lote Identificado'
       if (!groups[lugarKey]) groups[lugarKey] = {}
       if (!groups[lugarKey][loteKey]) groups[lugarKey][loteKey] = []

@@ -44,11 +44,14 @@ function AgendarForm() {
     hora: "08:00"
   })
 
+  // 📝 Estados para el monitoreo
+  const [inspecciones, setInspecciones] = useState<any[]>([])
+  const [refreshKey, setRefreshKey] = useState(0)
+
   useEffect(() => {
     api.get("/predios/lugares-produccion")
       .then(res => {
         setLugares(res.data)
-        // Selección automática: Si hay predios, elegimos el primero por defecto
         if (res.data.length > 0) {
           const defaultId = preSelectedId || res.data[0].id_lugar_produccion.toString()
           setFormData(prev => ({ ...prev, id_lugar_produccion: defaultId }))
@@ -58,6 +61,13 @@ function AgendarForm() {
       .finally(() => setLoading(false))
   }, [preSelectedId])
 
+  // 📡 Cargar historial para monitoreo
+  useEffect(() => {
+    api.get("/inspecciones/reporte")
+      .then(res => setInspecciones(res.data))
+      .catch(err => console.error("Error cargando monitoreo:", err))
+  }, [refreshKey])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -66,10 +76,21 @@ function AgendarForm() {
     try {
       const res = await api.post("/inspecciones/agendar", formData)
       setAssignedTech(res.data.tecnico_asignado)
+      setRefreshKey(prev => prev + 1) // 🔄 Refrescar lista
     } catch (err: any) {
       setError(err.response?.data?.error || "Error al procesar la solicitud")
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleCancelar = async (id: number) => {
+    if (!confirm("¿Está seguro de que desea cancelar esta inspección?")) return
+    try {
+      await api.patch(`/inspecciones/${id}/cancelar`)
+      setRefreshKey(prev => prev + 1) // 🔄 Refrescar lista
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Error al cancelar")
     }
   }
 
@@ -197,6 +218,86 @@ function AgendarForm() {
           </div>
         </div>
 
+      </div>
+
+      {/* 📊 SECCIÓN DE MONITOREO DE ESTADOS */}
+      <div className="space-y-8 pt-10 border-t-2 border-slate-900">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-teal-500/10 rounded-xl flex items-center justify-center">
+            <ClipboardCheck className="text-teal-500 w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Estado de mis Inspecciones</h2>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Monitoreo en tiempo real • Protocolo de cumplimiento</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AnimatePresence mode="popLayout">
+            {inspecciones.length === 0 ? (
+              <div className="col-span-full p-12 bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-[2.5rem] text-center">
+                <p className="text-slate-500 font-bold italic">No tienes inspecciones programadas actualmente.</p>
+              </div>
+            ) : (
+              inspecciones.map((ins) => (
+                <motion.div
+                  key={ins.id_inspeccion}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                >
+                  <Card className={`bg-slate-900/40 border-slate-800 rounded-[2rem] overflow-hidden backdrop-blur-xl relative transition-all hover:border-teal-500/50 ${ins.estado === 'cancelada' ? 'opacity-60 grayscale' : ''}`}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Estado Actual</p>
+                          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase italic ${
+                            ins.estado === 'programada' ? 'bg-blue-500/10 text-blue-500' :
+                            ins.estado === 'en_proceso' ? 'bg-amber-500/10 text-amber-500' :
+                            ins.estado === 'finalizada' ? 'bg-emerald-500/10 text-emerald-500' :
+                            'bg-slate-500/10 text-slate-400'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                              ins.estado === 'programada' ? 'bg-blue-500' :
+                              ins.estado === 'en_proceso' ? 'bg-amber-500' :
+                              ins.estado === 'finalizada' ? 'bg-emerald-500' :
+                              'bg-slate-500'
+                            }`} />
+                            {ins.estado.replace('_', ' ')}
+                          </div>
+                        </div>
+                        {ins.estado === 'programada' && (
+                          <Button 
+                            variant="ghost" 
+                            onClick={() => handleCancelar(ins.id_inspeccion)}
+                            className="h-8 text-[10px] font-black text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg uppercase tracking-tighter"
+                          >
+                            Cancelar Cita
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-4 h-4 text-teal-500" />
+                          <span className="text-sm font-bold text-white">{new Date(ins.fecha_programada).toLocaleDateString()}</span>
+                          <Clock className="w-4 h-4 text-teal-500 ml-2" />
+                          <span className="text-sm font-bold text-white">{new Date(ins.fecha_programada).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        
+                        <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                          <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Técnico Asignado</p>
+                          <p className="text-xs font-black text-teal-400 uppercase italic">ID: {ins.tecnico_id || 'Por asignar'}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       <AnimatePresence>

@@ -23,7 +23,7 @@ const jwt = require('jsonwebtoken');
 const authenticateInternal = (req, res, next) => {
     const userId = req.headers['x-user-id'];
     const userRole = req.headers['x-user-role'];
-    
+
     if (!userId) {
         console.error('❌ Acceso directo denegado en MS-INSPECCIONES (Sin header de identidad)');
         return res.status(401).json({ error: 'Acceso solo permitido a través del API Gateway' });
@@ -47,14 +47,14 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
         const { data: insp, error: inspErr } = await supabase
             .from('inspeccion').select('*').eq('id_inspeccion', id).single();
 
-        if (inspErr || !insp) return res.status(404).json({ 
-            error: 'Inspección no encontrada o sin acceso', 
+        if (inspErr || !insp) return res.status(404).json({
+            error: 'Inspección no encontrada o sin acceso',
             details: inspErr?.message || 'No se encontró el registro'
         });
 
-        const headers = { 
-            'x-user-id': req.user.id_usuario, 
-            'x-user-role': req.user.role 
+        const headers = {
+            'x-user-id': req.user.id_usuario,
+            'x-user-role': req.user.role
         };
 
         const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${insp.productor_id}`, { headers })
@@ -65,12 +65,12 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
 
         const prod = prodRes.data;
         const region = prod.region;
-        
+
         const ubicacionParts = [];
         if (region?.vereda) ubicacionParts.push(region.vereda);
         if (region?.municipio) ubicacionParts.push(region.municipio);
         if (region?.departamento) ubicacionParts.push(region.departamento);
-        
+
         const ubicacionFull = ubicacionParts.length > 0 ? ubicacionParts.join(', ') : 'Sin Ubicación';
 
         const predioOficial = prod.usuario_predio?.[0]?.nombre_predio || 'Finca ICA';
@@ -105,7 +105,7 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
 
             if (siembra && siembra.fecha_siembra) {
                 const diff = Math.abs(new Date() - new Date(siembra.fecha_siembra));
-                edadCronologica = Math.ceil(diff / (1000 * 60 * 60 * 24)); 
+                edadCronologica = Math.ceil(diff / (1000 * 60 * 60 * 24));
             }
 
             return {
@@ -145,21 +145,31 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
         const totalLotes = lugaresEnriquecidos.reduce((acc, l) => acc + l.lotes.length, 0);
         const areaTotal = lugaresEnriquecidos.reduce((acc, l) => acc + (Number(l.area_total) || 0), 0);
 
-        // 🔍 Rescatar detalles (hallazgos) guardados si la inspección estaba 'en_proceso'
+        // 🔍 Rescatar detalles (hallazgos) guardados y enriquecer con ID de lote si es posible
         const { data: detallesPrevios } = await supabase
             .from('detalle_inspeccion')
             .select('*')
             .eq('id_inspeccion', insp.id_inspeccion)
             .order('id_detalle', { ascending: true });
 
+        // Enriquecer hallazgos con el id_lote real desde MS-CULTIVO
+        const hallazgosEnriquecidos = await Promise.all((detallesPrevios || []).map(async (hp) => {
+            try {
+                const sRes = await axios.get(`${CULTIVO_URL}/siembras/${hp.siembra_id}`, { headers });
+                return { ...hp, id_lote: sRes.data?.id_lote };
+            } catch (e) {
+                return hp;
+            }
+        }));
+
         res.json({
             id_inspeccion: insp.id_inspeccion,
-            hallazgos_previos: detallesPrevios || [],
+            hallazgos_previos: hallazgosEnriquecidos,
             lugar_nombre: lugarInspeccion?.nombre_lugar || 'Sin nombre',
             nombre_predio_oficial: predioOficial,
             area_lugar: areaTotal,
-            productor: { 
-                nombre: prod.nombre || 'N/A', 
+            productor: {
+                nombre: prod.nombre || 'N/A',
                 ubicacion: ubicacionFull
             },
             lotes: lugarInspeccion?.lotes || [],
@@ -169,9 +179,9 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error en GET /contexto:', error);
-        res.status(500).json({ 
-            error: 'Fallo al cargar contexto seguro', 
-            details: error.message || error 
+        res.status(500).json({
+            error: 'Fallo al cargar contexto seguro',
+            details: error.message || error
         });
     }
 });
@@ -186,7 +196,7 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
         const supabase = getSupabaseAdmin();
         const { id } = req.params;
         const items = Array.isArray(req.body) ? req.body : [req.body];
-        
+
         const toInsert = items.filter(i => !i.id_detalle).map(i => {
             const { id_detalle, ...rest } = i;
             return { ...rest, id_inspeccion: id };
@@ -194,13 +204,13 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
         const toUpdate = items.filter(i => i.id_detalle).map(i => ({ ...i, id_inspeccion: id }));
 
         let results = [];
-        
+
         if (toInsert.length > 0) {
             const { data, error } = await supabase.from('detalle_inspeccion').insert(toInsert).select();
             if (error) throw error;
             if (data) results.push(...data);
         }
-        
+
         if (toUpdate.length > 0) {
             const { data, error } = await supabase.from('detalle_inspeccion').upsert(toUpdate, { onConflict: 'id_detalle' }).select();
             if (error) throw error;
@@ -214,8 +224,8 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
         res.status(201).json(results);
     } catch (error) {
         console.error('❌ Error crítico en POST /detalles:', error);
-        res.status(error.status || 500).json({ 
-            error: 'Fallo al registrar hallazgo', 
+        res.status(error.status || 500).json({
+            error: 'Fallo al registrar hallazgo',
             details: error.message || error,
             hints: 'Verifique que los nombres de las columnas coincidan con el esquema de Supabase'
         });
@@ -283,20 +293,20 @@ app.get('/asignadas', authenticateInternal, async (req, res) => {
 
                 const predioRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, { headers });
                 const lugar = predioRes.data.find(p => p.id_lugar_produccion === ins.id_lugar_produccion);
-                
+
                 const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${ins.productor_id}`, { headers });
                 const prod = prodRes.data;
                 const region = prod.region;
-                
+
                 // Obtener el nombre del predio principal (usuario_predio es un array en Supabase por el join 1:N)
                 const predioInfo = Array.isArray(prod?.usuario_predio) ? prod.usuario_predio[0] : prod?.usuario_predio;
                 const nombrePredio = predioInfo?.nombre_predio || 'Finca sin nombre';
-                
+
                 const ubicacionParts = [];
                 if (region?.vereda) ubicacionParts.push(region.vereda);
                 if (region?.municipio) ubicacionParts.push(region.municipio);
                 if (region?.departamento) ubicacionParts.push(region.departamento);
-                
+
                 const ubicacion = ubicacionParts.length > 0 ? ubicacionParts.join(', ') : 'Ubicación no registrada';
 
                 return {
@@ -309,7 +319,7 @@ app.get('/asignadas', authenticateInternal, async (req, res) => {
 
             } catch (err) {
                 console.error(`⚠️ Error enriqueciendo inspección ${ins.id_inspeccion}:`, err.message);
-                return { ...ins, lugar_produccion: { nombre_lugar: 'Inspección #'+ins.id_inspeccion, ubicacion: 'Sin ubicación' } };
+                return { ...ins, lugar_produccion: { nombre_lugar: 'Inspección #' + ins.id_inspeccion, ubicacion: 'Sin ubicación' } };
             }
         }));
 
@@ -332,14 +342,14 @@ app.patch('/:id/finalizar', authenticateInternal, async (req, res) => {
 
         if (error) throw error;
         res.json({ message: 'Inspección finalizada con éxito' });
-    } catch (error) { 
+    } catch (error) {
         console.error('❌ Error en PATCH /finalizar:', error);
-        res.status(500).json({ error: 'Error interno al finalizar la inspección', details: error.message }); 
+        res.status(500).json({ error: 'Error interno al finalizar la inspección', details: error.message });
     }
 });
 
 // ==========================================
-// 📅 AGENDAMIENTO AUTOMÁTICO (BALANCEO DE CARGA)
+// 📅 AGENDAMIENTO AUTOMÁTICO (BALANCEO DE CARGA + REGIÓN + DISPONIBILIDAD)
 // ==========================================
 app.post('/agendar', authenticateInternal, async (req, res) => {
     try {
@@ -347,25 +357,87 @@ app.post('/agendar', authenticateInternal, async (req, res) => {
         const supabase = getSupabaseAdmin();
         const { id_lugar_produccion, fecha, hora } = req.body;
         const productor_id = Number(req.user.id_usuario);
+        const headers = { 'x-user-id': req.user.id_usuario, 'x-user-role': req.user.role };
 
         if (!id_lugar_produccion || !fecha || !hora) {
             return res.status(400).json({ error: 'Faltan campos obligatorios (predio, fecha u hora).' });
         }
 
-        // 1. Obtener técnicos desde MS-AUTH
-        const techRes = await axios.get(`${AUTH_URL}/auth/usuarios/rol/tecnico`).catch(e => {
-            console.error('❌ Error llamando a MS-AUTH:', e.message);
+        const fechaProgramada = `${fecha}T${hora}:00`;
+
+        // 1. PASO 4: Validar que el predio tenga lotes activos
+        const predioRes = await axios.get(`${PREDIOS_URL}/lugares-produccion`, { headers }).catch(e => {
+            console.error('❌ Error llamando a MS-PREDIOS:', e.message);
             return { data: [] };
         });
 
-        const tecnicos = techRes.data;
-        console.log(`👷 Técnicos encontrados: ${tecnicos.length}`);
+        const lugar = predioRes.data.find(p => p.id_lugar_produccion === Number(id_lugar_produccion));
 
-        if (!tecnicos || tecnicos.length === 0) {
-            return res.status(503).json({ error: 'No hay técnicos activos en el sistema para asignación automática.' });
+        if (!lugar || !lugar.lote || lugar.lote.length === 0) {
+            return res.status(400).json({
+                error: 'El predio seleccionado no cuenta con la información necesaria para solicitar una inspección (No tiene lotes registrados).'
+            });
         }
 
-        // 2. Consultar carga de trabajo
+        // 2. Obtener datos del productor para su región
+        const prodRes = await axios.get(`${AUTH_URL}/auth/usuarios/${productor_id}`, { headers }).catch(e => {
+            console.error('❌ Error llamando a MS-AUTH (Productor):', e.message);
+            return { data: null };
+        });
+
+        const regionProductor = prodRes.data?.region;
+        if (!regionProductor) {
+            return res.status(400).json({ error: 'El productor no tiene una región registrada para la asignación.' });
+        }
+
+        // 3. Obtener técnicos desde MS-AUTH
+        const techRes = await axios.get(`${AUTH_URL}/auth/usuarios/rol/tecnico`).catch(e => {
+            console.error('❌ Error llamando a MS-AUTH (Técnicos):', e.message);
+            return { data: [] };
+        });
+
+        const todosTecnicos = techRes.data;
+        if (!todosTecnicos || todosTecnicos.length === 0) {
+            return res.status(503).json({ error: 'No hay técnicos activos en el sistema.' });
+        }
+
+        // 4. Filtrar técnicos por REGIÓN (Prioridad: Municipio > Departamento)
+        let tecnicosCercanos = todosTecnicos.filter(t =>
+            t.region?.municipio === regionProductor.municipio &&
+            t.region?.departamento === regionProductor.departamento
+        );
+
+        if (tecnicosCercanos.length === 0) {
+            console.log('⚠️ No hay técnicos en el municipio, buscando por departamento...');
+            tecnicosCercanos = todosTecnicos.filter(t => t.region?.departamento === regionProductor.departamento);
+        }
+
+        if (tecnicosCercanos.length === 0) {
+            return res.status(400).json({
+                error: `No hay técnicos disponibles en su región (${regionProductor.departamento}).`
+            });
+        }
+
+        // 5. Verificar DISPONIBILIDAD (Paso 7: No cruce de horarios)
+        const { data: ocupados, error: busyErr } = await supabase
+            .from('inspeccion')
+            .select('tecnico_id')
+            .eq('fecha_programada', fechaProgramada)
+            .in('estado', ['programada', 'en_proceso']);
+
+        if (busyErr) throw busyErr;
+
+        const idsOcupados = new Set((ocupados || []).map(o => o.tecnico_id));
+        const tecnicosDisponibles = tecnicosCercanos.filter(t => !idsOcupados.has(t.id_usuario));
+
+        if (tecnicosDisponibles.length === 0) {
+            return res.status(400).json({
+                error: 'No hay técnicos disponibles para la fecha y hora seleccionadas.',
+                sugerencia: 'Por favor seleccione una fecha u hora diferente.'
+            });
+        }
+
+        // 6. Balanceo de Carga (Saga / Workload)
         const { data: carga, error: loadErr } = await supabase
             .from('inspeccion')
             .select('tecnico_id')
@@ -373,40 +445,81 @@ app.post('/agendar', authenticateInternal, async (req, res) => {
 
         if (loadErr) throw loadErr;
 
-        // 3. Calcular quién tiene menos trabajo
         const workload = {};
-        tecnicos.forEach(t => workload[t.id_usuario] = 0);
+        tecnicosDisponibles.forEach(t => workload[t.id_usuario] = 0);
         carga.forEach(ins => {
             if (workload[ins.tecnico_id] !== undefined) workload[ins.tecnico_id]++;
         });
 
-        const elegible = tecnicos.sort((a,b) => workload[a.id_usuario] - workload[b.id_usuario])[0];
-        console.log(`🎯 Técnico asignado por carga mínima: ${elegible.nombre} (ID: ${elegible.id_usuario})`);
+        const elegible = tecnicosDisponibles.sort((a, b) => workload[a.id_usuario] - workload[b.id_usuario])[0];
+        console.log(`🎯 Técnico asignado: ${elegible.nombre} en ${elegible.region?.municipio}`);
 
-        // 4. Crear registro
+        // 7. Crear registro
         const { data: nueva, error: insErr } = await supabase.from('inspeccion').insert([{
             productor_id,
             tecnico_id: elegible.id_usuario,
             id_lugar_produccion: Number(id_lugar_produccion),
             estado: 'programada',
-            fecha_programada: `${fecha}T${hora}:00`,
+            fecha_programada: fechaProgramada,
             observaciones_generales: 'Cita agendada por el portal del productor'
         }]).select();
 
         if (insErr) throw insErr;
 
         res.status(201).json({
-            message: 'Inspección agendada',
+            message: 'Inspección agendada exitosamente',
             tecnico_asignado: elegible.nombre,
             detalle: nueva[0]
         });
 
     } catch (error) {
         console.error('💥 ERROR CRÍTICO EN AGENDAMIENTO:', error);
-        res.status(500).json({ 
-            error: 'No se pudo procesar la asignación automática', 
-            details: error.message 
-        });
+        res.status(500).json({ error: 'Fallo al procesar agendamiento', details: error.message });
+    }
+});
+
+// ==========================================
+// ❌ CANCELACIÓN DE CITA 
+// ==========================================
+app.patch('/:id/cancelar', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id } = req.params;
+        const productor_id = Number(req.user.id_usuario);
+
+        // 1. Verificar que la cita exista y sea del productor
+        const { data: insp, error: findErr } = await supabase
+            .from('inspeccion')
+            .select('*')
+            .eq('id_inspeccion', id)
+            .single();
+
+        if (findErr || !insp) return res.status(404).json({ error: 'Cita no encontrada.' });
+
+        if (insp.productor_id !== productor_id && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No tiene permiso para cancelar esta cita.' });
+        }
+
+        // 2. Solo se puede cancelar si está 'programada'
+        if (insp.estado !== 'programada') {
+            return res.status(400).json({
+                error: 'No se puede cancelar una inspección que ya está en proceso o finalizada.'
+            });
+        }
+
+        // 3. Actualizar estado
+        const { error: cancelErr } = await supabase
+            .from('inspeccion')
+            .update({ estado: 'cancelada', observaciones_generales: 'Cancelada por el productor' })
+            .eq('id_inspeccion', id);
+
+        if (cancelErr) throw cancelErr;
+
+        res.json({ message: 'La solicitud de inspección ha sido cancelada exitosamente.' });
+
+    } catch (error) {
+        console.error('❌ Error en PATCH /cancelar:', error);
+        res.status(500).json({ error: 'Error al cancelar la cita', details: error.message });
     }
 });
 

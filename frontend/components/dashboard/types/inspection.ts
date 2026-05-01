@@ -4,7 +4,7 @@ export interface Inspection {
   productor_id: number
   id_lugar_produccion: number
   fecha_programada: string
-  estado: 'programada' | 'en_proceso' | 'finalizada'
+  estado: 'programada' | 'en_proceso' | 'finalizada' | 'cancelada'
   observaciones_generales?: string
   lugar_produccion: {
     nombre_lugar: string
