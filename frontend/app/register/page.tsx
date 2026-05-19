@@ -65,7 +65,7 @@ export default function RegisterPage() {
   const handleDepartamentoChange = (deptId: string, deptName: string) => {
     setFormData({ ...formData, departamento: deptName, municipio: "" })
     setMunicipios([])
-    
+
     fetch(`https://api-colombia.com/api/v1/Department/${deptId}/cities`)
       .then(res => res.json())
       .then(data => setMunicipios(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
@@ -132,7 +132,7 @@ export default function RegisterPage() {
             </div>
             <CardTitle className="text-3xl font-bold tracking-tight">Únete a ICA Hub</CardTitle>
             <CardDescription className="text-muted-foreground text-lg">
-              Crea tu cuenta para gestionar predios e inspecciones fitosanitarias
+              Crea tu cuenta de exportador y registra tu primera unidad productiva
             </CardDescription>
           </CardHeader>
 
@@ -245,17 +245,17 @@ export default function RegisterPage() {
                     <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-2xl space-y-6 shadow-inner">
                       <div className="flex items-center gap-2 text-emerald-400 font-medium border-b border-emerald-500/10 pb-3">
                         <MapPin className="w-5 h-5" />
-                        {isProductor ? "Ubicación Física del Predio" : "Zona de Cobertura y Asignación"}
+                        {isProductor ? "Ubicación Legal (Lugar de Producción)" : "Zona de Cobertura y Asignación"}
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Nombre del Predio (Solo Productor) */}
+                        {/* Nombre del Lugar (Solo Productor) */}
                         {isProductor && (
                           <div className="md:col-span-2 space-y-2">
-                            <Label htmlFor="nombre_predio" className="text-muted-foreground">Nombre de la Finca / Predio</Label>
+                            <Label htmlFor="nombre_predio" className="text-muted-foreground">Nombre de la Empresa / Lugar de Producción</Label>
                             <Input
                               id="nombre_predio"
-                              placeholder="Ej: Finca La Esperanza"
+                              placeholder="Ej: Agroexportadora del Valle"
                               className="bg-muted/30 border-border text-foreground focus:border-emerald-500"
                               required={isProductor}
                               value={formData.nombre_predio}
@@ -270,7 +270,7 @@ export default function RegisterPage() {
                           <Select
                             onValueChange={(val) => {
                               const dept = departamentos.find(d => d.id.toString() === val);
-                              if(dept) handleDepartamentoChange(val, dept.name);
+                              if (dept) handleDepartamentoChange(val, dept.name);
                             }}
                             required
                           >
@@ -323,7 +323,7 @@ export default function RegisterPage() {
                         {/* Número Predial (Solo Productor) */}
                         {isProductor && (
                           <div className="space-y-2">
-                            <Label htmlFor="numero_predial" className="text-muted-foreground">Número de Registro (ICA)</Label>
+                            <Label htmlFor="numero_predial" className="text-muted-foreground">Número de Registro Productor (ICA)</Label>
                             <Input
                               id="numero_predial"
                               placeholder="Código de 10 dígitos"

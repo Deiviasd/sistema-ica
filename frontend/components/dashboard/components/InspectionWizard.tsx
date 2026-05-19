@@ -83,7 +83,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] ml-1">DATOS GENERALES</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Lugar de producción</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Predio Asignado</label>
                 <div className="relative">
                   <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4 pointer-events-none" />
                   <select

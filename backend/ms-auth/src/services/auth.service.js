@@ -20,53 +20,17 @@ const registerService = async (userData) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // 📍 1. Si trae datos de ubicación física, creamos la región
-    let finalRegionId = userData.id_region;
-    if (userData.departamento && userData.municipio) {
-        const newRegion = await createRegion({
-            id_region: `LOC-${Date.now()}`, // ID único para la ubicación
-            departamento: userData.departamento,
-            municipio: userData.municipio,
-            vereda: userData.vereda,
-            direccion: userData.direccion
-        });
-        finalRegionId = newRegion.id_region;
-    }
-
+    // ✨ ms-auth ahora es puro: solo guarda el id_region referencial
     const user = await createUser({
         nombre: userData.nombre,
         documento: userData.documento,
         email,
         password: hashedPassword,
         id_rol: userData.id_rol,
-        id_region: finalRegionId,
+        id_region: userData.id_region, // Solo guardamos la referencia
         id_auth_supabase: userData.id_auth_supabase,
-        estado: 'inactivo'
+        estado: 'inactivo' // 🔒 Seguridad: Requiere aprobación administrativa
     })
-
-    // 🏘️ 2. Si es productor y trae número predial, lo asociamos con su NOMBRE DE PREDIO
-    console.log(`🔎 [AUTH DEBUG] Evaluando asociación: Rol=${userData.id_rol}, Predial=${userData.numero_predial}`);
-    
-    if (userData.id_rol === 'PRODUCTOR' && userData.numero_predial) {
-        try {
-            console.log(`✍️ [AUTH DEBUG] Intentando insertar en usuario_predio para ID: ${user.id_usuario}`);
-            const { data: predioData, error: predioError } = await supabase.from('usuario_predio').insert([{
-                id_usuario: user.id_usuario,
-                numero_predial: parseInt(userData.numero_predial),
-                nombre_predio: userData.nombre_predio
-            }]).select();
-
-            if (predioError) {
-                console.error('❌ [AUTH DEBUG] Error de Supabase al insertar predio:', predioError.message);
-            } else {
-                console.log('✅ [AUTH DEBUG] Asociación exitosa:', predioData);
-            }
-        } catch (err) {
-            console.error('⚠️ [AUTH DEBUG] Error crítico en catch de asociación:', err.message);
-        }
-    } else {
-        console.warn('⚠️ [AUTH DEBUG] No se cumplieron condiciones para asociar predio.');
-    }
 
     return {
         id: user.id_usuario,
@@ -133,6 +97,9 @@ const loginService = async ({ email, password }) => {
             email: user.correo, 
             role: userRole, 
             nombre: user.nombre,
+            documento: user.documento, // ✨ Soporte de documento
+            identificacion: user.documento, // ✨ Soporte para compatibilidad frontend
+            numero_documento: user.documento, // ✨ Soporte para compatibilidad frontend
             nombre_predio: predio?.nombre_predio || '',
             numero_predial: predio?.numero_predial || ''
         } 
@@ -189,4 +156,9 @@ const getUsersByRoleService = async (role) => {
     return await findUsersByRole(role)
 }
 
-module.exports = { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService }
+const checkEmailService = async (email) => {
+    const user = await findUserByEmail(email)
+    return !!user
+}
+
+module.exports = { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService, checkEmailService }

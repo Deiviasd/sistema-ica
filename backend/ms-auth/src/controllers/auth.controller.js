@@ -78,11 +78,6 @@ const getProfileController = async (req, res) => {
 
         if (!user) throw new Error('Usuario no encontrado');
 
-        // Aplanamos la información del predio para el frontend
-        const predio = user.usuario_predio && user.usuario_predio.length > 0 
-            ? user.usuario_predio[0] 
-            : null;
-
         const roleMap = {
             'ADMIN_ICA': 'admin',
             'TECNICO': 'tecnico',
@@ -95,9 +90,11 @@ const getProfileController = async (req, res) => {
                 id_usuario: user.id_usuario,
                 email: user.correo,
                 nombre: user.nombre,
+                id_region: user.id_region, // Referencia geográfica
+                documento: user.documento, // ✨ Añadir soporte de documento
+                identificacion: user.documento, // ✨ Soporte para compatibilidad frontend
+                numero_documento: user.documento, // ✨ Soporte para compatibilidad frontend
                 role: roleMap[user.id_rol] || 'guest',
-                nombre_predio: predio?.nombre_predio || '',
-                numero_predial: predio?.numero_predial || '',
                 app_metadata: {
                     role: roleMap[user.id_rol] || 'guest'
                 }
@@ -120,4 +117,14 @@ const getUsersByRoleController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController }
+const checkEmailController = async (req, res) => {
+    try {
+        const { email } = req.params
+        const exists = await checkEmailService(email)
+        res.status(200).json({ exists })
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController, checkEmailController }

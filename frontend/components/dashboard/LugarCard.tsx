@@ -28,16 +28,17 @@ interface LugarCardProps {
   onDelete: (id: number) => void
   onUpdate: (id: number, newName: string) => void
   onAgendar: (id: number) => void
+  isLocked?: boolean
 }
 
-export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar }: LugarCardProps) {
+export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocked = false }: LugarCardProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [tempName, setTempName] = useState(predio.nombre_lugar)
+  const [tempName, setTempName] = useState(predio.nombre_predio)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   const handleUpdate = () => {
-    if (tempName.trim() && tempName !== predio.nombre_lugar) {
-      onUpdate(predio.id_lugar_produccion, tempName)
+    if (tempName.trim() && tempName !== predio.nombre_predio) {
+      onUpdate(predio.id_predio, tempName)
     }
     setIsEditing(false)
   }
@@ -66,38 +67,43 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar }: Lugar
                   </Button>
                 </div>
               ) : (
-                <h3 className="text-2xl font-bold tracking-tight truncate group-hover:text-primary transition-colors">
-                  {predio.nombre_lugar}
+                <h3 className="text-2xl font-bold tracking-tight truncate group-hover:text-primary transition-colors flex items-center gap-2">
+                  {predio.nombre_predio}
                 </h3>
               )}
             </div>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted rounded-full transition-colors">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-border rounded-xl shadow-2xl">
-                <DropdownMenuItem 
-                  className="text-rose-400 focus:text-rose-400 focus:bg-rose-400/10 cursor-pointer py-2 font-semibold"
-                  onClick={() => setShowDeleteAlert(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Eliminar Lugar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!isLocked ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted rounded-full transition-colors">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-card border-border rounded-xl shadow-2xl">
+                  <DropdownMenuItem 
+                    className="text-rose-400 focus:text-rose-400 focus:bg-rose-400/10 cursor-pointer py-2 font-semibold"
+                    onClick={() => setShowDeleteAlert(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar Predio
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className="text-xs bg-rose-500/10 text-rose-400 font-extrabold px-3 py-1 rounded-full border border-rose-500/20 flex items-center gap-1.5 animate-pulse">
+                🔒 CONGELADO
+              </span>
+            )}
           </div>
 
-          {/* Información: Predio y Área */}
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8 font-medium">
             <div className="flex items-center gap-2">
-              <IdCard className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">Predio: {predio.nombre_predio || user?.nombre_predio || 'Principal'}</span>
+              <IdCard className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm">Lugar: {predio.lugar_produccion?.nombre_lugar || 'N/A'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{predio.area_total} m²</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm">{predio.area_hectareas} Ha</span>
             </div>
           </div>
 
@@ -105,14 +111,17 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar }: Lugar
           <div className="flex items-center gap-3 mt-auto">
             <Button
               variant="outline"
-              className="flex-1 bg-primary/5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all rounded-xl h-12 font-bold text-sm"
-              onClick={() => onAgendar(predio.id_lugar_produccion)}
+              disabled={isLocked}
+              className={`flex-1 bg-primary/5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all rounded-xl h-12 font-bold text-sm ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => onAgendar(predio.id_predio)}
             >
-              <ClipboardCheck className="w-4 h-4 mr-2" /> Agendar Inspección
+              <ClipboardCheck className="w-4 h-4 mr-2" />
+              {isLocked ? 'Inspección Activa' : 'Agendar Inspección'}
             </Button>
             <Button
               variant="outline"
-              className="flex-1 bg-muted/30 border-muted text-muted-foreground hover:bg-muted transition-all rounded-xl h-12 font-bold text-sm"
+              disabled={isLocked}
+              className={`flex-1 bg-muted/30 border-muted text-muted-foreground hover:bg-muted transition-all rounded-xl h-12 font-bold text-sm ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => setIsEditing(true)}
             >
               <Edit2 className="w-4 h-4 mr-2" /> Editar
@@ -142,7 +151,7 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar }: Lugar
                 <AlertTriangle className="w-10 h-10 text-rose-500" />
               </div>
               <h3 className="text-2xl font-black text-center mb-4">
-                ¿Eliminar este lugar?
+                ¿Eliminar este predio?
               </h3>
               <p className="text-muted-foreground text-center mb-8 leading-relaxed">
                 Esta acción es irreversible. Se borrarán permanentemente todos los 
@@ -153,11 +162,11 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar }: Lugar
                    variant="destructive"
                   className="w-full h-14 font-black text-lg rounded-2xl transition-all active:scale-95"
                   onClick={() => {
-                    onDelete(predio.id_lugar_produccion);
+                    onDelete(predio.id_predio);
                     setShowDeleteAlert(false);
                   }}
                 >
-                  SÍ, ELIMINAR TODO
+                  SÍ, ELIMINAR PREDIO
                 </Button>
                 <Button 
                   variant="ghost"

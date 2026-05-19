@@ -83,11 +83,11 @@ app.post('/api/orchestrator/lote-integral', authenticateToken, async (req, res, 
     let siembraId = null;
     try {
         const {
-            id_lugar_produccion, nombre_lote, area_m2, especie, variedad, fecha_siembra
+            id_lugar_produccion, nombre_lote, area, especie, variedad, fecha_siembra
         } = req.body;
 
         const loteResponse = await internalApi.predios.post('/lotes', {
-            id_lugar_produccion, nombre_lote, area_m2
+            id_lugar_produccion, nombre_lote, area
         }, internalApi.getAuthHeaders(req.user, 'JWT_SECRET_PREDIOS'));
 
         loteId = loteResponse.data.id_lote;
@@ -190,19 +190,173 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
 };
 
 // 🔐 Microservicio de Autenticación (Login, Register, Profile, Gestión de Usuarios)
-// Usamos un middleware manual para proteger solo ciertas rutas
+// RUTA ORQUESTADA: Registro de Usuario + Predio Inicial
+// RUTA ORQUESTADA: Registro de Usuario + Registro Legal de Productor (Lugar)
+app.post('/auth/register', async (req, res, next) => {
+    try {
+        const { 
+            nombre, documento, email, password, id_rol,
+            nombre_predio, // Se usará como Nombre de la Empresa/Lugar
+            numero_predial, // Se usará como Registro de Productor
+            departamento, municipio, vereda, direccion
+        } = req.body;
+
+        console.log(`🚀 [ORQUESTADOR] Iniciando registro integral para: ${email}`);
+
+        // 1. Verificar si el email ya existe antes de crear nada (Atomicidad)
+        try {
+            const checkRes = await internalApi.auth.get(`check-email/${encodeURIComponent(email)}`, {
+                headers: { 'x-internal-key': process.env.INTERNAL_API_KEY }
+            });
+            if (checkRes.data.exists) {
+                return res.status(400).json({ error: 'Ya existe un usuario registrado con este correo electrónico' });
+            }
+        } catch (err) {
+            console.warn('⚠️ [ORQUESTADOR] No se pudo verificar el email:', err.message || err);
+        }
+
+        let id_region = null;
+        try {
+            // 2. Crear la Región en ms-predios
+            const regionRes = await internalApi.predios.post('/regiones', {
+                departamento, municipio, vereda, direccion
+            });
+            id_region = regionRes.data.id_region;
+            console.log(`📍 [ORQUESTADOR] Región creada con ID: ${id_region}`);
+        } catch (err) {
+            return res.status(500).json({ error: 'Error al registrar la ubicación geográfica' });
+        }
+
+        let id_usuario = null;
+        try {
+            // 3. Crear el Usuario en ms-auth pasando el id_region
+            const authRes = await internalApi.auth.post('register', {
+                nombre, documento, email, password, id_rol,
+                id_region: id_region.toString()
+            });
+
+            const newUser = authRes.data;
+            id_usuario = newUser.id; 
+            console.log(`👤 [ORQUESTADOR] Usuario creado con ID: ${id_usuario}`);
+        } catch (err) {
+            // 🔄 ROLLBACK: Si falla el usuario, borramos la región creada
+            console.error('❌ [ORQUESTADOR] Falló creación de usuario, ejecutando rollback de región...');
+            await internalApi.predios.delete(`/regiones/${id_region}`).catch(e => console.error('⚠️ Falló rollback de región:', e.message));
+            
+            // Extraer el mensaje real del error
+            const errorMsg = err.response?.data?.error || err.message || "";
+            const msg = errorMsg.includes('Usuario ya existe') 
+                ? 'Este correo ya está registrado' 
+                : (errorMsg || 'Error en el proceso de registro');
+                
+            return res.status(400).json({ error: msg });
+        }
+
+        // 4. Si es Productor, registrar su Lugar de Producción (Registro Legal)
+        if (id_rol === 'PRODUCTOR') {
+            try {
+                console.log(`🏢 [ORQUESTADOR] Registrando Lugar de Producción para ID: ${id_usuario}`);
+                
+                await internalApi.predios.post('/lugares-produccion', {
+                    nombre_lugar: nombre_predio || `Operación de ${nombre}`,
+                    numero_registro: numero_predial || 'PENDIENTE',
+                    productor_id: id_usuario,
+                    id_region: id_region
+                }, { 
+                    headers: { 
+                        'x-user-id': id_usuario, 
+                        'x-user-role': id_rol
+                    } 
+                });
+            } catch (err) {
+                console.error('⚠️ [ORQUESTADOR] Error al registrar Lugar de Producción:', err.message);
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Registro exitoso. Ahora puedes iniciar sesión.',
+            user: { id: id_usuario, email }
+        });
+
+    } catch (error) {
+        console.error('❌ [ORQUESTADOR] Error crítico en registro:', error.message);
+        res.status(error.status || 500).json({ 
+            error: error.message || 'Error inesperado en el servidor' 
+        });
+    }
+});
+
+// Obtener usuarios con hidratación de datos (Región + Lugar de Producción)
+app.get('/auth/users/by-status', authenticateToken, restrictTo('admin'), async (req, res) => {
+    try {
+        const { status } = req.query;
+        console.log(`🔍 [ORQUESTADOR] Hidratando usuarios con estado: ${status}`);
+
+        // 1. Obtener los usuarios base de ms-auth
+        const usersRes = await internalApi.auth.get(`users/by-status?status=${status}`);
+        const baseUsers = usersRes.data;
+
+        // 2. Hidratar cada usuario con datos de ms-predios
+        const hydratedUsers = await Promise.all(baseUsers.map(async (user) => {
+            const enrichedUser = { 
+                ...user,
+                // Mapeo para compatibilidad con el frontend anterior
+                id_usuario: user.id_usuario,
+                correo: user.email || user.correo 
+            };
+
+            // Traer Región si existe
+            if (user.id_region) {
+                try {
+                    const regionRes = await internalApi.predios.get(`/regiones/${user.id_region}`);
+                    enrichedUser.region = regionRes.data;
+                } catch (e) {
+                    console.warn(`⚠️ No se pudo cargar región para usuario ${user.id_usuario}`);
+                }
+            }
+
+            // Traer Lugar de Producción si es PRODUCTOR
+            if (user.id_rol === 'PRODUCTOR') {
+                try {
+                    const lugarRes = await internalApi.predios.get('/lugares-produccion', {
+                        headers: { 
+                            'x-user-id': user.id_usuario, 
+                            'x-user-role': user.id_rol 
+                        }
+                    });
+                    // El frontend espera un array llamado usuario_predio
+                    enrichedUser.usuario_predio = (lugarRes.data || []).map(l => ({
+                        nombre_predio: l.nombre_lugar,
+                        numero_predial: l.numero_registro
+                    }));
+                } catch (e) {
+                    console.warn(`⚠️ No se pudo cargar lugar para usuario ${user.id_usuario}`);
+                }
+            }
+
+            return enrichedUser;
+        }));
+
+        res.json(hydratedUsers);
+
+    } catch (error) {
+        console.error('❌ [ORQUESTADOR] Error hidatando usuarios:', error.message);
+        res.status(500).json({ error: 'Error al obtener expediente completo de usuarios' });
+    }
+});
+
+// Proxy para el resto de rutas de /auth
 app.use('/auth', (req, res, next) => {
-    const publicPaths = ['/login', '/register', '/catalogos'];
+    const publicPaths = ['/login', '/catalogos']; // /register ya no es manejado aquí
     const isPublic = publicPaths.some(path => req.path.startsWith(path));
 
     if (isPublic) return next();
 
-    // Rutas que requieren ADMIN_ICA
     if (req.path.startsWith('/pending') || req.path.startsWith('/users')) {
         return authenticateToken(req, res, () => restrictTo('admin')(req, res, next));
     }
 
-    // El resto requiere al menos estar autenticado (profile, etc)
     return authenticateToken(req, res, next);
 }, createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,

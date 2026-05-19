@@ -41,6 +41,9 @@ export const useAuth = () => {
             email: data.email,
             nombre: data.nombre || data.user_metadata?.nombre || 'Usuario',
             role: normalizedRole,
+            documento: data.documento || data.identificacion || data.numero_documento || '',
+            identificacion: data.identificacion || data.documento || data.numero_documento || '',
+            numero_documento: data.numero_documento || data.documento || data.identificacion || '',
             nombre_predio: data.nombre_predio || '',
             numero_predial: data.numero_predial || ''
           };

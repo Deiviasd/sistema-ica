@@ -3,6 +3,7 @@
 import { useUserStore } from "@/lib/store"
 import { useAuth } from "@/hooks/useAuth"
 import { ThemeToggle } from "./ThemeToggle"
+import Link from "next/link"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -59,9 +60,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </p>
             </div>
             <DropdownMenuSeparator className="bg-border/50" />
-            <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 hover:bg-muted focus:bg-muted transition-colors">
-              <User className="mr-2 h-4 w-4" />
-              <span>Mi Perfil</span>
+            <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 hover:bg-muted focus:bg-muted transition-colors">
+              <Link href="/dashboard/perfil" className="flex items-center w-full">
+                <User className="mr-2 h-4 w-4" />
+                <span>Mi Perfil</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleLogout}

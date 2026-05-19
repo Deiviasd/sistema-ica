@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
  * Servicio para realizar peticiones internas entre microservicios
  * gestionadas por el Orquestador con soporte de Token Exchange.
  */
+console.log("🔍 [INTERNAL_API] Iniciando configuración de microservicios...");
+console.log("🔑 [INTERNAL_API] INTERNAL_API_KEY detectada:", process.env.INTERNAL_API_KEY ? "SÍ" : "NO");
+
 const internalApi = {
     auth: axios.create({ baseURL: `${process.env.AUTH_SERVICE_URL}/auth` }),
     predios: axios.create({ baseURL: process.env.PREDIOS_SERVICE_URL }),
@@ -47,8 +50,15 @@ const internalApi = {
     }
 };
 
-// Interceptor para propagar errores de forma limpia
-const addErrorHandler = (instance) => {
+// Configuración de Interceptores y Errores
+const setupInstance = (instance) => {
+    // 🔑 Inyectar LLAVE MAESTRA en cada petición
+    instance.interceptors.request.use(config => {
+        config.headers['x-internal-key'] = process.env.INTERNAL_API_KEY;
+        return config;
+    });
+
+    // 🔴 Manejo de errores
     instance.interceptors.response.use(
         response => response,
         error => {
@@ -59,8 +69,11 @@ const addErrorHandler = (instance) => {
     );
 };
 
-Object.values(internalApi).forEach(instance => {
-    if (typeof instance !== 'function') addErrorHandler(instance);
-});
+// Aplicar a todas las instancias
+setupInstance(internalApi.auth);
+setupInstance(internalApi.predios);
+setupInstance(internalApi.cultivo);
+setupInstance(internalApi.inspecciones);
+setupInstance(internalApi.auditoria);
 
 module.exports = internalApi;

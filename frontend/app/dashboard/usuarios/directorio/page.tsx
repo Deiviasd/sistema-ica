@@ -20,6 +20,8 @@ import api from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useUserStore } from "@/lib/store"
 
 interface DirectoryUser {
   id_usuario: string
@@ -42,6 +44,16 @@ export default function DirectorioUsuarios() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
+
+  const { user } = useUserStore()
+  const router = useRouter()
+
+  // 🛡️ Protección de Ruta por Roles (Solo Admin)
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   useEffect(() => {
     const fetchAllUsers = async () => {

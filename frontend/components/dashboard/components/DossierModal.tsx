@@ -88,15 +88,12 @@ export function DossierModal({ context, onClose }: Props) {
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Calculator className="text-emerald-500 w-5 h-5" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Dimensiones Operativas</span>
+                <Leaf className="text-emerald-500 w-5 h-5" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar de Producción</span>
               </div>
-              <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800">
-                <p className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1">
-                  {context?.area_lugar || 0} <span className="text-emerald-500 text-sm">MT²</span>
-                </p>
-                <p className="text-xs text-slate-400 font-bold tracking-tight uppercase">
-                  {context?.lugares_produccion?.length || 0} Lugares · {context?.total_lotes || 0} Lotes
+              <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 flex flex-col justify-center min-h-[104px]">
+                <p className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 line-clamp-2" title={context?.lugares_produccion?.[0]?.nombre_empresa || 'Sitio No Asignado'}>
+                  {context?.lugares_produccion?.[0]?.nombre_empresa || 'Sitio No Asignado'}
                 </p>
               </div>
             </div>
@@ -105,7 +102,7 @@ export function DossierModal({ context, onClose }: Props) {
           {/* Jerarquía */}
           <div className="space-y-4">
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">
-              LUGARES DE PRODUCCIÓN — HAZ CLIC PARA EXPLORAR
+              PREDIOS ASIGNADOS — HAZ CLIC PARA EXPLORAR
             </h4>
             <div className="space-y-3">
               {context?.lugares_produccion?.map((lugar: any) => {
@@ -126,10 +123,10 @@ export function DossierModal({ context, onClose }: Props) {
                         <MapPin className={`w-6 h-6 transition-colors ${isOpen ? 'text-teal-400' : 'text-slate-600'}`} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-white font-black italic uppercase tracking-tight">{lugar.nombre_lugar}</p>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
+                        <p className="text-lg text-white font-black italic uppercase tracking-tight">{lugar.nombre_lugar}</p>
+                        <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mt-1">
                           {lugar.area_total || 0} m² · {lugar.lotes?.length || 0} lotes
-                          {lugar.es_lugar_inspeccion && <span className="text-teal-400 ml-2">★ INSPECCIÓN ACTUAL</span>}
+                          {lugar.es_lugar_inspeccion && <span className="text-teal-400 ml-3">★ INSPECCIÓN ACTUAL</span>}
                         </p>
                       </div>
                       <ChevronRight className={`w-5 h-5 text-slate-600 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90 text-teal-400' : ''}`} />

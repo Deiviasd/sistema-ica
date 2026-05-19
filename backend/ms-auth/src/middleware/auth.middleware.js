@@ -2,6 +2,20 @@ const jwt = require('jsonwebtoken')
 const { findUserById } = require('../repositories/user.repository')
 
 const verifyToken = async (req, res, next) => {
+    // 🔑 Debug para ver qué está llegando
+    console.log(`📡 [MS-AUTH] Headers recibidos:`, JSON.stringify(req.headers));
+    console.log(`🔑 [MS-AUTH] Llave Interna Esperada: "${process.env.INTERNAL_API_KEY}"`);
+
+    // 🔑 Permitir acceso si viene con la Llave Interna de Seguridad
+    const internalKey = req.headers['x-internal-key']
+    console.log(`🔎 [MS-AUTH] Llave recibida: "${internalKey}"`);
+
+    if (internalKey && internalKey === process.env.INTERNAL_API_KEY) {
+        console.log(`✅ [MS-AUTH] Acceso concedido por Llave Interna`);
+        req.user = { app_metadata: { role: 'admin' } } // Simular admin para bypass de requireAdmin
+        return next()
+    }
+
     const authHeader = req.headers.authorization
     if (!authHeader) return res.status(401).json({ error: 'Token requerido' })
 

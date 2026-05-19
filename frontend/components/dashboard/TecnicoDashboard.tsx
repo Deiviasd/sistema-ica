@@ -152,7 +152,7 @@ export default function TecnicoDashboard() {
             setCancellationAlerts(prev => [...prev, {
               id_inspeccion: fullData.id_inspeccion,
               nombre_predio: fullData.nombre_predio_oficial || 'Predio Desconocido',
-              nombre_lugar: fullData.lugares_produccion?.map((l: any) => l.nombre_lugar).join(', ') || 'Lugar no disponible',
+              nombre_lugar: fullData.lugares_produccion?.map((l: any) => l.nombre_empresa || l.nombre_lugar).join(', ') || 'Lugar no disponible',
               productor_nombre: fullData.productor?.nombre || 'Productor no disponible',
               total_lugares: fullData.lugares_produccion?.length ?? 0,
               total_lotes: fullData.total_lotes ?? 0,

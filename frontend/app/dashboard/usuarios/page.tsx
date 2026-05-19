@@ -19,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useUserStore } from "@/lib/store"
 
 interface PendingUser {
   id_usuario: string
@@ -46,6 +48,16 @@ export default function UsuariosPendientes() {
   const [loading, setLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [viewStatus, setViewStatus] = useState<'inactivo' | 'rechazado'>('inactivo')
+
+  const { user } = useUserStore()
+  const router = useRouter()
+
+  // 🛡️ Protección de Ruta por Roles (Solo Admin)
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   const fetchUsers = async () => {
     setLoading(true)
