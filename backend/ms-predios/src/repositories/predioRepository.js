@@ -7,6 +7,7 @@ const predioRepository = {
             .from('lugar_produccion')
             .select(`
                 *,
+                region(*),
                 predio (
                     *,
                     region(*),
@@ -24,6 +25,7 @@ const predioRepository = {
             .from('lugar_produccion')
             .select(`
                 *,
+                region(*),
                 predio (
                     *,
                     region(*),

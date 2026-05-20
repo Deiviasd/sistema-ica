@@ -42,6 +42,8 @@ interface FullUserProfile {
     nombre_region: string
     departamento?: string
     municipio?: string
+    vereda?: string
+    direccion?: string
   }
 }
 
@@ -53,10 +55,24 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
 
   // Producer Stats
-  const [stats, setStats] = useState({
+  const [producerStats, setProducerStats] = useState({
     predios: 0,
     inspecciones: 0,
     inspeccionesActivas: 0,
+  })
+
+  // Técnico Stats
+  const [tecnicoStats, setTecnicoStats] = useState({
+    asignadas: 0,
+    finalizadas: 0,
+    activas: 0,
+  })
+
+  // Admin Stats
+  const [adminStats, setAdminStats] = useState({
+    totalUsuarios: 0,
+    activos: 0,
+    tecnicos: 0,
   })
 
   useEffect(() => {
@@ -87,7 +103,7 @@ export default function ProfilePage() {
             (ins: any) => ins.estado === "programada" || ins.estado === "en_proceso"
           )
 
-          setStats({
+          setProducerStats({
             predios: prediosRes.data?.length || 0,
             inspecciones: inspRes.data?.length || 0,
             inspeccionesActivas: activeInsps.length || 0,
@@ -96,6 +112,36 @@ export default function ProfilePage() {
           setLugares(lugaresRes.data || [])
         } catch (statsErr) {
           console.error("⚠️ Error cargando estadísticas del productor:", statsErr)
+        }
+      } else if (user?.role === "tecnico") {
+        try {
+          const res = await api.get("/inspecciones/asignadas")
+          const asignadas = res.data || []
+          const completadas = asignadas.filter((ins: any) => ins.estado === "finalizada").length
+          const activas = asignadas.filter((ins: any) => ins.estado === "programada" || ins.estado === "en_proceso").length
+
+          setTecnicoStats({
+            asignadas: asignadas.length,
+            finalizadas: completadas,
+            activas: activas,
+          })
+        } catch (statsErr) {
+          console.error("⚠️ Error cargando estadísticas del técnico:", statsErr)
+        }
+      } else if (user?.role === "admin") {
+        try {
+          const usersRes = await api.get("/auth/users/all")
+          const users = usersRes.data || []
+          const activeUsers = users.filter((u: any) => u.estado === "activo").length
+          const tecnicos = users.filter((u: any) => u.id_rol === "TECNICO").length
+
+          setAdminStats({
+            totalUsuarios: users.length,
+            activos: activeUsers,
+            tecnicos: tecnicos,
+          })
+        } catch (statsErr) {
+          console.error("⚠️ Error cargando estadísticas del admin:", statsErr)
         }
       }
     } catch (err: any) {
@@ -180,7 +226,7 @@ export default function ProfilePage() {
                 {/* Stats quick overview */}
                 <div className="w-full bg-slate-950/40 p-3 rounded-xl border border-slate-800/60">
                   <p className="text-[10px] text-slate-500 font-black uppercase">Rol Sistema</p>
-                  <p className="text-white tet-xs font-bold capitalize">{user?.role || 'Productor'}</p>
+                  <p className="text-white text-xs font-bold capitalize">{user?.role || 'Productor'}</p>
                 </div>
               </CardContent>
             </Card>
@@ -263,7 +309,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Predios Registrados</p>
-                      <h4 className="text-2xl font-black italic tracking-tight text-white">{stats.predios} <span className="text-xs font-bold not-italic text-slate-500">Predios</span></h4>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{producerStats.predios} <span className="text-xs font-bold not-italic text-slate-500">Predios</span></h4>
                     </div>
                   </CardContent>
                 </Card>
@@ -275,8 +321,8 @@ export default function ProfilePage() {
                       <ClipboardList className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Visitas Técnicas</p>
-                      <h4 className="text-2xl font-black italic tracking-tight text-white">{stats.inspecciones} <span className="text-xs font-bold not-italic text-slate-500">Inspecciones</span></h4>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Visitas Técnicas Totales</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{producerStats.inspecciones} <span className="text-xs font-bold not-italic text-slate-500">Inspecciones</span></h4>
                     </div>
                   </CardContent>
                 </Card>
@@ -286,13 +332,199 @@ export default function ProfilePage() {
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3.5 bg-rose-500/10 rounded-2xl text-rose-400 relative">
                       <Sprout className="w-6 h-6 animate-pulse" />
-                      {stats.inspeccionesActivas > 0 && (
+                      {producerStats.inspeccionesActivas > 0 && (
                         <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-slate-950" />
                       )}
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Inspecciones Activas</p>
-                      <h4 className="text-2xl font-black italic tracking-tight text-white">{stats.inspeccionesActivas} <span className="text-xs font-bold not-italic text-slate-500">Activas</span></h4>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{producerStats.inspeccionesActivas} <span className="text-xs font-bold not-italic text-slate-500">Activas</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Técnico Specific Stats & Assets Dashboard */}
+          {user?.role === "tecnico" && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Card Inspecciones Asignadas */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-teal-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-teal-500/10 rounded-2xl text-teal-400">
+                      <ClipboardList className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Inspecciones Asignadas Totales</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{tecnicoStats.asignadas} <span className="text-xs font-bold not-italic text-slate-500">Asignadas</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card Inspecciones Realizadas */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-emerald-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Inspecciones Realizadas</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{tecnicoStats.finalizadas} <span className="text-xs font-bold not-italic text-slate-500">Realizadas</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card Inspecciones Activas / Pendientes */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-amber-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-amber-500/10 rounded-2xl text-amber-400 relative">
+                      <Activity className="w-6 h-6 animate-pulse" />
+                      {tecnicoStats.activas > 0 && (
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-slate-950" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Inspecciones Activas</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{tecnicoStats.activas} <span className="text-xs font-bold not-italic text-slate-500">Activas</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Región de Control / Jurisdicción */}
+              <div className="space-y-4 text-left">
+                <h3 className="text-xs font-black italic tracking-widest text-slate-500 uppercase flex items-center gap-2 mt-6">
+                  <MapPin className="w-4 h-4 text-teal-500" /> Area Geográfica de Control ICA
+                </h3>
+
+                <Card className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
+                  <div className="bg-gradient-to-r from-teal-600/10 to-indigo-600/10 px-6 py-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-teal-500/10 rounded-xl text-teal-400">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black italic tracking-tight text-white uppercase">Región de Asignación Fitosanitaria</h4>
+                      </div>
+                    </div>
+                    <Badge className="bg-slate-950/80 text-teal-400 border border-teal-500/20 font-mono text-xs px-3 py-1 rounded-full">
+                      Técnico Oficial ICA
+                    </Badge>
+                  </div>
+
+                  <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">Departamento</h5>
+                      <p className="text-white text-sm font-bold bg-slate-950/30 p-3 rounded-2xl border border-slate-800/50">
+                        {profileData?.region?.departamento}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">Municipio Sede</h5>
+                      <p className="text-white text-sm font-bold bg-slate-950/30 p-3 rounded-2xl border border-slate-800/50">
+                        {profileData?.region?.municipio}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Admin Specific Stats & Assets Dashboard */}
+          {user?.role === "admin" && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Card Usuarios Registrados */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-teal-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-teal-500/10 rounded-2xl text-teal-400">
+                      <User className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Usuarios Registrados</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{adminStats.totalUsuarios} <span className="text-xs font-bold not-italic text-slate-500">Usuarios</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card Usuarios Activos */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-emerald-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Cuentas Activas</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{adminStats.activos} <span className="text-xs font-bold not-italic text-slate-500">Activas</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card Técnicos Registrados */}
+                <Card className="bg-slate-900/30 border border-slate-800/80 rounded-2xl hover:border-indigo-500/30 transition-all">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3.5 bg-indigo-500/10 rounded-2xl text-indigo-400">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Técnicos Oficiales</p>
+                      <h4 className="text-2xl font-black italic tracking-tight text-white">{adminStats.tecnicos} <span className="text-xs font-bold not-italic text-slate-500">Técnicos</span></h4>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Panel de Control de Administración */}
+              <div className="space-y-4 text-left">
+                <h3 className="text-xs font-black italic tracking-widest text-slate-500 uppercase flex items-center gap-2 mt-6">
+                  <Shield className="w-4 h-4 text-teal-500" /> Panel de Control de Seguridad del Sistema
+                </h3>
+
+                <Card className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
+                  <div className="bg-gradient-to-r from-teal-600/10 to-indigo-600/10 px-6 py-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-teal-500/10 rounded-xl text-teal-400">
+                        <Shield className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black italic tracking-tight text-white uppercase">Autorización del Sistema (Nivel Root)</h4>
+                      </div>
+                    </div>
+                    <Badge className="bg-slate-950/80 text-rose-400 border border-rose-500/20 font-mono text-xs px-3 py-1 rounded-full">
+                      Administrador Global
+                    </Badge>
+                  </div>
+
+                  <CardContent className="p-6 space-y-4">
+                    <div>
+                      <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">Nivel de Acceso</h5>
+                      <p className="text-white text-xs font-bold bg-slate-950/30 p-3 rounded-2xl border border-slate-800/50">
+                        Administración del Sistema ICA - Control Total del Registro de Predios, Usuarios e Inspecciones Fitosanitarias.
+                      </p>
+                    </div>
+
+                    <div>
+                      <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">Funciones del Rol</h5>
+                      <ul className="text-slate-400 text-xs font-semibold bg-slate-950/30 p-4 rounded-2xl border border-slate-800/50 space-y-1.5 list-disc list-inside">
+                        <li>Aprobación y denegación de cuentas de técnicos y productores.</li>
+                        <li>Auditoría forense de todas las operaciones realizadas en el sistema.</li>
+                        <li>Configuración geográfica global de regiones y municipios de control.</li>
+                        <li>Gestión y catalogación de plagas fitosanitarias.</li>
+                      </ul>
                     </div>
                   </CardContent>
                 </Card>

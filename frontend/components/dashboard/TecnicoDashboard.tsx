@@ -31,8 +31,22 @@ import { InformeCompletoModal } from "./components/InformeCompletoModal"
 import { useUserStore } from "@/lib/store"
 import { createClient } from "@/lib/supabase/client"
 import { createBrowserClient } from "@supabase/ssr" // Importamos para el cliente secundario
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { ShieldAlert, Info, MapPin, User, X, Calendar } from "lucide-react"
 import { Button } from "../ui/button"
+
+// Cliente secundario con aislamiento de sesión para evitar conflictos de cookies de Auth entre proyectos
+const supabaseInspecciones = createSupabaseClient(
+  "https://hvkoyipizjugkzelvtty.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2a295aXBpemp1Z2t6ZWx2dHR5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQ4OTg2NCwiZXhwIjoyMDkwMDY1ODY0fQ.5_LuqRasJ1yjXdUF5tcXU714T_IlyB2ZI96kS8paLCM",
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  }
+);
 
 // Envoltorio Sortable para las Inspecciones
 function SortableInspection({ inspection, onStart }: { inspection: Inspection, onStart: () => void }) {
@@ -115,11 +129,6 @@ export default function TecnicoDashboard() {
       console.warn('⚠️ No se pudo obtener el ID del usuario para suscripción realtime');
       return;
     }
-
-    const supabaseInspecciones = createBrowserClient(
-      "https://hvkoyipizjugkzelvtty.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2a295aXBpemp1Z2t6ZWx2dHR5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQ4OTg2NCwiZXhwIjoyMDkwMDY1ODY0fQ.5_LuqRasJ1yjXdUF5tcXU714T_IlyB2ZI96kS8paLCM"
-    );
 
     const channel = supabaseInspecciones
       .channel(`cambios-inspeccion-tecnico-${userId}`) // canal único por usuario

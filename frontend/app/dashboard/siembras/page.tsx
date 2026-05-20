@@ -62,6 +62,7 @@ export default function SiembrasPage() {
   const [variedades, setVariedades] = useState<any[]>([])
   const [lockedLugares, setLockedLugares] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [especiesLoaded, setEspeciesLoaded] = useState(false)
   const { user, selectedPredioId, setSelectedPredioId } = useUserStore()
   const router = useRouter()
 
@@ -131,30 +132,27 @@ export default function SiembrasPage() {
 
   const fetchInitialData = async () => {
     try {
-      const [siembrasRes, prediosRes, especiesRes] = await Promise.all([
-        api.get("/cultivos/siembras"),
-        api.get("/predios/list"),
-        api.get("/cultivos/catalogos/especies")
-      ])
-      setSiembras(siembrasRes.data)
-      setPredios(prediosRes.data)
-      setEspecies(especiesRes.data)
+      const res = await api.get("/api/dashboard/resumen")
+      setSiembras(res.data.siembras || [])
+      setPredios(res.data.predios || [])
 
-      // 🔒 Cargar inspecciones activas para bloquear lotes/siembras
-      try {
-        const resInspecciones = await api.get("/inspecciones/reporte")
-        const activeInsps = (resInspecciones.data || []).filter(
-          (ins: any) => ins.estado === "programada" || ins.estado === "en_proceso"
-        )
-        const lockedIds = activeInsps.map((ins: any) => Number(ins.id_predio)).filter(Boolean)
-        setLockedLugares(lockedIds)
-      } catch (err) {
-        console.error("⚠️ Error cargando inspecciones activas para bloqueo:", err)
+      // 🔒 Cargar inspecciones activas para bloquear lotes/siembras a nivel Lugar de Producción
+      const activeInsps = (res.data.inspecciones || []).filter(
+        (ins: any) => ins.estado === "programada" || ins.estado === "en_proceso"
+      )
+      const lockedIds = activeInsps.map((ins: any) => Number(ins.id_lugar_produccion)).filter(Boolean)
+      setLockedLugares(lockedIds)
+
+      if (!especiesLoaded) {
+        const especiesRes = await api.get("/cultivos/catalogos/especies")
+        setEspecies(especiesRes.data)
+        setEspeciesLoaded(true)
       }
     } finally {
       setLoading(false)
     }
   }
+
 
   const toTitleCase = (str: string) => {
     return str.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
@@ -368,7 +366,7 @@ export default function SiembrasPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lotesConEstado.map((lote, idx) => {
-          const isLocked = lockedLugares.includes(Number(lote.id_predio))
+          const isLocked = lockedLugares.includes(Number(lote.id_lugar_produccion))
           return (
             <motion.div key={lote.id_lote} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
               onClick={() => lote.estado === 'ocupado' && lote.siembraActiva && setSelectedSiembra({ ...lote.siembraActiva, nombre_lote: lote.nombre_lote, nombre_lugar: lote.nombre_predio, area: lote.area, id_predio: lote.id_predio, id_lugar_produccion: lote.id_lugar_produccion } as any)}
@@ -533,14 +531,14 @@ export default function SiembrasPage() {
                   </div>
                 </div>
               </div>
-              {selectedSiembra && lockedLugares.includes(Number((selectedSiembra as any).id_predio)) && (
+              {selectedSiembra && lockedLugares.includes(Number((selectedSiembra as any).id_lugar_produccion)) && (
                 <p className="text-rose-400 text-xs font-bold text-center mb-4 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
                   Este ciclo no se puede finalizar porque el predio está en inspección activa.
                 </p>
               )}
               <Button
                 onClick={() => handleFinalizarCiclo(selectedSiembra.id_siembra)}
-                disabled={isSaving || (selectedSiembra && lockedLugares.includes(Number((selectedSiembra as any).id_predio)))}
+                disabled={isSaving || (selectedSiembra && lockedLugares.includes(Number((selectedSiembra as any).id_lugar_produccion)))}
                 className="w-full h-16 bg-rose-600 hover:bg-rose-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-rose-900/40 transition-all hover:scale-[1.01] active:scale-95 flex flex-col gap-0 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>FINALIZAR CICLO</span>
@@ -628,7 +626,7 @@ export default function SiembrasPage() {
                   <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500 outline-none" placeholder="Población" value={formData.cantidad_plantas} onChange={(e) => setFormData({ ...formData, cantidad_plantas: e.target.value })} />
                 </div>
                 <Button
-                  disabled={isSaving || (selectedLote && lockedLugares.includes(Number((selectedLote as any).id_predio)))}
+                  disabled={isSaving || (selectedLote && lockedLugares.includes(Number((selectedLote as any).id_lugar_produccion)))}
                   className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? "PROCESANDO..." : "REACTIVAR LOTE CON SIEMBRA"}
@@ -655,7 +653,10 @@ export default function SiembrasPage() {
                   <input required className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500 outline-none" placeholder="Nombre Lote" value={formData.nombre_lote} onChange={(e) => setFormData({ ...formData, nombre_lote: e.target.value })} />
                   <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500 outline-none" placeholder="Área (m²)" value={formData.area_lote} onChange={(e) => setFormData({ ...formData, area_lote: e.target.value })} />
                 </div>
-                {formData.id_predio && lockedLugares.includes(Number(formData.id_predio)) && (
+                {formData.id_predio && (() => {
+                  const predioSeleccionado = predios.find((p: any) => p.id_predio === Number(formData.id_predio))
+                  return lockedLugares.includes(Number(predioSeleccionado?.id_lugar_produccion))
+                })() && (
                   <div className="p-4.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-rose-400 text-sm font-bold animate-pulse">
                     Este predio tiene una inspección programada o en curso. Creación de lotes bloqueada.
                   </div>
@@ -729,7 +730,10 @@ export default function SiembrasPage() {
                   <input required type="number" className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white font-bold text-sm focus:border-teal-500" placeholder="Población" value={formData.cantidad_plantas} onChange={(e) => setFormData({ ...formData, cantidad_plantas: e.target.value })} />
                 </div>
                 <Button
-                  disabled={isSaving || !!(formData.id_predio && lockedLugares.includes(Number(formData.id_predio)))}
+                  disabled={isSaving || !!(formData.id_predio && (() => {
+                    const predioSeleccionado = predios.find((p: any) => p.id_predio === Number(formData.id_predio))
+                    return lockedLugares.includes(Number(predioSeleccionado?.id_lugar_produccion))
+                  })())}
                   className="w-full h-16 bg-teal-600 hover:bg-teal-500 text-white font-black text-xl rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? "GUARDANDO CATÁLOGOS..." : "REGISTRAR LOTE Y SIEMBRA"}

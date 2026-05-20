@@ -12,7 +12,8 @@ import {
   X,
   Loader2,
   TreePine,
-  GripVertical
+  GripVertical,
+  AlertTriangle
 } from "lucide-react"
 import {
   DndContext,
@@ -112,7 +113,8 @@ export default function PrediosPage() {
     prop_nombre: "",
     prop_identificacion: "",
     prop_telefono: "",
-    prop_email: ""
+    prop_email: "",
+    misma_ubicacion: false
   })
 
   // Sensores para detectar mouse, touch y teclado
@@ -160,7 +162,7 @@ export default function PrediosPage() {
         const activeInsps = (resInspecciones.data || []).filter(
           (ins: any) => ins.estado === "programada" || ins.estado === "en_proceso"
         )
-        const lockedIds = activeInsps.map((ins: any) => Number(ins.id_predio)).filter(Boolean)
+        const lockedIds = activeInsps.map((ins: any) => Number(ins.id_lugar_produccion)).filter(Boolean)
         setLockedLugares(lockedIds)
       } catch (err) {
         console.error("⚠️ Error cargando inspecciones activas para bloqueo:", err)
@@ -203,6 +205,37 @@ export default function PrediosPage() {
       .then(res => res.json())
       .then(data => setMunicipios(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
       .catch(err => console.error("Error cargando municipios:", err))
+  }
+
+  const handleMismaUbicacionToggle = () => {
+    const nextVal = !formData.misma_ubicacion;
+    const lugar = lugaresProduccion.find(l => l.id_lugar_produccion.toString() === formData.id_lugar_produccion);
+    
+    setFormData(prev => {
+      const updated = { ...prev, misma_ubicacion: nextVal };
+      if (nextVal && lugar?.region) {
+        updated.departamento = lugar.region.departamento || "";
+        updated.municipio = lugar.region.municipio || "";
+        updated.vereda = lugar.region.vereda || "";
+        updated.direccion = lugar.region.direccion || "";
+        
+        // Cargar municipios de ese departamento
+        const deptObj = departamentos.find(d => d.name === lugar.region.departamento);
+        if (deptObj) {
+          fetch(`https://api-colombia.com/api/v1/Department/${deptObj.id}/cities`)
+            .then(res => res.json())
+            .then(data => setMunicipios(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
+            .catch(err => console.error("Error cargando municipios:", err))
+        }
+      } else if (!nextVal) {
+        updated.departamento = "";
+        updated.municipio = "";
+        updated.vereda = "";
+        updated.direccion = "";
+        setMunicipios([]);
+      }
+      return updated;
+    });
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -324,7 +357,8 @@ export default function PrediosPage() {
         id_lugar_produccion: lugaresProduccion.length === 1 ? lugaresProduccion[0].id_lugar_produccion.toString() : "",
         nombre: "", area: "", numero_predial: "",
         departamento: "", municipio: "", vereda: "", direccion: "",
-        es_propietario: true, prop_nombre: "", prop_identificacion: "", prop_telefono: "", prop_email: ""
+        es_propietario: true, prop_nombre: "", prop_identificacion: "", prop_telefono: "", prop_email: "",
+        misma_ubicacion: false
       })
       await fetchData()
     } catch (error: any) {
@@ -379,7 +413,7 @@ export default function PrediosPage() {
                 onDelete={handleDeleteLugar}
                 onUpdate={handleUpdateLugar}
                 onAgendar={handleAgendar}
-                isLocked={lockedLugares.includes(Number(lugar.id_predio))}
+                isLocked={lockedLugares.includes(Number(lugar.id_lugar_produccion || (lugar as any).lugar_produccion?.id_lugar_produccion))}
               />
             ))}
           </div>
@@ -443,7 +477,29 @@ export default function PrediosPage() {
                           required
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm appearance-none h-12"
                           value={formData.id_lugar_produccion}
-                          onChange={(e) => setFormData({ ...formData, id_lugar_produccion: e.target.value })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const lugar = lugaresProduccion.find(lp => lp.id_lugar_produccion.toString() === val);
+                            setFormData(prev => {
+                              const updated = { ...prev, id_lugar_produccion: val };
+                              if (prev.misma_ubicacion && lugar?.region) {
+                                updated.departamento = lugar.region.departamento || "";
+                                updated.municipio = lugar.region.municipio || "";
+                                updated.vereda = lugar.region.vereda || "";
+                                updated.direccion = lugar.region.direccion || "";
+
+                                // Cargar municipios
+                                const deptObj = departamentos.find(d => d.name === lugar.region.departamento);
+                                if (deptObj) {
+                                  fetch(`https://api-colombia.com/api/v1/Department/${deptObj.id}/cities`)
+                                    .then(res => res.json())
+                                    .then(data => setMunicipios(data.sort((a: any, b: any) => a.name.localeCompare(b.name))))
+                                    .catch(err => console.error("Error cargando municipios:", err))
+                                }
+                              }
+                              return updated;
+                            });
+                          }}
                         >
                           <option value="">Seleccionar Lugar...</option>
                           {lugaresProduccion.map(lp => (
@@ -473,12 +529,39 @@ export default function PrediosPage() {
                     </div>
                   </div>
 
+                  {/* Toggle para usar la misma ubicación del lugar de producción */}
+                  {formData.id_lugar_produccion && (
+                    <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                      <span className="text-xs font-bold text-white uppercase tracking-tight">¿La ubicación es la misma que la del lugar de producción?</span>
+                      <div
+                        onClick={handleMismaUbicacionToggle}
+                        className="w-16 h-8 rounded-full p-1 cursor-pointer transition-colors relative flex items-center bg-slate-700"
+                        style={{ backgroundColor: formData.misma_ubicacion ? '#059669' : '#374151' }}
+                      >
+                        <span className={`absolute left-2 text-[9px] font-black text-white transition-opacity ${formData.misma_ubicacion ? 'opacity-100' : 'opacity-0'}`}>SÍ</span>
+                        <span className={`absolute right-2 text-[9px] font-black text-white transition-opacity ${formData.misma_ubicacion ? 'opacity-0' : 'opacity-100'}`}>NO</span>
+                        <motion.div
+                          animate={{ x: formData.misma_ubicacion ? 32 : 0 }}
+                          className="w-6 h-6 bg-white rounded-full shadow-md z-10"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.misma_ubicacion && (
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <p className="text-[11px] text-emerald-400 font-medium">Se usará la ubicación registrada del Lugar de Producción.</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Departamento</label>
                       <select
                         required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none"
+                        disabled={formData.misma_ubicacion}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
                         value={departamentos.find(d => d.name === formData.departamento)?.id || ""}
                         onChange={(e) => {
                           const dept = departamentos.find(d => d.id === Number(e.target.value))
@@ -495,7 +578,7 @@ export default function PrediosPage() {
                       <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Municipio</label>
                       <select
                         required
-                        disabled={!formData.departamento}
+                        disabled={formData.misma_ubicacion || !formData.departamento}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
                         value={formData.municipio}
                         onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
@@ -510,7 +593,8 @@ export default function PrediosPage() {
                       <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vereda</label>
                       <input
                         required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        disabled={formData.misma_ubicacion}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
                         placeholder="Ej: El Placer"
                         value={formData.vereda}
                         onChange={(e) => setFormData({ ...formData, vereda: e.target.value })}
@@ -522,7 +606,8 @@ export default function PrediosPage() {
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Dirección / Referencia</label>
                     <input
                       required
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                      disabled={formData.misma_ubicacion}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
                       placeholder="Ej: Km 5 vía al mar, portón verde"
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
@@ -619,22 +704,39 @@ export default function PrediosPage() {
                   </div>
 
                   {errorMsg && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-xs font-medium"
                     >
-                      <X className="w-4 h-4 flex-shrink-0" />
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
                       {errorMsg}
                     </motion.div>
                   )}
 
-                  <Button
-                    disabled={isSaving}
-                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "GUARDAR REGISTRO"}
-                  </Button>
+                  {formData.id_lugar_produccion && lockedLugares.includes(Number(formData.id_lugar_produccion)) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-xs font-medium animate-pulse"
+                    >
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      Este Lugar de Producción tiene una inspección activa. No se pueden registrar nuevos predios.
+                    </motion.div>
+                  )}
+
+                  <div className="flex gap-3 pt-4 border-t border-slate-800">
+                    <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1 h-14 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition-colors">
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSaving || (!!formData.id_lugar_produccion && lockedLugares.includes(Number(formData.id_lugar_produccion)))}
+                      className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "GUARDAR REGISTRO"}
+                    </Button>
+                  </div>
                 </form>
               </div>
             </motion.div>

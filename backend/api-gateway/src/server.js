@@ -194,7 +194,7 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
 // RUTA ORQUESTADA: Registro de Usuario + Registro Legal de Productor (Lugar)
 app.post('/auth/register', async (req, res, next) => {
     try {
-        const { 
+        const {
             nombre, documento, email, password, id_rol,
             nombre_predio, // Se usará como Nombre de la Empresa/Lugar
             numero_predial, // Se usará como Registro de Productor
@@ -236,19 +236,19 @@ app.post('/auth/register', async (req, res, next) => {
             });
 
             const newUser = authRes.data;
-            id_usuario = newUser.id; 
+            id_usuario = newUser.id;
             console.log(`👤 [ORQUESTADOR] Usuario creado con ID: ${id_usuario}`);
         } catch (err) {
             // 🔄 ROLLBACK: Si falla el usuario, borramos la región creada
             console.error('❌ [ORQUESTADOR] Falló creación de usuario, ejecutando rollback de región...');
             await internalApi.predios.delete(`/regiones/${id_region}`).catch(e => console.error('⚠️ Falló rollback de región:', e.message));
-            
+
             // Extraer el mensaje real del error
             const errorMsg = err.response?.data?.error || err.message || "";
-            const msg = errorMsg.includes('Usuario ya existe') 
-                ? 'Este correo ya está registrado' 
+            const msg = errorMsg.includes('Usuario ya existe')
+                ? 'Este correo ya está registrado'
                 : (errorMsg || 'Error en el proceso de registro');
-                
+
             return res.status(400).json({ error: msg });
         }
 
@@ -256,17 +256,17 @@ app.post('/auth/register', async (req, res, next) => {
         if (id_rol === 'PRODUCTOR') {
             try {
                 console.log(`🏢 [ORQUESTADOR] Registrando Lugar de Producción para ID: ${id_usuario}`);
-                
+
                 await internalApi.predios.post('/lugares-produccion', {
                     nombre_lugar: nombre_predio || `Operación de ${nombre}`,
                     numero_registro: numero_predial || 'PENDIENTE',
                     productor_id: id_usuario,
                     id_region: id_region
-                }, { 
-                    headers: { 
-                        'x-user-id': id_usuario, 
+                }, {
+                    headers: {
+                        'x-user-id': id_usuario,
                         'x-user-role': id_rol
-                    } 
+                    }
                 });
             } catch (err) {
                 console.error('⚠️ [ORQUESTADOR] Error al registrar Lugar de Producción:', err.message);
@@ -281,8 +281,8 @@ app.post('/auth/register', async (req, res, next) => {
 
     } catch (error) {
         console.error('❌ [ORQUESTADOR] Error crítico en registro:', error.message);
-        res.status(error.status || 500).json({ 
-            error: error.message || 'Error inesperado en el servidor' 
+        res.status(error.status || 500).json({
+            error: error.message || 'Error inesperado en el servidor'
         });
     }
 });
@@ -299,11 +299,11 @@ app.get('/auth/users/by-status', authenticateToken, restrictTo('admin'), async (
 
         // 2. Hidratar cada usuario con datos de ms-predios
         const hydratedUsers = await Promise.all(baseUsers.map(async (user) => {
-            const enrichedUser = { 
+            const enrichedUser = {
                 ...user,
                 // Mapeo para compatibilidad con el frontend anterior
                 id_usuario: user.id_usuario,
-                correo: user.email || user.correo 
+                correo: user.email || user.correo
             };
 
             // Traer Región si existe
@@ -320,9 +320,9 @@ app.get('/auth/users/by-status', authenticateToken, restrictTo('admin'), async (
             if (user.id_rol === 'PRODUCTOR') {
                 try {
                     const lugarRes = await internalApi.predios.get('/lugares-produccion', {
-                        headers: { 
-                            'x-user-id': user.id_usuario, 
-                            'x-user-role': user.id_rol 
+                        headers: {
+                            'x-user-id': user.id_usuario,
+                            'x-user-role': user.id_rol
                         }
                     });
                     // El frontend espera un array llamado usuario_predio
@@ -378,7 +378,54 @@ setupProxy('/cultivos', process.env.CULTIVOS_SERVICE_URL, [], true, 'JWT_SECRET_
 setupProxy('/inspecciones', process.env.INSPECCIONES_SERVICE_URL, [validator.productorExists, validator.tecnicoExists], true, 'JWT_SECRET_INSPECCIONES');
 setupProxy('/auditoria', process.env.AUDITORIA_SERVICE_URL, [restrictTo('admin')], true, 'JWT_SECRET_AUDITORIA');
 
+// ==========================================
+// 🚀 ENDPOINT COMBINADO: Dashboard del Productor
+// Reduce 3 round-trips a 1 petición paralela
+// ==========================================
+app.get('/api/dashboard/resumen', authenticateToken, async (req, res) => {
+    try {
+        const userRole = req.user?.app_metadata?.role || req.user?.role;
+
+        // Construir headers internos reutilizables
+        const internalHeaders = { 'x-internal-key': process.env.INTERNAL_API_KEY };
+
+        // Armar headers con token re-firmado para cada microservicio
+        const prediosHeaders = internalApi.getAuthHeaders(req.user, 'JWT_SECRET_PREDIOS');
+        const cultivosHeaders = internalApi.getAuthHeaders(req.user, 'JWT_SECRET_CULTIVOS');
+        const inspeccionesHeaders = internalApi.getAuthHeaders(req.user, 'JWT_SECRET_INSPECCIONES');
+
+        // Inyectar identidad del usuario en los headers internos
+        const injectUserHeaders = (config) => ({
+            ...config,
+            headers: {
+                ...config.headers,
+                'x-internal-key': process.env.INTERNAL_API_KEY,
+                'x-user-id': req.user?.id_usuario || req.user?.id,
+                'x-user-role': userRole
+            }
+        });
+
+        // 🚀 Las 3 llamadas en PARALELO
+        const [prediosRes, siembrasRes, inspeccionesRes] = await Promise.allSettled([
+            internalApi.predios.get('/list', injectUserHeaders(prediosHeaders)),
+            internalApi.cultivo.get('/siembras', injectUserHeaders(cultivosHeaders)),
+            internalApi.inspecciones.get('/reporte', injectUserHeaders(inspeccionesHeaders))
+        ]);
+
+        res.json({
+            predios: prediosRes.status === 'fulfilled' ? prediosRes.value.data : [],
+            siembras: siembrasRes.status === 'fulfilled' ? siembrasRes.value.data : [],
+            inspecciones: inspeccionesRes.status === 'fulfilled' ? inspeccionesRes.value.data : []
+        });
+
+    } catch (error) {
+        console.error('❌ [DASHBOARD] Error en endpoint combinado:', error.message);
+        res.status(500).json({ error: 'Error al cargar datos del dashboard' });
+    }
+});
+
 app.get('/health', (req, res) => res.json({ status: 'Orchestrator Online [Token Swapper Active]' }));
+
 
 app.use(errorHandler);
 

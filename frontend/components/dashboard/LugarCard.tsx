@@ -1,6 +1,5 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   MoreVertical, 
@@ -10,7 +9,14 @@ import {
   ClipboardCheck,
   Check,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Info,
+  MapPin,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  Building
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,6 +41,12 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
   const [isEditing, setIsEditing] = useState(false)
   const [tempName, setTempName] = useState(predio.nombre_predio)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleUpdate = () => {
     if (tempName.trim() && tempName !== predio.nombre_predio) {
@@ -73,7 +85,13 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
               )}
             </div>
             
-            {!isLocked ? (
+            <div className="flex items-center gap-1.5">
+              {isLocked && (
+                <span className="text-[10px] bg-rose-500/10 text-rose-400 font-extrabold px-2.5 py-0.5 rounded-full border border-rose-500/20 flex items-center gap-1 animate-pulse">
+                  🔒 CONGELADO
+                </span>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted rounded-full transition-colors">
@@ -82,18 +100,22 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-card border-border rounded-xl shadow-2xl">
                   <DropdownMenuItem 
-                    className="text-rose-400 focus:text-rose-400 focus:bg-rose-400/10 cursor-pointer py-2 font-semibold"
-                    onClick={() => setShowDeleteAlert(true)}
+                    className="text-foreground hover:bg-muted cursor-pointer py-2 font-semibold flex items-center"
+                    onClick={() => setShowDetailsModal(true)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar Predio
+                    <Info className="mr-2 h-4 w-4 text-emerald-500" /> Ver Información
                   </DropdownMenuItem>
+                  {!isLocked && (
+                    <DropdownMenuItem 
+                      className="text-rose-400 focus:text-rose-400 focus:bg-rose-400/10 cursor-pointer py-2 font-semibold flex items-center"
+                      onClick={() => setShowDeleteAlert(true)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar Predio
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <span className="text-xs bg-rose-500/10 text-rose-400 font-extrabold px-3 py-1 rounded-full border border-rose-500/20 flex items-center gap-1.5 animate-pulse">
-                🔒 CONGELADO
-              </span>
-            )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8 font-medium">
@@ -131,8 +153,8 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
       </Card>
 
       {/* Modal de Advertencia Personalizado (Reemplazo de AlertDialog) */}
-      <AnimatePresence>
-        {showDeleteAlert && (
+      {mounted && showDeleteAlert && createPortal(
+        <AnimatePresence>
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
@@ -145,7 +167,7 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl"
+              className="relative w-full max-w-md bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl z-10"
             >
               <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle className="w-10 h-10 text-rose-500" />
@@ -178,8 +200,160 @@ export function LugarCard({ predio, user, onDelete, onUpdate, onAgendar, isLocke
               </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Modal de Detalles del Predio */}
+      {mounted && showDetailsModal && createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              onClick={() => setShowDetailsModal(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 border-b border-border pb-4 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                    <Building className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold tracking-tight">Detalles del Predio</h3>
+                    <p className="text-xs text-muted-foreground">{predio.nombre_predio}</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground" 
+                  onClick={() => setShowDetailsModal(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Contenido scrollable */}
+              <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar text-left flex-1">
+                
+                {/* 1. Información General */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Información General</h4>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/30 border border-border/50 rounded-2xl p-4">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Número Predial</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-slate-400" />
+                        {predio.numero_predial || 'No registrado'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Área total</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                        {predio.area_hectareas} Hectáreas
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Lugar de Producción</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        {predio.lugar_produccion?.nombre_lugar || 'No asignado'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Ubicación */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Ubicación Geográfica</h4>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/30 border border-border/50 rounded-2xl p-4">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Departamento</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {predio.region?.departamento || 'No especificado'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Municipio</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {predio.region?.municipio || 'No especificado'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Vereda</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {predio.region?.vereda || 'No especificada'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Dirección / Indicaciones</span>
+                      <span className="text-sm font-semibold text-foreground block truncate" title={predio.region?.direccion || 'No especificada'}>
+                        {predio.region?.direccion || 'No especificada'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Propietario */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Datos del Propietario</h4>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/30 border border-border/50 rounded-2xl p-4">
+                    <div className="col-span-2">
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Nombre Completo</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        {predio.prop_nombre || 'No registrado'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Identificación (NIT/CC)</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {predio.prop_identificacion || 'No registrada'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Teléfono</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        {predio.prop_telefono || 'No registrado'}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[10px] text-muted-foreground uppercase block mb-0.5">Correo Electrónico</span>
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        {predio.prop_email || 'No registrado'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="mt-6 border-t border-border pt-4 flex justify-end flex-shrink-0">
+                <Button 
+                  className="rounded-2xl px-6 h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                  onClick={() => setShowDetailsModal(false)}
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }

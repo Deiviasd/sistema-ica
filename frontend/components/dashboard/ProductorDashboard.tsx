@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Leaf,
   MapPin,
@@ -14,7 +14,9 @@ import {
   ExternalLink,
   Maximize2,
   Navigation,
-  X
+  X,
+  ShieldAlert,
+  Lock
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,7 +28,9 @@ interface Predio {
   nombre_predio: string
   area_hectareas: number
   numero_predial: string
+  id_lugar_produccion?: number
   lugar_produccion?: {
+    id_lugar_produccion?: number
     nombre_lugar: string
   }
   lote?: any[]
@@ -53,37 +57,26 @@ export default function ProductorDashboard() {
   const selectedPredioId = selectedPredioIdStr ? Number(selectedPredioIdStr) : null
   const setSelectedPredioId = (id: number | null) => setSelectedPredioIdStr(id ? id.toString() : null)
 
-  const fetchPredios = async () => {
+  const fetchDashboard = async () => {
     try {
       setLoading(true)
-      // Usamos el endpoint que lista la tabla 'predio'
-      const res = await api.get(`/predios/list?t=${Date.now()}`)
-      setPredios(res.data)
+      const res = await api.get(`/api/dashboard/resumen?t=${Date.now()}`)
+      setPredios(res.data.predios || [])
+      setSiembras(res.data.siembras || [])
+      setInspecciones(res.data.inspecciones || [])
     } catch (error) {
-      console.error("Error fetching predios:", error)
+      console.error("Error fetching dashboard:", error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        await Promise.all([
-          fetchPredios(),
-          api.get("/cultivos/siembras").then(res => setSiembras(res.data)),
-          api.get("/inspecciones/reporte").then(res => setInspecciones(res.data))
-        ])
-      } catch (error) {
-        console.error("Error cargando datos del dashboard:", error)
-      }
-    }
-
-    if (user) fetchData()
+    if (user) fetchDashboard()
   }, [user])
 
-  const handleAgendar = (idPredio: number) => {
-    window.location.href = `/dashboard/inspecciones/agendar?id_predio=${idPredio}`;
+  const handleAgendar = () => {
+    window.location.href = `/dashboard/inspecciones/agendar`;
   }
 
   const container = {
@@ -147,14 +140,39 @@ export default function ProductorDashboard() {
     return isActiva && lotesFiltrados.some(l => l.id_lote === s.id_lote);
   });
 
+  // Especies únicas en cultivo activo (para la card cuando hay predio seleccionado)
+  const especiesUnicasLista: string[] = Array.from(new Set(
+    siembrasActivasFiltradas
+      .map(s => (s.variedad as any)?.nombre_variedad || (s as any).especie?.nombre_especie || null)
+      .filter((v): v is string => Boolean(v))
+  ));
+  const MAX_ESPECIES_VISIBLES = 3;
+
   // Inspecciones filtradas (ignorando canceladas o eliminadas)
   const inspeccionesFiltradas = inspecciones.filter(ins => {
     const isValida = ins.estado !== 'cancelada' && ins.estado !== 'eliminado' && ins.estado !== 'eliminada';
     if (!isValida) return false;
 
     if (!selectedPredioId) return true;
-    return Number(ins.id_predio) === selectedPredioId;
+    return Number(ins.id_predio) === selectedPredioId || Number(ins.id_lugar_produccion) === selectedPredio?.id_lugar_produccion;
   });
+
+  const getIdLugarProduccion = (predio: Predio): number | undefined => {
+    return predio.id_lugar_produccion || predio.lugar_produccion?.id_lugar_produccion;
+  };
+
+  const checkLugarTieneInspeccionActiva = (idLugarProduccion: number | undefined) => {
+    if (!idLugarProduccion) return false;
+    return inspecciones.some(ins =>
+      Number(ins.id_lugar_produccion) === Number(idLugarProduccion) &&
+      (ins.estado === 'programada' || ins.estado === 'en_proceso')
+    );
+  };
+
+  // Calcular si HAY alguna inspección activa en cualquier lugar del productor
+  const inspeccionActivaGlobal = inspecciones.find(ins =>
+    ins.estado === 'programada' || ins.estado === 'en_proceso'
+  );
 
   return (
     <motion.div
@@ -163,7 +181,40 @@ export default function ProductorDashboard() {
       animate="show"
       className="space-y-8 pb-12"
     >
-      {/* Resumen de Metas */}
+      {/* 🚨 Banner global de inspección activa */}
+      <AnimatePresence>
+        {inspeccionActivaGlobal && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.97 }}
+            className="relative overflow-hidden rounded-3xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-950/80 via-rose-900/40 to-rose-950/60 backdrop-blur-sm p-6 shadow-xl shadow-rose-900/20"
+          >
+            {/* Fondo decorativo */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(225,29,72,0.15),transparent_60%)]" />
+            <div className="relative flex items-start sm:items-center gap-5">
+              <div className="shrink-0 w-14 h-14 bg-rose-600/20 border border-rose-500/30 rounded-2xl flex items-center justify-center">
+                <ShieldAlert className="text-rose-400 w-7 h-7 animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-rose-300 font-black text-base uppercase tracking-widest italic leading-none mb-1">
+                  ⚠️ Inspección Fitosanitaria Activa
+                </p>
+                <p className="text-rose-400/80 text-sm font-medium leading-snug">
+                  Su Lugar de Producción se encuentra bajo una <span className="font-black text-rose-300">inspección técnica ICA</span> en curso o programada.
+                  Mientras esté activa, <span className="font-black text-rose-300">no se pueden realizar cambios</span> en predios, lotes ni cultivos.
+                </p>
+              </div>
+              <div className="shrink-0 hidden sm:flex items-center gap-2 bg-rose-600/20 border border-rose-500/30 px-4 py-2 rounded-2xl">
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span className="text-rose-300 font-black text-xs uppercase tracking-widest">
+                  {inspeccionActivaGlobal.estado === 'en_proceso' ? 'EN CURSO' : 'PROGRAMADA'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className={`grid gap-6 ${selectedPredioId ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
         {!selectedPredioId && (
           <StatCard
@@ -175,19 +226,62 @@ export default function ProductorDashboard() {
           />
         )}
         <StatCard
-          title={selectedPredioId ? "Siembras en Predio" : "Lotes y Siembras"}
+          title={selectedPredioId ? "Siembras en lotes" : "Lotes y Siembras"}
           value={siembrasActivasFiltradas.length.toString()}
           icon={<Sprout className="w-6 h-6 text-teal-500" />}
           trend={selectedPredioId ? `En ${selectedPredio?.nombre_predio}` : "En producción"}
           color="teal"
         />
-        <StatCard
-          title={selectedPredioId ? "Inspecciones Predio" : "Inspecciones"}
-          value={inspeccionesFiltradas.length.toString()}
-          icon={<ClipboardCheck className="w-6 h-6 text-blue-500" />}
-          trend={selectedPredioId ? "Para este predio" : "Pendientes"}
-          color="blue"
-        />
+        {/* Card: Inspecciones (sin predio) o Especies en Cultivo (con predio) */}
+        {!selectedPredioId ? (
+          <StatCard
+            title="Inspecciones Realizadas"
+            value={inspeccionesFiltradas.length.toString()}
+            icon={<ClipboardCheck className="w-6 h-6 text-blue-500" />}
+            trend="Historial total"
+            color="blue"
+          />
+        ) : (
+          /* Card personalizada: Cultivos en el predio */
+          <motion.div variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent border-blue-500/20 opacity-50" />
+              <CardContent className="p-6 relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-muted rounded-lg border border-border">
+                    <TrendingUp className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate max-w-[120px]">
+                    En {selectedPredio?.nombre_predio}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-tighter mb-2">Cultivos Activos</p>
+                  {especiesUnicasLista.length === 0 ? (
+                    <p className="text-slate-500 text-xs italic">Sin cultivos activos</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {especiesUnicasLista.slice(0, MAX_ESPECIES_VISIBLES).map((especie, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20 max-w-[140px] truncate"
+                          title={especie}
+                        >
+                          {especie.length > 16 ? especie.slice(0, 15) + '…' : especie}
+                        </span>
+                      ))}
+                      {especiesUnicasLista.length > MAX_ESPECIES_VISIBLES && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700/60 text-slate-400 border border-slate-600">
+                          +{especiesUnicasLista.length - MAX_ESPECIES_VISIBLES} más
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
         <StatCard
           title="Alertas"
           value="0"
@@ -205,7 +299,7 @@ export default function ProductorDashboard() {
               <Leaf className="w-6 h-6 text-emerald-500" />
               Predios Registrados
               {selectedPredioId && (
-                <span 
+                <span
                   onClick={() => setSelectedPredioId(null)}
                   className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-normal cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors flex items-center gap-1"
                   title="Clic para quitar filtro"
@@ -225,22 +319,24 @@ export default function ProductorDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
             {predios.length > 0 ? predios.map((predio) => {
               const isSelected = selectedPredioId === predio.id_predio;
+              const idLugar = getIdLugarProduccion(predio);
+              const isLocked = checkLugarTieneInspeccionActiva(idLugar);
               return (
-                <Card 
-                  key={predio.id_predio} 
+                <Card
+                  key={predio.id_predio}
                   onClick={() => setSelectedPredioId(isSelected ? null : predio.id_predio)}
-                  className={`bg-card transition-all duration-350 cursor-pointer overflow-hidden shadow-sm border-2 ${
-                    isSelected 
-                      ? 'border-emerald-500 shadow-md shadow-emerald-500/5 bg-emerald-500/[0.015]' 
+                  className={`bg-card transition-all duration-350 cursor-pointer overflow-hidden shadow-sm border-2 ${isSelected
+                    ? 'border-emerald-500 shadow-md shadow-emerald-500/5 bg-emerald-500/[0.015]'
+                    : isLocked
+                      ? 'border-rose-500/30 bg-rose-950/10'
                       : 'border-border hover:border-emerald-500/30'
-                  } group`}
+                    } group`}
                 >
                   <CardContent className="p-4">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-transform ${
-                          isSelected ? 'bg-emerald-500/10 scale-110' : 'bg-muted group-hover:scale-110'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-transform ${isSelected ? 'bg-emerald-500/10 scale-110' : 'bg-muted group-hover:scale-110'
+                          }`}>
                           <MapPin className={`${isSelected ? 'text-emerald-400' : 'text-emerald-500'} w-5 h-5`} />
                         </div>
                         <div className="min-w-0">
@@ -250,6 +346,11 @@ export default function ProductorDashboard() {
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <Navigation className="w-3 h-3 text-emerald-500" />
                             <span className="truncate">{predio.lugar_produccion?.nombre_lugar || "Lugar no definido"}</span>
+                            {isLocked && (
+                              <span className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" /> CONGELADO
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -261,18 +362,18 @@ export default function ProductorDashboard() {
 
                       <Button
                         size="sm"
-                        className={`transition-all font-bold h-9 px-4 shrink-0 rounded-xl border ${
-                          isSelected 
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-600/20' 
-                            : 'bg-muted hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border-border'
-                        }`}
+                        disabled={isLocked}
+                        className={`transition-all font-bold h-9 px-4 shrink-0 rounded-xl border ${isSelected
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-600/20'
+                          : 'bg-muted hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border-border'
+                          } disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-400 disabled:border-slate-700`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAgendar(predio.id_predio);
+                          handleAgendar();
                         }}
                       >
                         <ClipboardCheck className="w-4 h-4 mr-2" />
-                        Agendar
+                        {isLocked ? 'Inspección Activa' : 'Agendar'}
                       </Button>
                     </div>
                   </CardContent>

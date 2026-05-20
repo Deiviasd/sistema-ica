@@ -5,11 +5,12 @@ import { Inspection, EvalItem, FormData } from "../components/dashboard/types/in
 export function useInspectionWizard(inspection: Inspection, onClose: () => void) {
   const [loading, setLoading] = useState(true)
   const [context, setContext] = useState<any>(null)
-  const [selectedLugarId, setSelectedLugarId] = useState<number | null>(null)
+  const [selectedPredioId, setSelectedPredioId] = useState<number | null>(null)
   const [plagaPersonalizada, setPlagaPersonalizada] = useState("")
   const [catalogPlagas, setCatalogPlagas] = useState<any[]>([])
   const [loadingPlagas, setLoadingPlagas] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
+  const [initialEvaluations, setInitialEvaluations] = useState<EvalItem[]>([])
   const [formData, setFormData] = useState<FormData>({
     generalObs: "",
     evaluations: []
@@ -37,7 +38,19 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
       setLoadingPlagas(true);
       try {
         const res = await api.get(`/cultivos/plagas?id_especie=${idEspecie}`);
-        setCatalogPlagas(res.data);
+        const plagasList = res.data || [];
+        setCatalogPlagas(plagasList);
+
+        if (currentEval.plaga) {
+          const exists = plagasList.some((p: any) => p.nombre_comun === currentEval.plaga);
+          if (!exists) {
+            setPlagaPersonalizada(currentEval.plaga);
+          } else {
+            setPlagaPersonalizada("");
+          }
+        } else {
+          setPlagaPersonalizada("");
+        }
       } catch (err) {
         console.error("Error cargando catálogo de plagas:", err);
       } finally {
@@ -48,10 +61,14 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     fetchPlagasSugeridas();
   }, [currentEval.siembra]);
 
-  const activeLugar = context?.lugares_produccion?.find(
-    (l: any) => l.id_lugar_produccion === selectedLugarId
-  ) || null
-  const activeLotes = activeLugar?.lotes || context?.lotes || []
+  // Aplanamos todos los predios de todos los lugares de producción para buscarlos fácilmente
+  const allPredios = context?.lugares_produccion?.flatMap((l: any) => 
+    (l.predios || []).map((p: any) => ({ ...p, id_lugar_produccion: l.id_lugar_produccion }))
+  ) || []
+
+  const activePredio = allPredios.find((p: any) => Number(p.id_predio) === Number(selectedPredioId)) || null
+  const activeLotes = activePredio?.lotes || []
+  const selectedLugarId = activePredio?.id_lugar_produccion || null
 
   useEffect(() => {
     const fetchContext = async () => {
@@ -59,11 +76,17 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         const res = await api.get(`/inspecciones/${inspection.id_inspeccion}/contexto`)
         setContext(res.data)
 
-        const lugarPrincipal = res.data.lugares_produccion?.find((l: any) => l.es_lugar_inspeccion)
-        if (lugarPrincipal) {
-          setSelectedLugarId(lugarPrincipal.id_lugar_produccion)
-        } else if (res.data.lugares_produccion?.length > 0) {
-          setSelectedLugarId(res.data.lugares_produccion[0].id_lugar_produccion)
+        const flatPredios = res.data.lugares_produccion?.flatMap((l: any) => l.predios || []) || []
+        
+        // Priorizar el predio oficial asignado a la inspección
+        const predioOficial = inspection.id_predio 
+          ? flatPredios.find((p: any) => Number(p.id_predio) === Number(inspection.id_predio))
+          : null
+
+        if (predioOficial) {
+          setSelectedPredioId(Number(predioOficial.id_predio))
+        } else if (flatPredios.length > 0) {
+          setSelectedPredioId(Number(flatPredios[0].id_predio))
         }
 
         if (res.data.hallazgos_previos && res.data.hallazgos_previos.length > 0) {
@@ -79,26 +102,47 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
             let matchLugarId: number | null = null
             if (res.data.lugares_produccion) {
               for (const lugar of res.data.lugares_produccion) {
-                const found = lugar.lotes?.find(
-                  (lot: any) => Number(lot.siembra_activa?.id_siembra) === Number(hp.siembra_id)
-                )
-                if (found) {
-                  matchLote = found
-                  matchLugarId = lugar.id_lugar_produccion
-                  break
+                // Buscar en predios del lugar
+                if (lugar.predios) {
+                  for (const predio of lugar.predios) {
+                    const found = predio.lotes?.find(
+                      (lot: any) => 
+                        Number(lot.id_lote) === Number(hp.id_lote) ||
+                        Number(lot.siembra_activa?.id_siembra) === Number(hp.siembra_id)
+                    )
+                    if (found) {
+                      matchLote = found
+                      matchLugarId = lugar.id_lugar_produccion
+                      break
+                    }
+                  }
                 }
+                // Fallback a lotes directos del lugar
+                if (!matchLote && lugar.lotes) {
+                  const found = lugar.lotes.find(
+                    (lot: any) => 
+                      Number(lot.id_lote) === Number(hp.id_lote) ||
+                      Number(lot.siembra_activa?.id_siembra) === Number(hp.siembra_id)
+                  )
+                  if (found) {
+                    matchLote = found
+                    matchLugarId = lugar.id_lugar_produccion
+                  }
+                }
+                if (matchLote) break
               }
             }
             const obsStr = hp.observaciones_especificas || ""
+            const extractedPlaga = obsStr.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || hp.plaga || ""
             return {
               id_detalle: hp.id_detalle,
-              id_lote: matchLote ? String(matchLote.id_lote) : "",
+              id_lote: matchLote ? String(matchLote.id_lote) : String(hp.id_lote || ""),
               id_lugar_produccion: matchLugarId,
               siembra: matchLote?.siembra_activa || { id_siembra: hp.siembra_id },
               afectadas: Number(hp.cantidad_plantas_afectadas) || 0,
               totales: Number(hp.plantas_totales || hp.cantidad_plantas_afectadas) || 0,
               porcentaje: Number(hp.porcentaje_infestacion) || 0,
-              plaga: obsStr.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || "Plaga detectada",
+              plaga: extractedPlaga,
               recomendacion: obsStr.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
               nota: obsStr.split('| ').pop()?.trim() || ""
             }
@@ -106,13 +150,14 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
 
           setFormData(prev => ({
             ...prev,
-            generalObs: inspection.observaciones_generales || "",
+            generalObs: res.data.observaciones_generales || inspection.observaciones_generales || "",
             evaluations: parseado
           }))
+          setInitialEvaluations(JSON.parse(JSON.stringify(parseado)))
         } else {
           setFormData(prev => ({
             ...prev,
-            generalObs: inspection.observaciones_generales || ""
+            generalObs: res.data.observaciones_generales || inspection.observaciones_generales || ""
           }))
         }
       } catch (err) {
@@ -151,11 +196,25 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
   }
 
   const handleSelectLote = (lote: any) => {
+    if (String(currentEval.id_lote) === String(lote.id_lote)) {
+      // Solo deseleccionar visualmente (cerrar panel), NO borrar los datos del lote evaluado
+      setCurrentEval({
+        id_lote: "",
+        siembra: null,
+        plaga: "",
+        totales: 0,
+        afectadas: 0,
+        recomendacion: "",
+        nota: ""
+      })
+      return
+    }
+
     const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(lote.id_lote))
     if (existing) {
       setCurrentEval(existing)
     } else {
-      setCurrentEval({
+      const newEval = {
         id_lote: String(lote.id_lote),
         id_lugar_produccion: selectedLugarId,
         siembra: lote.siembra_activa,
@@ -164,12 +223,138 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         afectadas: 0,
         recomendacion: "",
         nota: ""
+      }
+      setCurrentEval(newEval)
+    }
+  }
+
+  const handleSaveLoteEvaluation = (activeLotes: any[]) => {
+    if (!currentEval.id_lote) return { success: false, error: "No hay lote seleccionado." }
+
+    const hasPlaga = currentEval.plaga && currentEval.plaga.trim() !== ""
+    const afectadasCount = Number(currentEval.afectadas) || 0
+
+    if (hasPlaga) {
+      if (afectadasCount <= 0) {
+        return { success: false, error: "Si hay plaga detectada, el número de plantas afectadas debe ser mayor a 0." }
+      }
+      if (afectadasCount > (currentEval.totales || 0)) {
+        return { success: false, error: `El número de plantas afectadas (${afectadasCount}) no puede superar el total de plantas (${currentEval.totales}).` }
+      }
+      if (!currentEval.recomendacion || currentEval.recomendacion.trim() === "") {
+        return { success: false, error: "Debe escribir una recomendación de manejo para la plaga detectada." }
+      }
+    } else {
+      if (afectadasCount > 0) {
+        return { success: false, error: "No puede haber plantas afectadas si no se ha detectado ninguna plaga. Marque 0 en plantas afectadas o seleccione la plaga correspondiente." }
+      }
+    }
+
+    // Comparar con la evaluación existente en el estado local
+    const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(currentEval.id_lote))
+    if (existing) {
+      const isUnchanged =
+        String(existing.plaga || "") === String(currentEval.plaga || "") &&
+        Number(existing.afectadas) === Number(currentEval.afectadas) &&
+        Number(existing.totales) === Number(currentEval.totales) &&
+        String(existing.recomendacion || "") === String(currentEval.recomendacion || "") &&
+        String(existing.nota || "") === String(currentEval.nota || "")
+
+      if (isUnchanged) {
+        advanceToNextLote(activeLotes)
+        return { success: true, isUnchanged: true }
+      }
+    }
+
+    setFormData(prev => {
+      const filtered = prev.evaluations.filter(ev => String(ev.id_lote) !== String(currentEval.id_lote))
+      return {
+        ...prev,
+        evaluations: [...filtered, currentEval]
+      }
+    })
+
+    advanceToNextLote(activeLotes)
+    return { success: true, isUnchanged: false }
+  }
+
+  const advanceToNextLote = (activeLotes: any[]) => {
+    const currentIndex = activeLotes.findIndex(l => String(l.id_lote) === String(currentEval.id_lote))
+    let nextLote = null
+    for (let i = currentIndex + 1; i < activeLotes.length; i++) {
+      if (activeLotes[i].siembra_activa) {
+        nextLote = activeLotes[i]
+        break
+      }
+    }
+    if (!nextLote) {
+      nextLote = activeLotes.find(l => 
+        l.siembra_activa && 
+        String(l.id_lote) !== String(currentEval.id_lote) &&
+        !formData.evaluations.some(ev => String(ev.id_lote) === String(l.id_lote))
+      )
+    }
+    if (nextLote) {
+      const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(nextLote.id_lote))
+      if (existing) {
+        setCurrentEval(existing)
+      } else {
+        setCurrentEval({
+          id_lote: String(nextLote.id_lote),
+          id_lugar_produccion: selectedLugarId,
+          siembra: nextLote.siembra_activa,
+          plaga: "",
+          totales: nextLote.siembra_activa?.cantidad_plantas || 0,
+          afectadas: 0,
+          recomendacion: "",
+          nota: ""
+        })
+      }
+    } else {
+      setCurrentEval({
+        id_lote: "",
+        siembra: null,
+        plaga: "",
+        totales: 0,
+        afectadas: 0,
+        recomendacion: "",
+        nota: ""
       })
     }
   }
 
-  const handleChangeLugar = (newId: number) => {
-    setSelectedLugarId(newId)
+  const handleResetLote = async (idLote: string | number) => {
+    const existing = formData.evaluations.find(ev => String(ev.id_lote) === String(idLote))
+    if (existing && existing.id_detalle) {
+      try {
+        await api.delete(`/inspecciones/detalles/${existing.id_detalle}`)
+        console.log(`✅ Detalle ${existing.id_detalle} eliminado de la base de datos.`)
+      } catch (err) {
+        console.error("Error al eliminar detalle de la base de datos:", err)
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      evaluations: prev.evaluations.filter(ev => String(ev.id_lote) !== String(idLote))
+    }))
+    setInitialEvaluations(prev => prev.filter(ev => String(ev.id_lote) !== String(idLote)))
+
+    if (String(currentEval.id_lote) === String(idLote)) {
+      setCurrentEval({
+        id_lote: "",
+        siembra: null,
+        plaga: "",
+        totales: 0,
+        afectadas: 0,
+        recomendacion: "",
+        nota: ""
+      })
+    }
+  }
+
+  const handleChangePredio = (newId: number) => {
+    setSelectedPredioId(newId)
     setCurrentEval({ id_lote: "", siembra: null, plaga: "", totales: 0, afectadas: 0, recomendacion: "", nota: "" })
     setPlagaPersonalizada("")
   }
@@ -177,10 +362,29 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
   const handleFinish = async (status: 'finalizada' | 'en_proceso') => {
     setIsFinishing(true)
     try {
-      const evaluationsToSave = formData.evaluations.filter(e => e.plaga)
+      const allLotes = allPredios.flatMap((p: any) => p.lotes || []).filter((l: any) => l.siembra_activa)
+      const missingLotes = allLotes.filter((l: any) => 
+        !formData.evaluations.some(ev => String(ev.id_lote) === String(l.id_lote))
+      )
+
+      if (status === 'finalizada' && missingLotes.length > 0) {
+        const missingNames = missingLotes.map((l: any) => l.nombre_lote).join(", ")
+        alert(`❌ No se puede finalizar la inspección. Aún faltan por revisar los siguientes lotes: ${missingNames}`)
+        setIsFinishing(false)
+        return
+      }
+
+      const evaluationsToSave = formData.evaluations
       
-      // 🚀 PROCESAMIENTO DE PLAGAS: Asegurar que todas tengan un ID real
+      // 🚀 PROCESAMIENTO DE PLAGAS: Asegurar que todas tengan un ID real (o null si es lote sano)
       const processedEvaluations = await Promise.all(evaluationsToSave.map(async (e) => {
+        if (!e.plaga || e.plaga === "Ninguna") {
+          return {
+            ...e,
+            plaga_id: null
+          };
+        }
+
         // Verificar si la plaga seleccionada ya es un ID del catálogo
         const isFromCatalog = catalogPlagas.find(p => p.nombre_comun === e.plaga);
         let plagaId = isFromCatalog?.id_plaga;
@@ -206,33 +410,57 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         };
       }));
 
-      if (processedEvaluations.length > 0) {
+      // Filtrar para enviar a la base de datos solo los nuevos o modificados
+      const changedOrNew = processedEvaluations.filter(e => {
+        const initial = initialEvaluations.find(ie => String(ie.id_lote) === String(e.id_lote))
+        if (!initial) return true // Nuevo registro
+
+        // Comparar si hay cambios reales
+        const isSame =
+          String(initial.plaga || "") === String(e.plaga || "") &&
+          Number(initial.afectadas) === Number(e.afectadas) &&
+          Number(initial.totales) === Number(e.totales) &&
+          String(initial.recomendacion || "") === String(e.recomendacion || "") &&
+          String(initial.nota || "") === String(e.nota || "")
+
+        return !isSame
+      })
+
+      if (changedOrNew.length > 0) {
         const savedRes = await api.post(
           `/inspecciones/${inspection.id_inspeccion}/detalles`,
-          processedEvaluations.map(e => ({
+          changedOrNew.map(e => ({
             id_detalle: e.id_detalle,
             siembra_id: e.siembra?.id_siembra || 1,
             plaga_id: e.plaga_id,
             cantidad_plantas_afectadas: e.afectadas,
             plantas_totales: e.totales,
             porcentaje_infestacion: e.porcentaje,
-            observaciones_especificas: `[Plaga: ${e.plaga}] | [Recomendacion: ${e.recomendacion || 'N/A'}] | ${e.nota || ''}`
+            observaciones_especificas: `[Plaga: ${e.plaga || ''}] | [Recomendacion: ${e.recomendacion || 'N/A'}] | ${e.nota || ''}`
           }))
         )
 
         if (Array.isArray(savedRes.data) && savedRes.data.length > 0) {
           const savedItems: any[] = savedRes.data
+          const updatedEvaluations = formData.evaluations.map(ev => {
+            const match = savedItems.find(
+              s => Number(s.siembra_id) === Number(ev.siembra?.id_siembra)
+            )
+            if (match && !ev.id_detalle) return { ...ev, id_detalle: match.id_detalle }
+            return ev
+          })
+
           setFormData(prev => ({
             ...prev,
-            evaluations: prev.evaluations.map(ev => {
-              const match = savedItems.find(
-                s => Number(s.siembra_id) === Number(ev.siembra?.id_siembra)
-              )
-              if (match && !ev.id_detalle) return { ...ev, id_detalle: match.id_detalle }
-              return ev
-            })
+            evaluations: updatedEvaluations
           }))
+          setInitialEvaluations(JSON.parse(JSON.stringify(updatedEvaluations)))
+        } else {
+          setInitialEvaluations(JSON.parse(JSON.stringify(formData.evaluations)))
         }
+      } else {
+        // No hay hallazgos modificados o nuevos, pero igual guardamos el snapshot actual
+        setInitialEvaluations(JSON.parse(JSON.stringify(formData.evaluations)))
       }
 
       try {
@@ -258,6 +486,8 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     context,
     activeLotes,
     selectedLugarId,
+    selectedPredioId,
+    allPredios,
     plagaPersonalizada,
     setPlagaPersonalizada,
     catalogPlagas,
@@ -269,7 +499,9 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     calculateInfestation,
     handleUpdateCurrentEval,
     handleSelectLote,
-    handleChangeLugar,
+    handleResetLote,
+    handleSaveLoteEvaluation,
+    handleChangePredio,
     handleFinish,
   }
 }

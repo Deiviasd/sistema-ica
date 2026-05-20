@@ -138,18 +138,29 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
                 ? matchesPredio.filter(p => p.id_predio === insp.id_predio)
                 : matchesPredio;
 
-            const todosLotesDelLugar = prediosParaLotes.flatMap(p => p.lote || []);
-            const lotesEnriquecidos = await Promise.all(todosLotesDelLugar.map(enriquecerLote));
+            const prediosEnriquecidos = await Promise.all(prediosParaLotes.map(async (p) => {
+                const lotesValidos = (p.lote || []).filter(l => l.estado !== 'inactivo' && l.estado !== 'eliminado');
+                const lotesPredio = await Promise.all(lotesValidos.map(enriquecerLote));
+                return {
+                    ...p,
+                    lotes: lotesPredio
+                };
+            }));
+
+            // Aplanamos los lotes para el total (mantenemos compatibilidad)
+            const lotesEnriquecidos = prediosEnriquecidos.flatMap(p => p.lotes);
 
             // Sumar áreas individuales de este lugar específico
             const areaDelLugar = lotesEnriquecidos.reduce((sum, lote) => sum + (Number(lote.area) || 0), 0);
 
             return {
                 id_lugar_produccion: lugar.id_lugar_produccion,
-                nombre_lugar: nombrePredioOficial,
-                nombre_empresa: lugar.nombre_lugar, // Exponemos el nombre original (Empresa/Lugar)
+                numero_registro: lugar.numero_registro, // Mapeamos el numero de registro para el frontend
+                nombre_lugar: lugar.nombre_lugar, // Mostramos el nombre del Lugar de Producción
+                nombre_empresa: lugar.nombre_lugar, 
                 area_total: areaDelLugar,
                 es_lugar_inspeccion: lugar.id_lugar_produccion === insp.id_lugar_produccion,
+                predios: prediosEnriquecidos,
                 lotes: lotesEnriquecidos
             };
         }));
@@ -165,7 +176,7 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
         }, 0);
 
         // El nombre oficial del predio es el del lugar de inspección (o el primero que haya)
-        const predioOficial = lugarInspeccion?.nombre_lugar || lugaresEnriquecidos[0]?.nombre_lugar || 'Sin Predio Registrado';
+        const predioOficial = lugarInspeccion?.nombre_lugar || lugaresEnriquecidos[0]?.nombre_lugar || 'Sin Lugar Registrado';
 
         // 🔍 Rescatar detalles (hallazgos) guardados y enriquecer con ID de lote si es posible
         const { data: detallesPrevios } = await supabase
@@ -186,6 +197,7 @@ app.get('/:id/contexto', authenticateInternal, async (req, res) => {
 
         res.json({
             id_inspeccion: insp.id_inspeccion,
+            observaciones_generales: insp.observaciones_generales || '',
             hallazgos_previos: hallazgosEnriquecidos,
             lugar_nombre: lugarInspeccion?.nombre_lugar || 'Sin nombre',
             nombre_predio_oficial: predioOficial,
@@ -251,6 +263,19 @@ app.post('/:id/detalles', authenticateInternal, async (req, res) => {
             details: error.message || error,
             hints: 'Verifique que los nombres de las columnas coincidan con el esquema de Supabase'
         });
+    }
+});
+
+app.delete('/detalles/:id_detalle', authenticateInternal, async (req, res) => {
+    try {
+        const supabase = getSupabaseAdmin();
+        const { id_detalle } = req.params;
+        const { error } = await supabase.from('detalle_inspeccion').delete().eq('id_detalle', id_detalle);
+        if (error) throw error;
+        res.json({ success: true, message: 'Detalle eliminado' });
+    } catch (error) {
+        console.error('❌ Error en DELETE /detalles/:id_detalle:', error);
+        res.status(500).json({ error: 'Fallo al eliminar detalle' });
     }
 });
 
@@ -350,7 +375,7 @@ app.get('/asignadas', authenticateInternal, async (req, res) => {
                 return {
                     ...ins,
                     lugar_produccion: {
-                        nombre_lugar: nombrePredioOficial,
+                        nombre_lugar: lugar?.nombre_lugar || 'Lugar sin nombre',
                         ubicacion: ubicacion
                     }
                 };

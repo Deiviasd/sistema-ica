@@ -11,6 +11,7 @@ export interface Inspection {
     numero_predial: string
     ubicacion?: string
   }
+  id_predio?: number | string
 }
 
 export interface EvalItem {
