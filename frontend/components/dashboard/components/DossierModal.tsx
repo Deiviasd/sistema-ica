@@ -146,12 +146,16 @@ export function DossierModal({ context, onClose }: Props) {
                       onClick={() => { setSelectedLugar(isOpen ? null : predio.id_predio); setSelectedLote(null) }}
                       className="flex items-center gap-5 p-5 cursor-pointer"
                     >
-                      <div 
+                      <div
                         className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] z-10 ${isOpen ? 'bg-teal-600/20 border-teal-500/30' : 'bg-slate-900 border border-slate-800'} cursor-pointer`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          const q = `${predio.region?.departamento || ''}, ${predio.region?.municipio || ''}, ${predio.region?.vereda || ''} Colombia`;
-                          window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank');
+                          if (predio.latitud && predio.longitud) {
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${predio.latitud},${predio.longitud}`, '_blank');
+                          } else {
+                            const q = `${predio.region?.departamento || ''}, ${predio.region?.municipio || ''}, ${predio.region?.vereda || ''} Colombia`;
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank');
+                          }
                         }}
                         title="Ver en Google Maps"
                       >

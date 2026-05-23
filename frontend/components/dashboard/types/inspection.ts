@@ -10,8 +10,10 @@ export interface Inspection {
     nombre_lugar: string
     numero_predial: string
     ubicacion?: string
+    predios?: any[]
   }
   id_predio?: number | string
+  tecnico_nombre?: string
 }
 
 export interface EvalItem {

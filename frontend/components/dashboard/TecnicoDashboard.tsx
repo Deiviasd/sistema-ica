@@ -36,9 +36,10 @@ import { ShieldAlert, Info, MapPin, User, X, Calendar } from "lucide-react"
 import { Button } from "../ui/button"
 
 // Cliente secundario con aislamiento de sesión para evitar conflictos de cookies de Auth entre proyectos
+// Las credenciales se leen desde variables de entorno definidas en .env.local
 const supabaseInspecciones = createSupabaseClient(
-  "https://hvkoyipizjugkzelvtty.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2a295aXBpemp1Z2t6ZWx2dHR5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQ4OTg2NCwiZXhwIjoyMDkwMDY1ODY0fQ.5_LuqRasJ1yjXdUF5tcXU714T_IlyB2ZI96kS8paLCM",
+  process.env.NEXT_PUBLIC_SUPABASE_INSPECCIONES_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_INSPECCIONES_ANON_KEY!,
   {
     auth: {
       persistSession: false,
@@ -101,6 +102,9 @@ export default function TecnicoDashboard() {
     total_lotes: number
     ubicacion?: string
     fecha?: string
+    id_predio?: number | string
+    lugar_produccion?: any
+    predio?: any
   }[]>([])
 
   const [showAlertModal, setShowAlertModal] = useState(false)
@@ -167,6 +171,8 @@ export default function TecnicoDashboard() {
               total_lotes: fullData.total_lotes ?? 0,
               ubicacion: fullData.productor?.ubicacion || 'Ubicación no disponible',
               fecha: payload.new.fecha_programada || 'Fecha no disponible',
+              id_predio: fullData.id_predio,
+              lugar_produccion: fullData.lugares_produccion?.find((l: any) => l.id_lugar_produccion === fullData.id_lugar_produccion)
             }])
           } catch (err) {
             console.warn('⚠️ Usando datos básicos del payload:', err)
@@ -459,13 +465,21 @@ export default function TecnicoDashboard() {
                     </div>
 
                     {/* Ubicación */}
-                    <div className="flex items-start gap-4">
+                    <div
+                      className="flex items-start gap-4 cursor-pointer hover:bg-slate-800/50 p-2 rounded-xl transition-colors"
+                      onClick={() => {
+                        if (alert.ubicacion) {
+                          window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.ubicacion)}`, '_blank');
+                        }
+                      }}
+                      title="Ver en Google Maps"
+                    >
                       <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
                         <MapPin className="text-amber-500 w-5 h-5" />
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ubicación</p>
-                        <p className="text-sm font-bold text-white leading-tight">{alert.ubicacion}</p>
+                        <p className="text-sm font-bold text-white leading-tight hover:text-emerald-400 transition-colors">{alert.ubicacion}</p>
                       </div>
                     </div>
 

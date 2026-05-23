@@ -114,7 +114,9 @@ export default function PrediosPage() {
     prop_identificacion: "",
     prop_telefono: "",
     prop_email: "",
-    misma_ubicacion: false
+    misma_ubicacion: false,
+    latitud: "",
+    longitud: ""
   })
 
   // Sensores para detectar mouse, touch y teclado
@@ -349,6 +351,8 @@ export default function PrediosPage() {
         nombre_predio: formData.nombre,
         area_hectareas: Number(formData.area),
         numero_predial: formData.numero_predial,
+        latitud: formData.latitud ? parseFloat(formData.latitud) : null,
+        longitud: formData.longitud ? parseFloat(formData.longitud) : null,
         ...ownerData
       })
 
@@ -358,7 +362,7 @@ export default function PrediosPage() {
         nombre: "", area: "", numero_predial: "",
         departamento: "", municipio: "", vereda: "", direccion: "",
         es_propietario: true, prop_nombre: "", prop_identificacion: "", prop_telefono: "", prop_email: "",
-        misma_ubicacion: false
+        misma_ubicacion: false, latitud: "", longitud: ""
       })
       await fetchData()
     } catch (error: any) {
@@ -635,6 +639,31 @@ export default function PrediosPage() {
                         placeholder="Ej: 123456789"
                         value={formData.numero_predial}
                         onChange={(e) => setFormData({ ...formData, numero_predial: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Latitud (Opcional)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        placeholder="Ej: 5.0688"
+                        value={formData.latitud}
+                        onChange={(e) => setFormData({ ...formData, latitud: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Longitud (Opcional)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        placeholder="Ej: -75.5174"
+                        value={formData.longitud}
+                        onChange={(e) => setFormData({ ...formData, longitud: e.target.value })}
                       />
                     </div>
                   </div>

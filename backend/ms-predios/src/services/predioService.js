@@ -31,7 +31,8 @@ const predioService = {
             area_hectareas,
             id_region,
             departamento, municipio, vereda, direccion,
-            prop_identificacion, prop_nombre, prop_telefono, prop_email
+            prop_identificacion, prop_nombre, prop_telefono, prop_email,
+            latitud, longitud
         } = predioData;
 
         // 🔒 Validar si el lugar de producción está bajo inspección
@@ -59,7 +60,9 @@ const predioService = {
             prop_identificacion,
             prop_nombre,
             prop_telefono,
-            prop_email
+            prop_email,
+            latitud,
+            longitud
         });
     },
 
