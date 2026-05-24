@@ -159,6 +159,9 @@ const obtenerContexto = async (id, reqUser) => {
         }
     }));
 
+    const lotesInspeccion = lugaresEnriquecidos.flatMap(lugar => lugar.lotes || []);
+    const historialLotes = await construirHistorialLotes(lotesInspeccion, headers);
+
     return {
         id_inspeccion: insp.id_inspeccion,
         id_predio: insp.id_predio,
@@ -175,8 +178,80 @@ const obtenerContexto = async (id, reqUser) => {
         },
         lotes: lugarInspeccion?.lotes || [],
         lugares_produccion: lugaresEnriquecidos,
+        historial_lotes: historialLotes,
         total_lotes: totalLotes
     };
+};
+
+const construirHistorialLotes = async (lotes, headers) => {
+    const historial = {};
+    let plagasById = new Map();
+
+    try {
+        const plagas = await cultivoClient.getPlagas(headers);
+        plagasById = new Map((plagas || []).map(plaga => [Number(plaga.id_plaga), plaga]));
+    } catch (error) {
+        console.error('⚠️ No se pudo cargar catálogo de plagas para historial:', error.message);
+    }
+
+    await Promise.all((lotes || []).map(async (lote) => {
+        try {
+            const siembras = await cultivoClient.getSiembrasByLote(lote.id_lote, headers, true);
+
+            const siembraIds = (siembras || []).map(s => s.id_siembra);
+            let detalles = [];
+            let inspecciones = [];
+
+            if (siembraIds.length > 0) {
+                const { data: detallesData, error: detallesErr } = await supabase
+                    .from('detalle_inspeccion')
+                    .select('*')
+                    .in('siembra_id', siembraIds)
+                    .order('id_detalle', { ascending: false });
+
+                if (detallesErr) throw detallesErr;
+                detalles = (detallesData || []).map(detalle => {
+                    const plaga = plagasById.get(Number(detalle.plaga_id));
+                    return {
+                        ...detalle,
+                        plaga: plaga?.nombre_comun,
+                        nombre_cientifico: plaga?.nombre_cientifico
+                    };
+                });
+
+                const inspeccionIds = [...new Set(detalles.map(d => d.id_inspeccion).filter(Boolean))];
+                if (inspeccionIds.length > 0) {
+                    const { data: inspeccionesData, error: inspeccionesErr } = await supabase
+                        .from('inspeccion')
+                        .select('id_inspeccion, fecha_programada, estado, observaciones_generales, tecnico_id')
+                        .in('id_inspeccion', inspeccionIds)
+                        .order('fecha_programada', { ascending: false });
+
+                    if (inspeccionesErr) throw inspeccionesErr;
+                    inspecciones = await Promise.all((inspeccionesData || []).map(async (ins) => {
+                        if (!ins.tecnico_id) return { ...ins, tecnico_nombre: 'No asignado' };
+                        try {
+                            const tecnico = await authClient.getUsuarioById(ins.tecnico_id, headers);
+                            return { ...ins, tecnico_nombre: tecnico?.nombre || `Técnico #${ins.tecnico_id}` };
+                        } catch {
+                            return { ...ins, tecnico_nombre: `Técnico #${ins.tecnico_id}` };
+                        }
+                    }));
+                }
+            }
+
+            historial[String(lote.id_lote)] = {
+                siembras: siembras || [],
+                hallazgos: detalles,
+                inspecciones
+            };
+        } catch (error) {
+            console.error(`⚠️ Error construyendo historial del lote ${lote.id_lote}:`, error.message);
+            historial[String(lote.id_lote)] = { siembras: [], hallazgos: [], inspecciones: [] };
+        }
+    }));
+
+    return historial;
 };
 
 const registrarDetalles = async (id, items) => {

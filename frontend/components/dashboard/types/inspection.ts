@@ -1,12 +1,23 @@
 export interface SiembraActiva {
   id_siembra: number
+  id_lote?: string | number
   id_especie?: number
   especie?: string
-  variedad?: string
+  variedad_nombre?: string
   ciclo?: string
   fecha_siembra?: string
+  fecha_fin?: string | null
   cantidad_plantas?: number
   edad_dias?: number
+  variedad?: string | {
+    id_especie?: number
+    nombre_variedad?: string
+    especie?: {
+      id_especie?: number
+      nombre_comun?: string
+      ciclo?: string
+    }
+  }
 }
 
 export interface Lote {
@@ -85,13 +96,30 @@ export interface Productor {
 
 export interface HallazgoPrevio {
   id_detalle?: number
+  id_inspeccion?: string | number
   id_lote?: string | number
   siembra_id?: number
   cantidad_plantas_afectadas?: number
   plantas_totales?: number
   porcentaje_infestacion?: number
   plaga?: string
+  nombre_cientifico?: string
   observaciones_especificas: string
+}
+
+export interface InspeccionHistorial {
+  id_inspeccion: string | number
+  fecha_programada?: string
+  estado?: string
+  observaciones_generales?: string
+  tecnico_id?: number
+  tecnico_nombre?: string
+}
+
+export interface HistorialLote {
+  siembras: SiembraActiva[]
+  hallazgos: HallazgoPrevio[]
+  inspecciones: InspeccionHistorial[]
 }
 
 export interface ContextoInspeccion {
@@ -99,6 +127,7 @@ export interface ContextoInspeccion {
   lugares_produccion?: LugarProduccion[]
   id_lugar_produccion?: number
   hallazgos_previos?: HallazgoPrevio[]
+  historial_lotes?: Record<string, HistorialLote>
   tecnico_nombre?: string
   lugar_nombre?: string
   area_lugar?: number | string

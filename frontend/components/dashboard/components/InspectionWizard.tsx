@@ -6,7 +6,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Inspection, Predio, Lote, Plaga } from "../types/inspection"
+import { Inspection, Predio, Lote, Plaga, SiembraActiva } from "../types/inspection"
 import { useInspectionWizard } from "@/hooks/useInspectionWizard"
 import { DossierModal } from "./DossierModal"
 import { InformeCompletoModal } from "./InformeCompletoModal"
@@ -48,6 +48,11 @@ export function InspectionWizard({ inspection, onClose }: Props) {
     handleChangePredio,
     handleFinish,
   } = useInspectionWizard(inspection, onClose)
+
+  const getVariedadNombre = (siembra?: SiembraActiva | null) => {
+    if (!siembra?.variedad) return siembra?.variedad_nombre || 'Genérica'
+    return typeof siembra.variedad === 'string' ? siembra.variedad : siembra.variedad.nombre_variedad || 'Genérica'
+  }
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-[500px] bg-slate-950/20 rounded-[3rem] border border-slate-800">
@@ -219,7 +224,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                             </div>
                             <div>
                               <p className="text-[8px] text-slate-500 font-black uppercase">Variedad</p>
-                              <p className="text-[11px] text-white font-bold italic">{l.siembra_activa.variedad}</p>
+                              <p className="text-[11px] text-white font-bold italic">{getVariedadNombre(l.siembra_activa)}</p>
                             </div>
                           </div>
                           <div className="pt-2 border-t border-emerald-500/10 grid grid-cols-2 gap-4">
@@ -260,7 +265,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                         <Sprout className="text-emerald-500 w-5 h-5 flex-shrink-0" />
                         <div>
                           <p className="text-white font-black italic uppercase tracking-tight">{currentEval.siembra.especie}</p>
-                          <p className="text-[10px] text-emerald-500/70 font-bold uppercase tracking-widest">{currentEval.siembra.variedad}</p>
+                          <p className="text-[10px] text-emerald-500/70 font-bold uppercase tracking-widest">{getVariedadNombre(currentEval.siembra)}</p>
                         </div>
                       </div>
                     </div>

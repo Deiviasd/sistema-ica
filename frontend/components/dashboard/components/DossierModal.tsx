@@ -3,7 +3,15 @@ import { motion } from "framer-motion"
 import { MapPin, ChevronRight, X, ShieldCheck, UserCheck, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-import { ContextoInspeccion } from "../types/inspection"
+import { ContextoInspeccion, HallazgoPrevio, SiembraActiva } from "../types/inspection"
+
+type TraceTab = 'historial' | 'plagas' | 'inspecciones'
+
+const TRACE_TABS: { id: TraceTab; label: string }[] = [
+  { id: 'historial', label: 'Cultivo e historial' },
+  { id: 'plagas', label: 'Plagas' },
+  { id: 'inspecciones', label: 'Inspecciones' },
+]
 
 interface Props {
   context: ContextoInspeccion | null
@@ -13,6 +21,57 @@ interface Props {
 export function DossierModal({ context, onClose }: Props) {
   const [selectedLugar, setSelectedLugar] = useState<string | number | null>(null)
   const [selectedLote, setSelectedLote] = useState<string | number | null>(null)
+  const [activeTabs, setActiveTabs] = useState<Record<string, TraceTab>>({})
+
+  const formatDate = (date?: string | null) => {
+    if (!date) return 'N/A'
+    return new Date(date).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  const getVariedadNombre = (siembra?: SiembraActiva | null) => {
+    if (!siembra?.variedad) return siembra?.variedad_nombre || 'Genérica'
+    return typeof siembra.variedad === 'string' ? siembra.variedad : siembra.variedad.nombre_variedad || 'Genérica'
+  }
+
+  const getEspecieNombre = (siembra?: SiembraActiva | null) => {
+    if (!siembra) return 'N/A'
+    if (siembra.especie) return siembra.especie
+    return typeof siembra.variedad === 'object' ? siembra.variedad.especie?.nombre_comun || 'N/A' : 'N/A'
+  }
+
+  const getPlagaNombre = (hallazgo: HallazgoPrevio) => (
+    hallazgo.plaga || hallazgo.observaciones_especificas?.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || 'Plaga registrada'
+  )
+
+  const getTabForLote = (idLote: string | number): TraceTab => activeTabs[String(idLote)] || 'historial'
+
+  const setTabForLote = (idLote: string | number, tab: TraceTab) => {
+    setActiveTabs((prev) => ({ ...prev, [String(idLote)]: tab }))
+  }
+
+  const getDurationDays = (start?: string | null, end?: string | null) => {
+    if (!start) return 'N/A'
+    const endDate = end ? new Date(end) : new Date()
+    const diffMs = endDate.getTime() - new Date(start).getTime()
+    if (Number.isNaN(diffMs)) return 'N/A'
+    return `${Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))} días`
+  }
+
+  const getSeverity = (percentage?: number) => {
+    const value = Number(percentage || 0)
+    if (value >= 20) return { label: 'Alta', rank: 3, className: 'bg-rose-500/10 text-rose-400 border-rose-500/20' }
+    if (value >= 5) return { label: 'Media', rank: 2, className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' }
+    return { label: 'Baja', rank: 1, className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' }
+  }
+
+  const getStatusClass = (estado?: string) => {
+    const normalized = estado?.toLowerCase()
+    if (normalized === 'finalizada' || normalized === 'completada') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    if (normalized === 'programada') return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    if (normalized === 'en_proceso' || normalized === 'en curso') return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+    if (normalized === 'cancelada') return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+    return 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+  }
 
   console.log('lugares:', context?.lugares_produccion?.map((l) => ({
     id: l.id_lugar_produccion,
@@ -187,6 +246,21 @@ export function DossierModal({ context, onClose }: Props) {
                         ) : predio.lotes?.map((lote) => {
                           const isLoteOpen = selectedLote === lote.id_lote
                           const hasData = !!lote.siembra_activa
+                          const historial = context?.historial_lotes?.[String(lote.id_lote)]
+                          const hallazgosHistoricos = historial?.hallazgos || []
+                          const inspeccionesHistoricas = historial?.inspecciones || []
+                          const activeTab = getTabForLote(lote.id_lote)
+                          const cultivosAnteriores = (historial?.siembras || []).filter(
+                            (siembra) => String(siembra.id_siembra) !== String(lote.siembra_activa?.id_siembra)
+                          )
+                          const maxSeverity = hallazgosHistoricos.reduce((max, hallazgo) => {
+                            const severity = getSeverity(hallazgo.porcentaje_infestacion)
+                            return severity.rank > max.rank ? severity : max
+                          }, getSeverity(0))
+                          const controlledCount = hallazgosHistoricos.filter((hallazgo) => {
+                            const text = hallazgo.observaciones_especificas?.toLowerCase() || ''
+                            return text.includes('control') || text.includes('controlada') || text.includes('controlado')
+                          }).length
                           return (
                             <div key={lote.id_lote} className={`rounded-2xl border-2 transition-all overflow-hidden ${isLoteOpen
                               ? 'bg-emerald-600/5 border-emerald-500/40'
@@ -234,58 +308,120 @@ export function DossierModal({ context, onClose }: Props) {
                                   animate={{ opacity: 1, height: 'auto' }}
                                   className="border-t border-emerald-500/20 bg-slate-950/50"
                                 >
-                                  {lote.siembra_activa ? (
-                                    <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-5">
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Especie</p>
-                                        <p className="text-sm text-white font-bold italic">{lote.siembra_activa.especie || 'N/A'}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Variedad</p>
-                                        <p className="text-sm text-white font-bold italic">{lote.siembra_activa.variedad || 'Genérica'}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Ciclo</p>
-                                        <span className={`text-[8px] font-black px-3 py-1 rounded uppercase ${lote.siembra_activa.ciclo === 'ANUAL'
-                                          ? 'bg-blue-500/20 text-blue-400'
-                                          : 'bg-orange-500/20 text-orange-400'
-                                          }`}>{lote.siembra_activa.ciclo || 'N/A'}</span>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Fecha Siembra</p>
-                                        <p className="text-sm text-white font-bold">
-                                          {lote.siembra_activa.fecha_siembra ? new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', {
-                                            year: 'numeric', month: 'long', day: 'numeric'
-                                          }) : 'N/A'}
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Censo (Plantas)</p>
-                                        <p className="text-sm text-emerald-400 font-black">
-                                          {lote.siembra_activa.cantidad_plantas || 0} <span className="text-slate-500 font-normal">unidades</span>
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Productor</p>
-                                        <p className="text-sm text-white font-bold truncate">{context?.productor?.nombre}</p>
-                                      </div>
-                                      {lote.siembra_activa.edad_dias && (
-                                        <div className="col-span-full bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4">
-                                          <p className="text-[8px] text-emerald-500 font-black uppercase tracking-widest mb-1">
-                                            Edad Cronológica del Cultivo
-                                          </p>
-                                          <p className="text-xl text-white font-black italic">
-                                            {lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-sm">días en campo</span>
-                                          </p>
+                                  <div className="p-0">
+                                    {/* Tabs */}
+                                    <div className="flex border-b border-slate-800">
+                                      {TRACE_TABS.map((tab) => (
+                                        <button
+                                          key={tab.id}
+                                          onClick={() => setTabForLote(lote.id_lote, tab.id)}
+                                          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                                            activeTab === tab.id
+                                              ? 'text-emerald-400 border-b-2 border-emerald-500'
+                                              : 'text-slate-500 hover:text-slate-300'
+                                          }`}
+                                        >
+                                          {tab.label}
+                                        </button>
+                                      ))}
+                                    </div>
+
+                                    {/* Tab Content */}
+                                    <div className="p-5">
+                                      {activeTab === 'historial' && (
+                                        <div className="space-y-4">
+                                          {lote.siembra_activa ? (
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Especie</p><p className="text-sm text-white font-bold italic">{getEspecieNombre(lote.siembra_activa)}</p></div>
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Variedad</p><p className="text-sm text-white font-bold italic">{getVariedadNombre(lote.siembra_activa)}</p></div>
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Ciclo</p><span className="text-[8px] font-black px-3 py-1 rounded uppercase bg-blue-500/20 text-blue-400">{lote.siembra_activa.ciclo || 'N/A'}</span></div>
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Fecha siembra</p><p className="text-sm text-white font-bold">{formatDate(lote.siembra_activa.fecha_siembra)}</p></div>
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Censo</p><p className="text-sm text-emerald-400 font-black">{lote.siembra_activa.cantidad_plantas || 0} plantas</p></div>
+                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Lote</p><p className="text-sm text-white font-bold italic">{lote.nombre_lote}</p></div>
+                                              {lote.siembra_activa.edad_dias && (
+                                                <div className="col-span-full bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4">
+                                                  <p className="text-[8px] text-emerald-500 font-black uppercase tracking-widest mb-1">Edad Cronológica</p>
+                                                  <p className="text-xl text-white font-black italic">{lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-sm">días</span></p>
+                                                </div>
+                                              )}
+                                            </div>
+                                           ) : <p className="text-slate-500 italic text-xs">Lote disponible — sin siembra activa registrada.</p>}
+                                          
+                                          <div className="pt-4 border-t border-slate-800">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Historial Cultivos</p>
+                                            {cultivosAnteriores.length === 0 ? <p className="text-[11px] text-slate-600 italic">Sin ciclos anteriores registrados.</p> : (
+                                              <div className="space-y-2">
+                                                {cultivosAnteriores.map(s => (
+                                                  <div key={s.id_siembra} className="flex items-center justify-between p-3 bg-slate-950/70 rounded-xl border border-slate-800">
+                                                    <div>
+                                                      <p className="text-xs text-white font-bold">{getEspecieNombre(s)} · {getVariedadNombre(s)}</p>
+                                                      <p className="text-[10px] text-slate-400">Lote: {lote.nombre_lote} · {s.cantidad_plantas || 0} plantas · {s.ciclo || 'N/A'}</p>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500">{formatDate(s.fecha_siembra)} - {formatDate(s.fecha_fin)} · {getDurationDays(s.fecha_siembra, s.fecha_fin)}</p>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {activeTab === 'plagas' && (
+                                        <div className="space-y-3">
+                                          {hallazgosHistoricos.length === 0 ? <p className="text-slate-600 italic text-xs">Sin hallazgos fitosanitarios.</p> : (
+                                            hallazgosHistoricos.map((h, i) => {
+                                              const inspection = inspeccionesHistoricas.find((ins) => String(ins.id_inspeccion) === String(h.id_inspeccion))
+                                              const siembra = historial?.siembras.find((s) => String(s.id_siembra) === String(h.siembra_id))
+                                              const severity = getSeverity(h.porcentaje_infestacion)
+                                              return (
+                                                <div key={h.id_detalle || i} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
+                                                  <div>
+                                                    <p className="text-xs font-bold text-white">{getPlagaNombre(h)}{h.nombre_cientifico ? ` (${h.nombre_cientifico})` : ''}</p>
+                                                    <p className="text-[10px] text-slate-500">{formatDate(inspection?.fecha_programada)} · {getEspecieNombre(siembra)} · Lote {lote.nombre_lote}</p>
+                                                  </div>
+                                                  <div className="text-right space-y-1">
+                                                    <span className={`text-[9px] font-black px-2 py-1 rounded border uppercase ${severity.className}`}>{severity.label}</span>
+                                                    <p className="text-[10px] text-slate-500">{h.porcentaje_infestacion || 0}% incidencia</p>
+                                                  </div>
+                                                </div>
+                                              )
+                                            })
+                                          )}
+                                          <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-3 text-[10px] font-black uppercase text-slate-400">
+                                            <span>Total: {hallazgosHistoricos.length}</span>
+                                            <span>Severidad máxima: {hallazgosHistoricos.length ? maxSeverity.label : 'N/A'}</span>
+                                            <span>Controladas: {controlledCount}</span>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {activeTab === 'inspecciones' && (
+                                        <div className="space-y-3">
+                                          {inspeccionesHistoricas.length === 0 ? <p className="text-slate-600 italic text-xs">Sin inspecciones anteriores.</p> : (
+                                            inspeccionesHistoricas.map(ins => {
+                                              const findings = hallazgosHistoricos.filter((h) => String(h.id_inspeccion) === String(ins.id_inspeccion))
+                                              const firstCrop = findings[0] ? historial?.siembras.find((s) => String(s.id_siembra) === String(findings[0].siembra_id)) : lote.siembra_activa
+                                              return (
+                                                <div key={ins.id_inspeccion} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
+                                                  <div>
+                                                    <p className="text-xs font-bold text-white">#{ins.id_inspeccion} · Inspección fitosanitaria</p>
+                                                    <p className="text-[10px] text-slate-500">{formatDate(ins.fecha_programada)} · {ins.tecnico_nombre || 'Técnico no asignado'}</p>
+                                                    <p className="text-[10px] text-slate-500">Cultivo: {getEspecieNombre(firstCrop)} · Hallazgos: {findings.length ? findings.map(getPlagaNombre).join(', ') : 'Sin hallazgos'}</p>
+                                                  </div>
+                                                  <div className="flex items-center gap-3">
+                                                    <span className={`text-[9px] font-black px-2 py-1 rounded border uppercase ${getStatusClass(ins.estado)}`}>{ins.estado || 'N/A'}</span>
+                                                    <Button size="sm" variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
+                                                      Ver inspección completa
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              )
+                                            })
+                                          )}
                                         </div>
                                       )}
                                     </div>
-                                  ) : (
-                                    <div className="p-5 text-center">
-                                      <p className="text-slate-500 italic text-xs">Sin siembra activa registrada.</p>
-                                      <p className="text-slate-600 text-[10px] mt-1">Disponible para un nuevo ciclo productivo.</p>
-                                    </div>
-                                  )}
+                                  </div>
                                 </motion.div>
                               )}
                             </div>

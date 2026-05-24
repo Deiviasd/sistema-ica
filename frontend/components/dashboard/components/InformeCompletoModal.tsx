@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { MapPin, ChevronRight, X, FileText, UserCheck, ClipboardList, Leaf, Bug } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import api from "@/lib/api"
-import { Inspection, FormData, ContextoInspeccion, LugarProduccion, Lote, EvalItem, HallazgoPrevio } from "../types/inspection"
+import { Inspection, FormData, ContextoInspeccion, LugarProduccion, Lote, EvalItem, HallazgoPrevio, SiembraActiva } from "../types/inspection"
 
 interface Props {
   inspection: Inspection
@@ -17,6 +17,11 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   const [selectedDossierLugar, setSelectedDossierLugar] = useState<string | null>(null)
   const [selectedDossierLote, setSelectedDossierLote] = useState<string | number | null>(null)
   const [showPredios, setShowPredios] = useState(false)
+
+  const getVariedadNombre = (siembra?: SiembraActiva | null) => {
+    if (!siembra?.variedad) return siembra?.variedad_nombre || 'Genérica'
+    return typeof siembra.variedad === 'string' ? siembra.variedad : siembra.variedad.nombre_variedad || 'Genérica'
+  }
 
   useEffect(() => {
     const fetchContext = async () => {
@@ -63,7 +68,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
       const lugarKey = targetLugar ? targetLugar.nombre_lugar : 'Sin Lugar Identificado'
       const siembra = targetLote ? targetLote.siembra_activa : null
       const siembraDetail = siembra
-        ? ` (Especie: ${siembra.especie || 'N/A'}${siembra.variedad ? ` · Variedad: ${siembra.variedad}` : ''})`
+        ? ` (Especie: ${siembra.especie || 'N/A'} · Variedad: ${getVariedadNombre(siembra)})`
         : ' (Sin Siembra Activa)'
       const loteKey = targetLote
         ? `${targetLote.nombre_lote}${siembraDetail}`
@@ -249,7 +254,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                             <div className="p-3 grid grid-cols-3 gap-3">
                               {[
                                 { label: 'Especie', value: lote.siembra_activa.especie || 'N/A' },
-                                { label: 'Variedad', value: lote.siembra_activa.variedad || 'Genérica' },
+                                { label: 'Variedad', value: getVariedadNombre(lote.siembra_activa) },
                                 { label: 'Ciclo', value: lote.siembra_activa.ciclo || 'N/A', isBadge: true },
                                 { label: 'Fecha Siembra', value: lote.siembra_activa.fecha_siembra ? new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A' },
                                 { label: 'Censo', value: lote.siembra_activa.cantidad_plantas ? `${lote.siembra_activa.cantidad_plantas} plantas` : '0 plantas', isGreen: true },
@@ -415,7 +420,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                                     <div className="grid grid-cols-3 gap-2">
                                       {[
                                         { label: 'Especie', value: loteInfo.siembra_activa.especie || 'N/A' },
-                                        { label: 'Variedad', value: loteInfo.siembra_activa.variedad || 'Genérica' },
+                                        { label: 'Variedad', value: getVariedadNombre(loteInfo.siembra_activa) },
                                         { label: 'Ciclo', value: loteInfo.siembra_activa.ciclo || 'N/A' },
                                       ].map(({ label, value }) => (
                                         <div key={label} className="bg-slate-900 rounded-lg p-2 border border-slate-800/40">

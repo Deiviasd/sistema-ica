@@ -1,4 +1,4 @@
-const { createSiembra, getSiembras, finishSiembra } = require('../repositories/siembra.repository')
+const { createSiembra, getSiembras, getSiembraById, finishSiembra } = require('../repositories/siembra.repository')
 const eventBus = require('./eventBus')
 const { supabase } = require('../config/supabase')
 
@@ -58,7 +58,7 @@ const registerSiembraService = async (siembraData, userId) => {
     return siembra
 }
 
-const listSiembrasService = async (userId, role, id_lote = null) => {
+const listSiembrasService = async (userId, role, id_lote = null, includeHistory = false) => {
     let authorizedLoteIds = null;
 
     // 🛡️ ORQUESTACIÓN: Si es productor, pedimos sus lotes a MS-PREDIOS para filtrar localmente
@@ -85,7 +85,11 @@ const listSiembrasService = async (userId, role, id_lote = null) => {
         }
     }
 
-    return await getSiembras(userId, role, id_lote, authorizedLoteIds)
+    return await getSiembras(userId, role, id_lote, authorizedLoteIds, includeHistory)
+}
+
+const getSiembraByIdService = async (id) => {
+    return await getSiembraById(id)
 }
 
 const finishSiembraService = async (id, userId, fechaFin = new Date().toISOString().split('T')[0]) => {
@@ -116,4 +120,4 @@ const finishSiembraService = async (id, userId, fechaFin = new Date().toISOStrin
     return siembra
 }
 
-module.exports = { registerSiembraService, listSiembrasService, finishSiembraService }
+module.exports = { registerSiembraService, listSiembrasService, getSiembraByIdService, finishSiembraService }
