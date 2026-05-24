@@ -198,7 +198,7 @@ export default function ProductorDashboard() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-rose-300 font-black text-base uppercase tracking-widest italic leading-none mb-1">
-                  ⚠️ Inspección Fitosanitaria Activa
+                  Inspección Fitosanitaria Activa
                 </p>
                 <p className="text-rose-400/80 text-sm font-medium leading-snug">
                   Su Lugar de Producción se encuentra bajo una <span className="font-black text-rose-300">inspección técnica ICA</span> en curso o programada.

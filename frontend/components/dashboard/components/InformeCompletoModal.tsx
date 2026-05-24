@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { MapPin, ChevronRight, X, FileText, UserCheck, ClipboardList, Leaf, Bug } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import api from "@/lib/api"
-import { Inspection, FormData } from "../types/inspection"
+import { Inspection, FormData, ContextoInspeccion, LugarProduccion, Lote, EvalItem, HallazgoPrevio } from "../types/inspection"
 
 interface Props {
   inspection: Inspection
@@ -12,10 +12,10 @@ interface Props {
 }
 
 export function InformeCompletoModal({ inspection, liveFormData, onClose }: Props) {
-  const [context, setContext] = useState<any>(null)
+  const [context, setContext] = useState<ContextoInspeccion | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedDossierLugar, setSelectedDossierLugar] = useState<number | null>(null)
-  const [selectedDossierLote, setSelectedDossierLote] = useState<number | null>(null)
+  const [selectedDossierLugar, setSelectedDossierLugar] = useState<string | null>(null)
+  const [selectedDossierLote, setSelectedDossierLote] = useState<string | number | null>(null)
   const [showPredios, setShowPredios] = useState(false)
 
   useEffect(() => {
@@ -32,24 +32,24 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
     fetchContext()
   }, [inspection])
 
-  const evals = liveFormData
-    ? liveFormData.evaluations
-    : (context?.hallazgos_previos?.map((hp: any) => ({
-      id_lote: hp.id_lote || hp.siembra_id,
-      siembra: { id_siembra: hp.siembra_id },
-      afectadas: hp.cantidad_plantas_afectadas,
-      totales: hp.plantas_totales || hp.cantidad_plantas_afectadas,
-      porcentaje: hp.porcentaje_infestacion,
-      plaga: hp.observaciones_especificas.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || "Plaga guardada",
-      recomendacion: hp.observaciones_especificas.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
-      nota: hp.observaciones_especificas.split('] | ').pop() || ""
-    })) || [])
-
   const groupedEvals = useMemo(() => {
-    const groups: Record<string, Record<string, any[]>> = {}
-    evals.forEach((ev: any) => {
-      let targetLugar = null
-      let targetLote = null
+    const evals = liveFormData
+      ? liveFormData.evaluations
+      : (context?.hallazgos_previos?.map((hp: HallazgoPrevio) => ({
+        id_lote: String(hp.id_lote || hp.siembra_id || ""),
+        siembra: { id_siembra: hp.siembra_id || 0 },
+        afectadas: hp.cantidad_plantas_afectadas || 0,
+        totales: hp.plantas_totales || hp.cantidad_plantas_afectadas || 0,
+        porcentaje: hp.porcentaje_infestacion || 0,
+        plaga: hp.observaciones_especificas.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || "Plaga guardada",
+        recomendacion: hp.observaciones_especificas.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
+        nota: hp.observaciones_especificas.split('] | ').pop() || ""
+      })) || [])
+
+    const groups: Record<string, Record<string, EvalItem[]>> = {}
+    evals.forEach((ev: EvalItem) => {
+      let targetLugar: LugarProduccion | null = null
+      let targetLote: Lote | null = null
       for (const lugar of (context?.lugares_produccion || [])) {
         for (const lote of (lugar.lotes || [])) {
           if (ev.id_lote === lote.id_lote || (ev.siembra && ev.siembra.id_siembra === lote.siembra_activa?.id_siembra)) {
@@ -60,20 +60,20 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
         }
         if (targetLugar) break
       }
-      const lugarKey = targetLugar ? (targetLugar as any).nombre_lugar : 'Sin Lugar Identificado'
-      const siembra = targetLote ? (targetLote as any).siembra_activa : null
+      const lugarKey = targetLugar ? targetLugar.nombre_lugar : 'Sin Lugar Identificado'
+      const siembra = targetLote ? targetLote.siembra_activa : null
       const siembraDetail = siembra
         ? ` (Especie: ${siembra.especie || 'N/A'}${siembra.variedad ? ` · Variedad: ${siembra.variedad}` : ''})`
         : ' (Sin Siembra Activa)'
       const loteKey = targetLote
-        ? `${(targetLote as any).nombre_lote}${siembraDetail}`
+        ? `${targetLote.nombre_lote}${siembraDetail}`
         : 'Sin Lote Identificado'
       if (!groups[lugarKey]) groups[lugarKey] = {}
       if (!groups[lugarKey][loteKey]) groups[lugarKey][loteKey] = []
       groups[lugarKey][loteKey].push(ev)
     })
     return groups
-  }, [evals, context?.lugares_produccion])
+  }, [liveFormData, context?.hallazgos_previos, context?.lugares_produccion])
 
   if (loading) return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md">
@@ -82,7 +82,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   )
 
   const lugarInspeccion = context?.lugares_produccion?.find(
-    (l: any) => l.id_lugar_produccion === context?.id_lugar_produccion
+    (l) => l.id_lugar_produccion === context?.id_lugar_produccion
   ) || context?.lugares_produccion?.[0];
   const prediosDelLugar = lugarInspeccion?.predios || [];
 
@@ -142,7 +142,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
               {/* Fila: N° Registro ICA | Técnico Asignado | Predios (collapsible) */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'N° Registro ICA', value: context?.lugares_produccion?.find((l: any) => l.es_lugar_inspeccion)?.numero_registro || context?.lugares_produccion?.[0]?.numero_registro || 'Pendiente' },
+                  { label: 'N° Registro ICA', value: context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.numero_registro || context?.lugares_produccion?.[0]?.numero_registro || 'Pendiente' },
                   { label: 'Técnico Asignado', value: inspection.tecnico_nombre || context?.tecnico_nombre || 'No asignado' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5">
@@ -155,9 +155,8 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                 <button
                   type="button"
                   onClick={() => setShowPredios(open => !open)}
-                  className={`bg-slate-900/60 border rounded-xl p-3.5 text-left flex items-start justify-between gap-2 hover:bg-slate-900 transition-colors ${
-                    showPredios ? 'border-emerald-500/40' : 'border-slate-800'
-                  }`}
+                  className={`bg-slate-900/60 border rounded-xl p-3.5 text-left flex items-start justify-between gap-2 hover:bg-slate-900 transition-colors ${showPredios ? 'border-emerald-500/40' : 'border-slate-800'
+                    }`}
                 >
                   <div className="min-w-0">
                     <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Predios del Lugar</p>
@@ -183,7 +182,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                     <p className="text-xs text-slate-500 italic text-center py-2">No hay predios registrados.</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {prediosDelLugar.map((p: any) => (
+                      {prediosDelLugar.map((p) => (
                         <div key={p.id_predio} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
                           <p className="text-sm font-black text-white uppercase tracking-wide leading-tight">{p.nombre_predio}</p>
                           <p className="text-xs text-slate-400 mt-1">
@@ -208,24 +207,24 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {(() => {
-                const predios = context?.lugares_produccion?.flatMap((l: any) => l.predios || []) || []
-                const todosLotes = predios.flatMap((p: any) =>
-                  (p.lotes || []).map((lote: any) => ({ ...lote, predio_nombre: p.nombre_predio }))
+                const predios = context?.lugares_produccion?.flatMap((l) => l.predios || []) || []
+                const todosLotes = predios.flatMap((p) =>
+                  (p.lotes || []).map((lote) => ({ ...lote, predio_nombre: p.nombre_predio }))
                 )
                 if (todosLotes.length === 0) return (
                   <p className="col-span-full text-slate-500 italic text-sm text-center py-4 bg-slate-900/50 border border-slate-800 rounded-xl">
                     No hay lotes registrados.
                   </p>
                 )
-                return todosLotes.map((lote: any) => {
+                return todosLotes.map((lote) => {
                   const isOpen = selectedDossierLote === lote.id_lote
-                  const hasData = !!lote.siembra_activa
+
                   return (
                     <div key={lote.id_lote} className={`rounded-xl border transition-all overflow-hidden ${isOpen ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-slate-900 border-slate-800/80 hover:border-slate-700'
                       }`}>
                       <div onClick={() => setSelectedDossierLote(isOpen ? null : lote.id_lote)} className="flex items-center gap-3 p-3 cursor-pointer">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${hasData ? 'bg-emerald-500/10' : 'bg-slate-800'}`}>
-                          <Leaf className={`w-4.5 h-4.5 ${hasData ? 'text-emerald-500' : 'text-slate-600'}`} />
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${lote.siembra_activa ? 'bg-emerald-500/10' : 'bg-slate-800'}`}>
+                          <Leaf className={`w-4.5 h-4.5 ${lote.siembra_activa ? 'text-emerald-500' : 'text-slate-600'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-black text-white italic uppercase tracking-tight truncate">{lote.nombre_lote}</p>
@@ -233,11 +232,11 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                             <span className="text-[9px] text-slate-500 font-bold uppercase">{lote.predio_nombre}</span>
                             <span className="text-slate-700">·</span>
                             <span className="text-[9px] text-slate-500 font-bold">{lote.area} m²</span>
-                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${hasData
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${lote.siembra_activa
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : 'bg-slate-700/50 text-slate-500 border border-slate-700'
                               }`}>
-                              {hasData ? lote.siembra_activa.especie : 'Sin siembra'}
+                              {lote.siembra_activa?.especie ?? 'Sin siembra'}
                             </span>
                           </div>
                         </div>
@@ -246,14 +245,14 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
 
                       {isOpen && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="border-t border-emerald-500/20 bg-slate-950/50">
-                          {hasData ? (
+                          {lote.siembra_activa ? (
                             <div className="p-3 grid grid-cols-3 gap-3">
                               {[
-                                { label: 'Especie', value: lote.siembra_activa.especie },
+                                { label: 'Especie', value: lote.siembra_activa.especie || 'N/A' },
                                 { label: 'Variedad', value: lote.siembra_activa.variedad || 'Genérica' },
                                 { label: 'Ciclo', value: lote.siembra_activa.ciclo || 'N/A', isBadge: true },
-                                { label: 'Fecha Siembra', value: new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) },
-                                { label: 'Censo', value: `${lote.siembra_activa.cantidad_plantas} plantas`, isGreen: true },
+                                { label: 'Fecha Siembra', value: lote.siembra_activa.fecha_siembra ? new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A' },
+                                { label: 'Censo', value: lote.siembra_activa.cantidad_plantas ? `${lote.siembra_activa.cantidad_plantas} plantas` : '0 plantas', isGreen: true },
                                 { label: 'Área', value: `${lote.area} m²` },
                               ].map(({ label, value, isBadge, isGreen }) => (
                                 <div key={label} className="min-w-0">
@@ -317,12 +316,12 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                 </div>
 
                 {/* Filas */}
-                {Object.entries(groupedEvals).map(([lugarKey, lotesMap]) =>
+                {Object.entries(groupedEvals).map(([, lotesMap]) =>
                   Object.entries(lotesMap).map(([loteKey, evaluaciones]) =>
-                    (evaluaciones as any[]).map((ev: any, i: number) => {
+                    evaluaciones.map((ev, i: number) => {
                       const pct = typeof ev.porcentaje === 'number' ? ev.porcentaje : parseFloat(ev.porcentaje || '0')
                       const rowId = `${loteKey}-${i}`
-                      const isOpen = selectedDossierLugar === rowId as any
+                      const isOpen = selectedDossierLugar === rowId
 
                       let severityLabel = "LEVE"
                       let themeColor = "text-emerald-400"
@@ -338,7 +337,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                       }
 
                       // Buscar loteInfo para especie/variedad
-                      let loteInfo: any = null
+                      let loteInfo: Lote | null = null
                       for (const lugar of (context?.lugares_produccion || [])) {
                         for (const lote of (lugar.lotes || [])) {
                           if (ev.id_lote === lote.id_lote || (ev.siembra && ev.siembra.id_siembra === lote.siembra_activa?.id_siembra)) {
@@ -352,7 +351,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                         <div key={rowId} className={`border-b border-slate-800/60 last:border-0 transition-colors ${isOpen ? 'bg-slate-900/80' : 'bg-slate-950 hover:bg-slate-900/40'}`}>
                           {/* Fila principal clickeable */}
                           <div
-                            onClick={() => setSelectedDossierLugar(isOpen ? null : rowId as any)}
+                            onClick={() => setSelectedDossierLugar(isOpen ? null : rowId)}
                             className="grid grid-cols-12 gap-2 px-4 py-3.5 cursor-pointer items-center"
                           >
                             {/* Lote / Cultivo */}
@@ -410,13 +409,12 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                               className="border-t border-slate-800/60 bg-slate-950/60 px-4 py-4"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Info del cultivo */}
                                 {loteInfo?.siembra_activa && (
                                   <div className="space-y-2.5">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Datos del Cultivo</p>
                                     <div className="grid grid-cols-3 gap-2">
                                       {[
-                                        { label: 'Especie', value: loteInfo.siembra_activa.especie },
+                                        { label: 'Especie', value: loteInfo.siembra_activa.especie || 'N/A' },
                                         { label: 'Variedad', value: loteInfo.siembra_activa.variedad || 'Genérica' },
                                         { label: 'Ciclo', value: loteInfo.siembra_activa.ciclo || 'N/A' },
                                       ].map(({ label, value }) => (
@@ -428,8 +426,8 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                       {[
-                                        { label: 'Plantas Totales', value: `${loteInfo.siembra_activa.cantidad_plantas} plantas` },
-                                        { label: 'Área del Lote', value: `${loteInfo.area} m²` },
+                                        { label: 'Plantas Totales', value: loteInfo.siembra_activa.cantidad_plantas ? `${loteInfo.siembra_activa.cantidad_plantas} plantas` : '0 plantas' },
+                                        { label: 'Área del Lote', value: `${loteInfo.area || 0} m²` },
                                       ].map(({ label, value }) => (
                                         <div key={label} className="bg-slate-900 rounded-lg p-2 border border-slate-800/40">
                                           <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{label}</p>

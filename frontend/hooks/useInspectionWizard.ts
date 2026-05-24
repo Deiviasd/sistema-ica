@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react"
 import api from "@/lib/api"
-import { Inspection, EvalItem, FormData } from "../components/dashboard/types/inspection"
+import { Inspection, EvalItem, FormData, ContextoInspeccion, Plaga, Predio, Lote, HallazgoPrevio, LugarProduccion } from "../components/dashboard/types/inspection"
 
 export function useInspectionWizard(inspection: Inspection, onClose: () => void) {
   const [loading, setLoading] = useState(true)
-  const [context, setContext] = useState<any>(null)
+  const [context, setContext] = useState<ContextoInspeccion | null>(null)
   const [selectedPredioId, setSelectedPredioId] = useState<number | null>(null)
   const [plagaPersonalizada, setPlagaPersonalizada] = useState("")
-  const [catalogPlagas, setCatalogPlagas] = useState<any[]>([])
+  const [catalogPlagas, setCatalogPlagas] = useState<Plaga[]>([])
   const [loadingPlagas, setLoadingPlagas] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [initialEvaluations, setInitialEvaluations] = useState<EvalItem[]>([])
@@ -27,7 +27,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
 
   // 🐛 Efecto para cargar plagas sugeridas según la especie del cultivo seleccionado
   useEffect(() => {
-    const idEspecie = (currentEval.siembra as any)?.id_especie;
+    const idEspecie = currentEval.siembra?.id_especie;
     console.log("🔍 Especie detectada para catálogo:", idEspecie);
     if (!idEspecie) {
       setCatalogPlagas([]);
@@ -42,7 +42,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         setCatalogPlagas(plagasList);
 
         if (currentEval.plaga) {
-          const exists = plagasList.some((p: any) => p.nombre_comun === currentEval.plaga);
+          const exists = plagasList.some((p: Plaga) => p.nombre_comun === currentEval.plaga);
           if (!exists) {
             setPlagaPersonalizada(currentEval.plaga);
           } else {
@@ -59,14 +59,14 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     };
 
     fetchPlagasSugeridas();
-  }, [currentEval.siembra]);
+  }, [currentEval.siembra, currentEval.plaga]);
 
   // Aplanamos todos los predios de todos los lugares de producción para buscarlos fácilmente
-  const allPredios = context?.lugares_produccion?.flatMap((l: any) => 
-    (l.predios || []).map((p: any) => ({ ...p, id_lugar_produccion: l.id_lugar_produccion }))
+  const allPredios = context?.lugares_produccion?.flatMap((l: LugarProduccion) =>
+    (l.predios || []).map((p: Predio) => ({ ...p, id_lugar_produccion: l.id_lugar_produccion }))
   ) || []
 
-  const activePredio = allPredios.find((p: any) => Number(p.id_predio) === Number(selectedPredioId)) || null
+  const activePredio = allPredios.find((p) => Number(p.id_predio) === Number(selectedPredioId)) || null
   const activeLotes = activePredio?.lotes || []
   const selectedLugarId = activePredio?.id_lugar_produccion || null
 
@@ -76,11 +76,11 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         const res = await api.get(`/inspecciones/${inspection.id_inspeccion}/contexto`)
         setContext(res.data)
 
-        const flatPredios = res.data.lugares_produccion?.flatMap((l: any) => l.predios || []) || []
-        
+        const flatPredios = res.data.lugares_produccion?.flatMap((l: LugarProduccion) => l.predios || []) || []
+
         // Priorizar el predio oficial asignado a la inspección
-        const predioOficial = inspection.id_predio 
-          ? flatPredios.find((p: any) => Number(p.id_predio) === Number(inspection.id_predio))
+        const predioOficial = inspection.id_predio
+          ? flatPredios.find((p: Predio) => Number(p.id_predio) === Number(inspection.id_predio))
           : null
 
         if (predioOficial) {
@@ -90,15 +90,16 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         }
 
         if (res.data.hallazgos_previos && res.data.hallazgos_previos.length > 0) {
-          const dedupedMap = (res.data.hallazgos_previos || []).reduce((acc: any, curr: any) => {
-            if (!acc[curr.siembra_id] || curr.id_detalle > acc[curr.siembra_id].id_detalle) {
-              acc[curr.siembra_id] = curr
+          const dedupedMap = (res.data.hallazgos_previos || []).reduce((acc: Record<number, HallazgoPrevio>, curr: HallazgoPrevio) => {
+            const siembraId = curr.siembra_id || 0
+            if (!acc[siembraId] || (curr.id_detalle && acc[siembraId].id_detalle && curr.id_detalle > (acc[siembraId].id_detalle || 0))) {
+              acc[siembraId] = curr
             }
             return acc
-          }, {})
+          }, {} as Record<number, HallazgoPrevio>)
 
-          const parseado = Object.values(dedupedMap).map((hp: any) => {
-            let matchLote: any = null
+          const parseado: EvalItem[] = (Object.values(dedupedMap) as HallazgoPrevio[]).map((hp): EvalItem => {
+            let matchLote: Lote | null = null
             let matchLugarId: number | null = null
             if (res.data.lugares_produccion) {
               for (const lugar of res.data.lugares_produccion) {
@@ -106,13 +107,13 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
                 if (lugar.predios) {
                   for (const predio of lugar.predios) {
                     const found = predio.lotes?.find(
-                      (lot: any) => 
+                      (lot: Lote) =>
                         Number(lot.id_lote) === Number(hp.id_lote) ||
                         Number(lot.siembra_activa?.id_siembra) === Number(hp.siembra_id)
                     )
                     if (found) {
                       matchLote = found
-                      matchLugarId = lugar.id_lugar_produccion
+                      matchLugarId = lugar.id_lugar_produccion ?? null
                       break
                     }
                   }
@@ -120,13 +121,13 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
                 // Fallback a lotes directos del lugar
                 if (!matchLote && lugar.lotes) {
                   const found = lugar.lotes.find(
-                    (lot: any) => 
+                    (lot: Lote) =>
                       Number(lot.id_lote) === Number(hp.id_lote) ||
                       Number(lot.siembra_activa?.id_siembra) === Number(hp.siembra_id)
                   )
                   if (found) {
                     matchLote = found
-                    matchLugarId = lugar.id_lugar_produccion
+                    matchLugarId = lugar.id_lugar_produccion ?? null
                   }
                 }
                 if (matchLote) break
@@ -138,13 +139,13 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
               id_detalle: hp.id_detalle,
               id_lote: matchLote ? String(matchLote.id_lote) : String(hp.id_lote || ""),
               id_lugar_produccion: matchLugarId,
-              siembra: matchLote?.siembra_activa || { id_siembra: hp.siembra_id },
+              siembra: matchLote?.siembra_activa ?? (hp.siembra_id != null ? { id_siembra: hp.siembra_id } : null),
               afectadas: Number(hp.cantidad_plantas_afectadas) || 0,
               totales: Number(hp.plantas_totales || hp.cantidad_plantas_afectadas) || 0,
               porcentaje: Number(hp.porcentaje_infestacion) || 0,
               plaga: extractedPlaga,
               recomendacion: obsStr.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
-              nota: obsStr.split('| ').pop()?.trim() || ""
+              nota: obsStr.split('| ').pop()?.trim() ?? ""
             }
           })
 
@@ -167,7 +168,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
       }
     }
     fetchContext()
-  }, [inspection.id_inspeccion])
+  }, [inspection.id_inspeccion, inspection.id_predio, inspection.observaciones_generales])
 
   const calculateInfestation = () => {
     if (!currentEval.totales || currentEval.totales === 0) return 0
@@ -195,7 +196,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     })
   }
 
-  const handleSelectLote = (lote: any) => {
+  const handleSelectLote = (lote: Lote) => {
     if (String(currentEval.id_lote) === String(lote.id_lote)) {
       // Solo deseleccionar visualmente (cerrar panel), NO borrar los datos del lote evaluado
       setCurrentEval({
@@ -214,10 +215,10 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     if (existing) {
       setCurrentEval(existing)
     } else {
-      const newEval = {
+      const newEval: EvalItem = {
         id_lote: String(lote.id_lote),
         id_lugar_produccion: selectedLugarId,
-        siembra: lote.siembra_activa,
+        siembra: lote.siembra_activa ?? null,
         plaga: "",
         totales: lote.siembra_activa?.cantidad_plantas || 0,
         afectadas: 0,
@@ -228,7 +229,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     }
   }
 
-  const handleSaveLoteEvaluation = (activeLotes: any[]) => {
+  const handleSaveLoteEvaluation = (activeLotes: Lote[]) => {
     if (!currentEval.id_lote) return { success: false, error: "No hay lote seleccionado." }
 
     const hasPlaga = currentEval.plaga && currentEval.plaga.trim() !== ""
@@ -278,7 +279,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     return { success: true, isUnchanged: false }
   }
 
-  const advanceToNextLote = (activeLotes: any[]) => {
+  const advanceToNextLote = (activeLotes: Lote[]) => {
     const currentIndex = activeLotes.findIndex(l => String(l.id_lote) === String(currentEval.id_lote))
     let nextLote = null
     for (let i = currentIndex + 1; i < activeLotes.length; i++) {
@@ -288,23 +289,23 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
       }
     }
     if (!nextLote) {
-      nextLote = activeLotes.find(l => 
-        l.siembra_activa && 
+      nextLote = activeLotes.find(l =>
+        l.siembra_activa &&
         String(l.id_lote) !== String(currentEval.id_lote) &&
         !formData.evaluations.some(ev => String(ev.id_lote) === String(l.id_lote))
       )
     }
     if (nextLote) {
-      const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(nextLote.id_lote))
+      const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(nextLote!.id_lote))
       if (existing) {
         setCurrentEval(existing)
       } else {
         setCurrentEval({
-          id_lote: String(nextLote.id_lote),
+          id_lote: String(nextLote!.id_lote),
           id_lugar_produccion: selectedLugarId,
-          siembra: nextLote.siembra_activa,
+          siembra: nextLote!.siembra_activa ?? null,
           plaga: "",
-          totales: nextLote.siembra_activa?.cantidad_plantas || 0,
+          totales: nextLote!.siembra_activa?.cantidad_plantas || 0,
           afectadas: 0,
           recomendacion: "",
           nota: ""
@@ -362,22 +363,23 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
   const handleFinish = async (status: 'finalizada' | 'en_proceso') => {
     setIsFinishing(true)
     try {
-      const allLotes = allPredios.flatMap((p: any) => p.lotes || []).filter((l: any) => l.siembra_activa)
-      const missingLotes = allLotes.filter((l: any) => 
+      const allLotes = allPredios.flatMap((p) => p.lotes || []).filter((l) => l.siembra_activa)
+      const missingLotes = allLotes.filter((l) =>
         !formData.evaluations.some(ev => String(ev.id_lote) === String(l.id_lote))
       )
 
       if (status === 'finalizada' && missingLotes.length > 0) {
-        const missingNames = missingLotes.map((l: any) => l.nombre_lote).join(", ")
+        const missingNames = missingLotes.map((l) => l.nombre_lote).join(", ")
         alert(`❌ No se puede finalizar la inspección. Aún faltan por revisar los siguientes lotes: ${missingNames}`)
         setIsFinishing(false)
         return
       }
 
       const evaluationsToSave = formData.evaluations
-      
+
       // 🚀 PROCESAMIENTO DE PLAGAS: Asegurar que todas tengan un ID real (o null si es lote sano)
-      const processedEvaluations = await Promise.all(evaluationsToSave.map(async (e) => {
+      type EvalWithPlagaId = EvalItem & { plaga_id: number | null | undefined }
+      const processedEvaluations: EvalWithPlagaId[] = await Promise.all(evaluationsToSave.map(async (e): Promise<EvalWithPlagaId> => {
         if (!e.plaga || e.plaga === "Ninguna") {
           return {
             ...e,
@@ -387,14 +389,14 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
 
         // Verificar si la plaga seleccionada ya es un ID del catálogo
         const isFromCatalog = catalogPlagas.find(p => p.nombre_comun === e.plaga);
-        let plagaId = isFromCatalog?.id_plaga;
+        let plagaId: number | undefined = isFromCatalog?.id_plaga;
 
         // Si no está en el catálogo, es un registro manual que debemos persistir
         if (!plagaId) {
           try {
             const resManual = await api.post('/cultivos/plagas/manual', {
               nombre: e.plaga,
-              id_especie: (e.siembra as any)?.id_especie || 1
+              id_especie: e.siembra?.id_especie || 1
             });
             plagaId = resManual.data.id_plaga;
             console.log(`✅ Plaga manual "${e.plaga}" registrada con ID: ${plagaId}`);
@@ -441,7 +443,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         )
 
         if (Array.isArray(savedRes.data) && savedRes.data.length > 0) {
-          const savedItems: any[] = savedRes.data
+          const savedItems: { siembra_id: number; id_detalle: number }[] = savedRes.data
           const updatedEvaluations = formData.evaluations.map(ev => {
             const match = savedItems.find(
               s => Number(s.siembra_id) === Number(ev.siembra?.id_siembra)

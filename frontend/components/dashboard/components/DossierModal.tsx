@@ -1,18 +1,20 @@
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { MapPin, Calculator, ChevronRight, X, ShieldCheck, UserCheck, Leaf } from "lucide-react"
+import { motion } from "framer-motion"
+import { MapPin, ChevronRight, X, ShieldCheck, UserCheck, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+import { ContextoInspeccion } from "../types/inspection"
+
 interface Props {
-  context: any
+  context: ContextoInspeccion | null
   onClose: () => void
 }
 
 export function DossierModal({ context, onClose }: Props) {
-  const [selectedLugar, setSelectedLugar] = useState<number | null>(null)
-  const [selectedLote, setSelectedLote] = useState<number | null>(null)
+  const [selectedLugar, setSelectedLugar] = useState<string | number | null>(null)
+  const [selectedLote, setSelectedLote] = useState<string | number | null>(null)
 
-  console.log('lugares:', context?.lugares_produccion?.map((l: any) => ({
+  console.log('lugares:', context?.lugares_produccion?.map((l) => ({
     id: l.id_lugar_produccion,
     nombre: l.nombre_lugar,
     registro: l.numero_registro,
@@ -110,18 +112,18 @@ export function DossierModal({ context, onClose }: Props) {
                 <p
                   className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 line-clamp-2"
                   title={
-                    context?.lugares_produccion?.find((l: any) => l.es_lugar_inspeccion)?.nombre_lugar
+                    context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.nombre_lugar
                     || context?.lugares_produccion?.[0]?.nombre_lugar
                     || 'Sitio No Asignado'
                   }
                 >
-                  {context?.lugares_produccion?.find((l: any) => l.es_lugar_inspeccion)?.nombre_lugar
+                  {context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.nombre_lugar
                     || context?.lugares_produccion?.[0]?.nombre_lugar
                     || 'Sitio No Asignado'}
                 </p>
                 <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">
                   N° REGISTRO ICA:{' '}
-                  {context?.lugares_produccion?.find((l: any) => l.es_lugar_inspeccion)?.numero_registro
+                  {context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.numero_registro
                     || context?.lugares_produccion?.[0]?.numero_registro
                     || 'PENDIENTE ASIGNACIÓN'}
                 </p>
@@ -135,7 +137,7 @@ export function DossierModal({ context, onClose }: Props) {
               PREDIOS ASIGNADOS Y LOTES — HAZ CLIC PARA EXPLORAR
             </h4>
             <div className="space-y-3">
-              {context?.lugares_produccion?.flatMap((lugar: any) => lugar.predios || [])?.map((predio: any) => {
+              {context?.lugares_produccion?.flatMap((lugar) => lugar.predios || [])?.map((predio) => {
                 const isOpen = selectedLugar === predio.id_predio
                 return (
                   <div key={predio.id_predio} className={`rounded-3xl border-2 transition-all overflow-hidden ${isOpen
@@ -182,7 +184,7 @@ export function DossierModal({ context, onClose }: Props) {
                       >
                         {predio.lotes?.length === 0 ? (
                           <p className="text-slate-600 text-xs italic text-center py-4">Sin lotes registrados en este predio.</p>
-                        ) : predio.lotes?.map((lote: any) => {
+                        ) : predio.lotes?.map((lote) => {
                           const isLoteOpen = selectedLote === lote.id_lote
                           const hasData = !!lote.siembra_activa
                           return (
@@ -232,11 +234,11 @@ export function DossierModal({ context, onClose }: Props) {
                                   animate={{ opacity: 1, height: 'auto' }}
                                   className="border-t border-emerald-500/20 bg-slate-950/50"
                                 >
-                                  {hasData ? (
+                                  {lote.siembra_activa ? (
                                     <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-5">
                                       <div>
                                         <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Especie</p>
-                                        <p className="text-sm text-white font-bold italic">{lote.siembra_activa.especie}</p>
+                                        <p className="text-sm text-white font-bold italic">{lote.siembra_activa.especie || 'N/A'}</p>
                                       </div>
                                       <div>
                                         <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Variedad</p>
@@ -252,15 +254,15 @@ export function DossierModal({ context, onClose }: Props) {
                                       <div>
                                         <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Fecha Siembra</p>
                                         <p className="text-sm text-white font-bold">
-                                          {new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', {
+                                          {lote.siembra_activa.fecha_siembra ? new Date(lote.siembra_activa.fecha_siembra).toLocaleDateString('es-ES', {
                                             year: 'numeric', month: 'long', day: 'numeric'
-                                          })}
+                                          }) : 'N/A'}
                                         </p>
                                       </div>
                                       <div>
                                         <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Censo (Plantas)</p>
                                         <p className="text-sm text-emerald-400 font-black">
-                                          {lote.siembra_activa.cantidad_plantas} <span className="text-slate-500 font-normal">unidades</span>
+                                          {lote.siembra_activa.cantidad_plantas || 0} <span className="text-slate-500 font-normal">unidades</span>
                                         </p>
                                       </div>
                                       <div>

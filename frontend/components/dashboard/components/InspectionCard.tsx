@@ -14,7 +14,7 @@ export function InspectionCard({ inspection, onStart }: Props) {
   
   if (inspection.fecha_programada) {
     // Si viene como "2026-05-21 08:00:00" (sin T), la reemplazamos para mejor compatibilidad
-    let parsedDateStr = inspection.fecha_programada.replace(' ', 'T');
+    const parsedDateStr = inspection.fecha_programada.replace(' ', 'T');
     
     // Si la fecha termina en 00:00:00Z o no tiene horas especificadas (longitud corta), puede ser que sea solo la fecha
     if (parsedDateStr.length <= 10 || parsedDateStr.endsWith('00:00:00Z')) {

@@ -40,7 +40,7 @@ export default function Dashboard() {
           className="mb-2"
         >
           <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-            {getGreeting()}, <span className="text-emerald-500">{user.nombre}</span> 🌿
+            {getGreeting()}, <span className="text-emerald-500">{user.nombre}</span>
           </h1>
           <p className="text-muted-foreground text-lg">
             Aquí tienes el resumen de tu producción fitosanitaria.
@@ -62,10 +62,10 @@ export default function Dashboard() {
           className="mb-2"
         >
           <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-            Panel Técnico ICA Hub [Sincronizado] <span className="text-blue-500">| {user.nombre}</span> 📝
+            Panel Técnico ICA <span className="text-blue-500">| {user.nombre}</span>
           </h1>
           <p className="text-muted-foreground text-lg">
-            Registro y control fitosanitario de predios asignados.
+            Registro y control fitosanitario.
           </p>
         </motion.div>
 

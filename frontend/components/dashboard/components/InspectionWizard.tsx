@@ -6,7 +6,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Inspection } from "../types/inspection"
+import { Inspection, Predio, Lote, Plaga } from "../types/inspection"
 import { useInspectionWizard } from "@/hooks/useInspectionWizard"
 import { DossierModal } from "./DossierModal"
 import { InformeCompletoModal } from "./InformeCompletoModal"
@@ -101,9 +101,9 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                     onChange={(e) => handleChangePredio(Number(e.target.value))}
                   >
                     <option value="" disabled>-- Seleccione Predio --</option>
-                    {allPredios?.map((predio: any) => {
+                    {allPredios?.map((predio: Predio) => {
                       const predioLotes = predio.lotes || []
-                      const revLotes = predioLotes.filter((pl: any) => 
+                      const revLotes = predioLotes.filter((pl: Lote) =>
                         formData.evaluations.some(ev => String(ev.id_lote) === String(pl.id_lote))
                       ).length
                       return (
@@ -149,24 +149,23 @@ export function InspectionWizard({ inspection, onClose }: Props) {
               LOTES DEL PREDIO — SELECCIONA LOS QUE INSPECCIONARÁS HOY
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeLotes.map((l: any) => (
+              {activeLotes.map((l: Lote) => (
                 <div
                   key={l.id_lote}
                   onClick={() => handleSelectLote(l)}
                   className={`p-6 rounded-3xl border-2 transition-all flex flex-col gap-4 text-left cursor-pointer ${String(currentEval.id_lote) === String(l.id_lote)
-                      ? 'bg-emerald-600/10 border-emerald-500/50 shadow-xl'
-                      : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                    ? 'bg-emerald-600/10 border-emerald-500/50 shadow-xl'
+                    : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
                     }`}
                 >
                   <div className="flex justify-between items-start w-full gap-2">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                        String(currentEval.id_lote) === String(l.id_lote) 
-                          ? 'bg-emerald-500/20 text-emerald-500' 
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${String(currentEval.id_lote) === String(l.id_lote)
+                          ? 'bg-emerald-500/20 text-emerald-500'
                           : formData.evaluations.some(ev => String(ev.id_lote) === String(l.id_lote))
                             ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                             : 'bg-slate-800 text-slate-600'
-                      }`}>
+                        }`}>
                         <Check className="w-4 h-4" />
                       </div>
                       <div>
@@ -298,12 +297,12 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                       }}
                     >
                       <option value="">{loadingPlagas ? 'Consultando catálogo...' : '-- Sin hallazgos --'}</option>
-                      {catalogPlagas.map((p: any) => (
+                      {catalogPlagas.map((p: Plaga) => (
                         <option key={p.id_plaga} value={p.nombre_comun}>
                           {p.nombre_comun} {p.nombre_cientifico ? `(${p.nombre_cientifico})` : ''}
                         </option>
                       ))}
-                      <option value="__otra__">➕ Registrar nueva plaga manual...</option>
+                      <option value="__otra__"> Registrar nueva plaga manual...</option>
                     </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
                       <ChevronDown className="w-5 h-5" />
@@ -461,9 +460,9 @@ export function InspectionWizard({ inspection, onClose }: Props) {
 
             {/* Barra de Progreso de Revisión */}
             {(() => {
-              const inspectableLotes = allPredios.flatMap((p: any) => p.lotes || []).filter((l: any) => l.siembra_activa)
-              const lotesRevisadosCount = formData.evaluations.filter(ev => 
-                inspectableLotes.some((il: any) => String(il.id_lote) === String(ev.id_lote))
+              const inspectableLotes = allPredios.flatMap((p: Predio) => p.lotes || []).filter((l: Lote) => l.siembra_activa)
+              const lotesRevisadosCount = formData.evaluations.filter(ev =>
+                inspectableLotes.some((il: Lote) => String(il.id_lote) === String(ev.id_lote))
               ).length
               const totalLotesCount = inspectableLotes.length
               const isComplete = totalLotesCount > 0 && lotesRevisadosCount === totalLotesCount
@@ -477,10 +476,9 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                     </span>
                   </div>
                   <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-[2px]">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        isComplete ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-500'
-                      }`} 
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-500'
+                        }`}
                       style={{ width: `${totalLotesCount > 0 ? (lotesRevisadosCount / totalLotesCount) * 100 : 0}%` }}
                     />
                   </div>
@@ -515,9 +513,9 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                 <Save className="w-5 h-5 mr-3" /> Guardar — En Proceso
               </Button>
               {(() => {
-                const inspectableLotes = allPredios.flatMap((p: any) => p.lotes || []).filter((l: any) => l.siembra_activa)
-                const lotesRevisadosCount = formData.evaluations.filter(ev => 
-                  inspectableLotes.some((il: any) => String(il.id_lote) === String(ev.id_lote))
+                const inspectableLotes = allPredios.flatMap((p: Predio) => p.lotes || []).filter((l: Lote) => l.siembra_activa)
+                const lotesRevisadosCount = formData.evaluations.filter(ev =>
+                  inspectableLotes.some((il: Lote) => String(il.id_lote) === String(ev.id_lote))
                 ).length
                 const totalLotesCount = inspectableLotes.length
                 const isComplete = totalLotesCount > 0 && lotesRevisadosCount === totalLotesCount
@@ -526,11 +524,10 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                   <Button
                     disabled={isFinishing || formData.evaluations.length === 0 || !isComplete}
                     onClick={() => handleFinish('finalizada')}
-                    className={`w-full h-20 text-white font-black italic text-xl rounded-[2rem] shadow-2xl transition-all uppercase tracking-tighter ${
-                      isComplete 
-                        ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40 cursor-pointer animate-pulse' 
+                    className={`w-full h-20 text-white font-black italic text-xl rounded-[2rem] shadow-2xl transition-all uppercase tracking-tighter ${isComplete
+                        ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40 cursor-pointer animate-pulse'
                         : 'bg-slate-800 text-slate-500 border border-slate-750 cursor-not-allowed opacity-60 shadow-none'
-                    }`}
+                      }`}
                   >
                     {isFinishing ? (
                       <Loader2 className="animate-spin w-8 h-8" />
@@ -572,12 +569,12 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                   <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest">Advertencia de seguridad</p>
                 </div>
               </div>
-              
+
               <p className="text-slate-300 text-xs font-semibold leading-relaxed">
                 ¿Estás seguro de que deseas eliminar la evaluación del lote <span className="text-white font-bold">{resetLoteName}</span>?
                 Se borrarán todas las plagas registradas, plantas afectadas y observaciones de este lote. Esta acción no se puede deshacer.
               </p>
-              
+
               <div className="flex gap-4 pt-2">
                 <Button
                   onClick={() => setShowResetConfirm(false)}
@@ -609,11 +606,10 @@ export function InspectionWizard({ inspection, onClose }: Props) {
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className={`fixed top-8 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2 border backdrop-blur-md transition-colors ${
-              toastType === "error"
+            className={`fixed top-8 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2 border backdrop-blur-md transition-colors ${toastType === "error"
                 ? "bg-rose-500 text-white border-rose-400/50 shadow-rose-950/20"
                 : "bg-emerald-500 text-slate-950 border-emerald-400/50 shadow-emerald-500/20"
-            }`}
+              }`}
           >
             {toastType === "error" ? (
               <Info className="w-4 h-4 text-white stroke-[3px]" />
