@@ -11,11 +11,13 @@ const {
     getUserController,
     getUsersByRoleController,
     getProfileController,
-    checkEmailController
+    checkEmailController,
+    updateProfileController
 } = require('../controllers/auth.controller')
 const { verifyToken, requireAdmin } = require('../middleware/auth.middleware')
 
 router.get('/profile', verifyToken, getProfileController)
+router.patch('/profile', verifyToken, updateProfileController)
 router.get('/check-email/:email', checkEmailController)
 router.post('/register', registerController)
 router.post('/login', loginController)

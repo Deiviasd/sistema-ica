@@ -104,17 +104,17 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl bg-slate-950 border border-teal-500/20 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-4xl bg-card border border-teal-500/20 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] transition-colors"
       >
         {/* Header */}
-        <div className="bg-slate-900 border-b border-slate-800 p-5 flex items-center justify-between shrink-0 relative overflow-hidden">
+        <div className="bg-card border-b border-border p-5 flex items-center justify-between shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-[85px] rounded-full -mr-20 -mt-20" />
           <div className="relative z-10 flex items-center gap-4">
             <div className="w-12 h-12 bg-teal-500/10 rounded-xl flex items-center justify-center border border-teal-500/25">
               <FileText className="text-teal-400 w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Informe Técnico</h2>
+              <h2 className="text-xl font-black text-foreground italic uppercase tracking-tighter leading-none">Informe Técnico</h2>
               <p className="text-teal-400 font-bold text-[10px] uppercase tracking-[0.25em] mt-1.5">
                 Inspección {inspection.estado === 'finalizada' ? 'Finalizada' : 'En Proceso'}
               </p>
@@ -130,17 +130,17 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
           {/* Productor / Lugar */}
           {/* Info General — basado en secciones I y II del informe ICA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 relative overflow-hidden">
-              <UserCheck className="absolute -right-4 -bottom-4 w-20 h-20 text-slate-800/20" />
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5 relative z-10">Titular de la Empresa</p>
-              <p className="text-base font-black text-white relative z-10">{context?.productor?.nombre}</p>
-              <p className="text-xs text-slate-400 relative z-10 mt-0.5">{context?.productor?.ubicacion}</p>
+            <div className="bg-muted/50 p-4 rounded-xl border border-border relative overflow-hidden">
+              <UserCheck className="absolute -right-4 -bottom-4 w-20 h-20 text-muted-foreground/10" />
+              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5 relative z-10">Titular de la Empresa</p>
+              <p className="text-base font-black text-foreground relative z-10">{context?.productor?.nombre}</p>
+              <p className="text-xs text-muted-foreground relative z-10 mt-0.5">{context?.productor?.ubicacion}</p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 relative overflow-hidden">
-              <MapPin className="absolute -right-4 -bottom-4 w-20 h-20 text-slate-800/20" />
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5 relative z-10">Lugar de Producción</p>
-              <p className="text-base font-black text-white relative z-10">{context?.lugar_nombre || 'Sin registrar'}</p>
-              <p className="text-xs text-slate-400 relative z-10 mt-0.5">{context?.area_lugar} Ha · Área Operativa</p>
+            <div className="bg-muted/50 p-4 rounded-xl border border-border relative overflow-hidden">
+              <MapPin className="absolute -right-4 -bottom-4 w-20 h-20 text-muted-foreground/10" />
+              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5 relative z-10">Lugar de Producción</p>
+              <p className="text-base font-black text-foreground relative z-10">{context?.lugar_nombre || 'Sin registrar'}</p>
+              <p className="text-xs text-muted-foreground relative z-10 mt-0.5">{context?.area_lugar} Ha · Área Operativa</p>
             </div>
             {/* Técnico asignado + Predios — sección II del informe ICA */}
             <div className="md:col-span-2 space-y-2">
@@ -150,9 +150,9 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                   { label: 'N° Registro ICA', value: context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.numero_registro || context?.lugares_produccion?.[0]?.numero_registro || 'Pendiente' },
                   { label: 'Técnico Asignado', value: inspection.tecnico_nombre || context?.tecnico_nombre || 'No asignado' },
                 ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5">
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{label}</p>
-                    <p className="text-xs font-black text-white italic truncate" title={value}>{value}</p>
+                  <div key={label} className="bg-muted/30 border border-border rounded-xl p-3.5">
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">{label}</p>
+                    <p className="text-xs font-black text-foreground italic truncate" title={value}>{value}</p>
                   </div>
                 ))}
 
@@ -160,12 +160,12 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                 <button
                   type="button"
                   onClick={() => setShowPredios(open => !open)}
-                  className={`bg-slate-900/60 border rounded-xl p-3.5 text-left flex items-start justify-between gap-2 hover:bg-slate-900 transition-colors ${showPredios ? 'border-emerald-500/40' : 'border-slate-800'
+                  className={`bg-muted/30 border rounded-xl p-3.5 text-left flex items-start justify-between gap-2 hover:bg-muted transition-colors ${showPredios ? 'border-emerald-500/40' : 'border-border'
                     }`}
                 >
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Predios del Lugar</p>
-                    <p className="text-xs font-black text-white italic">
+                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Predios del Lugar</p>
+                    <p className="text-xs font-black text-foreground italic">
                       {prediosDelLugar.length > 0
                         ? `${prediosDelLugar.length} predio${prediosDelLugar.length === 1 ? '' : 's'}`
                         : 'Sin predios'}

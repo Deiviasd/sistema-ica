@@ -45,7 +45,8 @@ export const useAuth = () => {
             identificacion: data.identificacion || data.documento || data.numero_documento || '',
             numero_documento: data.numero_documento || data.documento || data.identificacion || '',
             nombre_predio: data.nombre_predio || '',
-            numero_predial: data.numero_predial || ''
+            numero_predial: data.numero_predial || '',
+            foto_perfil: data.foto_perfil || ''
           };
 
           setSession(userData, localToken);

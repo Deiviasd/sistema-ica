@@ -284,22 +284,22 @@ export default function TecnicoDashboard() {
             className="space-y-8"
           >
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 bg-emerald-600/10 rounded-3xl flex items-center justify-center border border-emerald-500/20">
-                  <History className="text-emerald-500 w-8 h-8" />
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl md:rounded-3xl flex items-center justify-center border border-primary/20">
+                  <History className="text-primary w-6 h-6 md:w-8 md:h-8" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-black italic tracking-tighter uppercase">
+                  <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase text-foreground">
                     Inspecciones Programadas
                   </h1>
-                  <p className="text-muted-foreground font-bold text-xs uppercase tracking-[0.3em]">
+                  <p className="text-muted-foreground font-bold text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em]">
                     Gestión de cumplimiento fitosanitario • ICA
                   </p>
                 </div>
               </div>
-              <div className="flex bg-card p-2 rounded-2xl border border-border">
-                <div className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black italic uppercase tracking-tighter shadow-lg shadow-emerald-500/20">
+              <div className="flex bg-card p-1.5 md:p-2 rounded-2xl border border-border self-start md:self-auto">
+                <div className="px-4 py-2 md:px-6 md:py-3 bg-primary text-primary-foreground rounded-xl font-black italic uppercase tracking-tighter shadow-lg shadow-primary/20 text-sm md:text-base">
                   {inspecciones.length} CITAS HOY
                 </div>
               </div>
@@ -398,47 +398,47 @@ export default function TecnicoDashboard() {
         {showAlertModal && cancellationAlerts.length > 0 && (() => {
           const alert = cancellationAlerts[currentAlertIndex]
           return (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-background/80 backdrop-blur-md">
               <motion.div
                 key={currentAlertIndex}
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="relative w-full max-w-md bg-slate-900 border-4 border-rose-600/30 rounded-[3rem] p-10 shadow-2xl shadow-rose-950/40"
+                className="relative w-full max-w-md bg-card border-4 border-destructive/30 rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 shadow-2xl shadow-destructive/20 transition-colors"
               >
                 {/* Ícono superior */}
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-rose-600 rounded-full flex items-center justify-center shadow-lg shadow-rose-600/40 border-8 border-slate-900">
-                  <ShieldAlert className="text-white w-10 h-10 animate-pulse" />
+                <div className="absolute -top-8 md:-top-12 left-1/2 -translate-x-1/2 w-16 h-16 md:w-24 md:h-24 bg-destructive rounded-full flex items-center justify-center shadow-lg shadow-destructive/40 border-4 md:border-8 border-card">
+                  <ShieldAlert className="text-destructive-foreground w-7 h-7 md:w-10 md:h-10 animate-pulse" />
                 </div>
 
                 {/* Contador de cola */}
                 {cancellationAlerts.length > 1 && (
-                  <div className="absolute top-6 right-6 bg-rose-600/20 border border-rose-600/30 rounded-full px-3 py-1">
-                    <span className="text-rose-400 text-xs font-black">
+                  <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-destructive/20 border border-destructive/30 rounded-full px-2 py-0.5 md:px-3 md:py-1">
+                    <span className="text-destructive text-[10px] md:text-sm font-black">
                       {currentAlertIndex + 1} / {cancellationAlerts.length}
                     </span>
                   </div>
                 )}
 
-                <div className="text-center mt-8 space-y-6">
-                  <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">
-                    ¡Inspección <span className="text-rose-500">Cancelada!</span>
+                <div className="text-center mt-6 md:mt-8 space-y-4 md:space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-black text-foreground italic tracking-tighter uppercase leading-none">
+                    ¡Inspección <span className="text-destructive">Cancelada!</span>
                   </h2>
-                  <p className="text-slate-400 font-bold text-sm leading-relaxed">
+                  <p className="text-muted-foreground font-bold text-xs md:text-sm leading-relaxed">
                     Se canceló la siguiente asignación de tu agenda:
                   </p>
 
                   {/* Tarjeta de info */}
-                  <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 text-left space-y-4">
+                  <div className="bg-muted/40 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-border text-left space-y-3 md:space-y-4">
 
                     {/* Predio */}
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center shrink-0">
-                        <ShieldAlert className="text-rose-500 w-5 h-5" />
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="w-8 h-8 md:w-10 md:h-10 bg-destructive/10 rounded-xl flex items-center justify-center shrink-0">
+                        <ShieldAlert className="text-destructive w-4 h-4 md:w-5 md:h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Predio</p>
-                        <p className="text-md font-black text-white italic">{alert.nombre_predio}</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Predio</p>
+                        <p className="text-sm md:text-md font-black text-foreground italic">{alert.nombre_predio}</p>
                       </div>
                     </div>
 
@@ -448,19 +448,19 @@ export default function TecnicoDashboard() {
                         <MapPin className="text-teal-500 w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar de Producción</p>
-                        <p className="text-md font-black text-white italic">{alert.nombre_lugar}</p>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lugar de Producción</p>
+                        <p className="text-md font-black text-foreground italic">{alert.nombre_lugar}</p>
                       </div>
                     </div>
 
                     {/* Productor */}
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
-                        <User className="text-blue-500 w-5 h-5" />
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="w-8 h-8 md:w-10 md:h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                        <User className="text-primary w-4 h-4 md:w-5 md:h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Productor</p>
-                        <p className="text-md font-black text-white italic">{alert.productor_nombre}</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Productor</p>
+                        <p className="text-sm md:text-md font-black text-foreground italic">{alert.productor_nombre}</p>
                       </div>
                     </div>
 
@@ -478,8 +478,8 @@ export default function TecnicoDashboard() {
                         <MapPin className="text-amber-500 w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ubicación</p>
-                        <p className="text-sm font-bold text-white leading-tight hover:text-emerald-400 transition-colors">{alert.ubicacion}</p>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ubicación</p>
+                        <p className="text-sm font-bold text-foreground leading-tight hover:text-emerald-500 transition-colors">{alert.ubicacion}</p>
                       </div>
                     </div>
 
@@ -489,20 +489,20 @@ export default function TecnicoDashboard() {
                         <Calendar className="text-indigo-500 w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha Programada</p>
-                        <p className="text-sm font-bold text-white">{alert.fecha && alert.fecha !== 'Fecha no disponible' ? new Date(alert.fecha).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No disponible'}</p>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Fecha Programada</p>
+                        <p className="text-sm font-bold text-foreground">{alert.fecha && alert.fecha !== 'Fecha no disponible' ? new Date(alert.fecha).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No disponible'}</p>
                       </div>
                     </div>
 
                     {/* Estadísticas del predio */}
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
-                      <div className="bg-slate-900 rounded-2xl p-3 text-center">
-                        <p className="text-2xl font-black text-emerald-400">{alert.total_lugares}</p>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugares</p>
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                      <div className="bg-muted/60 rounded-2xl p-2 md:p-3 text-center">
+                        <p className="text-xl md:text-2xl font-black text-primary">{alert.total_lugares}</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lugares</p>
                       </div>
-                      <div className="bg-slate-900 rounded-2xl p-3 text-center">
-                        <p className="text-2xl font-black text-emerald-400">{alert.total_lotes}</p>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lotes</p>
+                      <div className="bg-muted/60 rounded-2xl p-2 md:p-3 text-center">
+                        <p className="text-xl md:text-2xl font-black text-primary">{alert.total_lotes}</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lotes</p>
                       </div>
                     </div>
                   </div>
@@ -514,14 +514,14 @@ export default function TecnicoDashboard() {
                         <Button
                           onClick={() => setCurrentAlertIndex(i => Math.max(0, i - 1))}
                           disabled={currentAlertIndex === 0}
-                          className="h-12 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl disabled:opacity-30"
+                          className="h-10 md:h-12 bg-muted hover:bg-muted/80 text-foreground font-black rounded-2xl disabled:opacity-30"
                         >
                           ← Anterior
                         </Button>
                         <Button
                           onClick={() => setCurrentAlertIndex(i => Math.min(cancellationAlerts.length - 1, i + 1))}
                           disabled={currentAlertIndex === cancellationAlerts.length - 1}
-                          className="h-12 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl disabled:opacity-30"
+                          className="h-10 md:h-12 bg-muted hover:bg-muted/80 text-foreground font-black rounded-2xl disabled:opacity-30"
                         >
                           Siguiente →
                         </Button>
@@ -537,7 +537,7 @@ export default function TecnicoDashboard() {
                         // Cerrar modal si no quedan más
                         if (cancellationAlerts.length === 1) setShowAlertModal(false)
                       }}
-                      className="w-full h-16 bg-rose-600 hover:bg-rose-500 text-white font-black text-lg rounded-2xl transition-all shadow-lg shadow-rose-600/20"
+                      className="w-full h-12 md:h-16 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-black text-base md:text-lg rounded-2xl transition-all shadow-lg shadow-destructive/20"
                     >
                       CONFIRMAR LECTURA
                     </Button>

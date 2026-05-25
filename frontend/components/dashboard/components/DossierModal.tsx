@@ -93,7 +93,7 @@ export function DossierModal({ context, onClose }: Props) {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-4xl bg-slate-900 border-2 border-emerald-500/30 rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.1)] flex flex-col max-h-[85vh]"
+        className="relative w-full max-w-4xl bg-card border-2 border-emerald-500/30 rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.1)] flex flex-col max-h-[85vh] transition-colors"
       >
         {/* Header */}
         <div className="bg-emerald-600 p-6 flex justify-between items-center relative overflow-hidden">
@@ -129,7 +129,7 @@ export function DossierModal({ context, onClose }: Props) {
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Localización Geográfica</span>
               </div>
               <div
-                className="bg-slate-950 p-6 rounded-3xl border border-slate-800 cursor-pointer hover:border-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-all group/map relative flex flex-col justify-center min-h-[104px]"
+                className="bg-muted p-6 rounded-3xl border border-border cursor-pointer hover:border-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-all group/map relative flex flex-col justify-center min-h-[104px]"
                 onClick={() => {
                   const ubicacion = context?.productor?.ubicacion || '';
                   if (ubicacion && ubicacion !== 'SIN UBICACIÓN') {
@@ -141,7 +141,7 @@ export function DossierModal({ context, onClose }: Props) {
                 <div className="absolute top-4 right-4 opacity-0 group-hover/map:opacity-100 transition-opacity bg-emerald-500/10 p-2 rounded-xl">
                   <MapPin className="w-4 h-4 text-emerald-500 animate-bounce" />
                 </div>
-                <p className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 group-hover/map:text-emerald-400 transition-colors">
+                <p className="text-2xl font-black text-foreground italic uppercase tracking-tighter mb-1 group-hover/map:text-emerald-400 transition-colors">
                   {context?.productor?.ubicacion || 'SIN UBICACIÓN'}
                 </p>
               </div>
@@ -152,11 +152,11 @@ export function DossierModal({ context, onClose }: Props) {
                 <UserCheck className="text-emerald-500 w-5 h-5" />
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Productor Responsable</span>
               </div>
-              <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800">
-                <p className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1">
+              <div className="bg-muted p-6 rounded-3xl border border-border">
+                <p className="text-2xl font-black text-foreground italic uppercase tracking-tighter mb-1">
                   {context?.productor?.nombre}
                 </p>
-                <p className="text-xs text-slate-400 font-bold tracking-tight uppercase">
+                <p className="text-xs text-muted-foreground font-bold tracking-tight uppercase">
                   {context?.productor?.ubicacion || 'Región Predeterminada'}
                 </p>
               </div>
@@ -167,9 +167,9 @@ export function DossierModal({ context, onClose }: Props) {
                 <Leaf className="text-emerald-500 w-5 h-5" />
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar de Producción</span>
               </div>
-              <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 flex flex-col justify-center min-h-[104px]">
+              <div className="bg-muted p-6 rounded-3xl border border-border flex flex-col justify-center min-h-[104px]">
                 <p
-                  className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 line-clamp-2"
+                  className="text-2xl font-black text-foreground italic uppercase tracking-tighter mb-1 line-clamp-2"
                   title={
                     context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.nombre_lugar
                     || context?.lugares_produccion?.[0]?.nombre_lugar
@@ -223,11 +223,11 @@ export function DossierModal({ context, onClose }: Props) {
                         <MapPin className={`w-6 h-6 transition-colors ${isOpen ? 'text-teal-400' : 'text-slate-500 hover:text-emerald-400'}`} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-lg text-white font-black italic uppercase tracking-tight">{predio.nombre_predio}</p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                        <p className="text-lg text-foreground font-black italic uppercase tracking-tight">{predio.nombre_predio}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
                           {predio.region?.departamento || 'N/A'}, {predio.region?.municipio || 'N/A'} - {predio.region?.vereda || 'N/A'}
                         </p>
-                        <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mt-1">
+                        <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mt-1">
                           {predio.area_hectareas || 0} m² · {predio.lotes?.length || 0} lotes
                           <span className="text-emerald-500 ml-3">N° PREDIAL: {predio.numero_predial || 'N/A'}</span>
                         </p>
@@ -436,10 +436,10 @@ export function DossierModal({ context, onClose }: Props) {
           </div>
         </div>
 
-        <div className="p-6 bg-slate-950 border-t border-slate-800 flex justify-end">
+        <div className="p-6 bg-card border-t border-border flex justify-end">
           <Button
             onClick={onClose}
-            className="bg-white text-slate-950 font-black italic uppercase tracking-tighter px-8 h-12 rounded-2xl hover:scale-105 active:scale-95 transition-all"
+            className="bg-primary text-primary-foreground font-black italic uppercase tracking-tighter px-8 h-12 rounded-2xl hover:scale-105 active:scale-95 transition-all"
           >
             ENTENDIDO - CERRAR FICHA
           </Button>

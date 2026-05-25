@@ -10,7 +10,8 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cors());
 
 // 🔌 Conectar a RabbitMQ al iniciar
@@ -21,7 +22,7 @@ function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     let token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
+    if (req.method === "OPTIONS") return next(); if (!token) return res.status(401).json({ error: "Token requerido" });
 
     try {
         // En ms-auth firmamos con el secreto como string, aquí validamos igual
@@ -133,32 +134,30 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
         changeOrigin: true,
         pathRewrite: { [`^${path}`]: '' },
         onProxyReq: (proxyReq, req, res) => {
+            const payload = {
+                id: req.user.id_usuario || req.user.id, // Para MS-CULTIVO
+                id_usuario: req.user.id_usuario || req.user.id, // Para MS-AUTH/PREDIOS
+                sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
+                email: req.user.email,
+                nombre: req.user.nombre,
+                nombre_predio: req.user.nombre_predio,
+                numero_predial: req.user.numero_predial,
+                role: req.user.app_metadata?.role || req.user.role || 'authenticated',
+                aud: 'authenticated',
+                app_metadata: req.user.app_metadata || {}
+            };
+
+            // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
+            proxyReq.setHeader('x-user-id', payload.id_usuario);
+            proxyReq.setHeader('x-user-role', payload.role);
+            proxyReq.setHeader('x-user-predio-id', payload.numero_predial || '');
+
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {
                 const targetSecret = process.env[targetSecretEnv].trim();
-
-                // 🎭 Payload universal compatible con todos los MS y Supabase
-                const payload = {
-                    id: req.user.id_usuario || req.user.id, // Para MS-CULTIVO
-                    id_usuario: req.user.id_usuario || req.user.id, // Para MS-AUTH/PREDIOS
-                    sub: req.user.id_auth_supabase || req.user.sub || req.user.id,
-                    email: req.user.email,
-                    nombre: req.user.nombre, // ✨ Mantenemos el nombre en el intercambio
-                    nombre_predio: req.user.nombre_predio, // ✨ Nueva info de la finca
-                    numero_predial: req.user.numero_predial, // ✨ Criterio oficial del predio
-                    role: req.user.app_metadata?.role || req.user.role || 'authenticated',
-                    aud: 'authenticated',
-                    app_metadata: req.user.app_metadata || {}
-                };
-
                 const newToken = jwt.sign(payload, targetSecret);
                 console.log(`🎫 [TOKEN EXCHANGE] Re-firmando para ${target} con payload universal`);
                 proxyReq.setHeader('Authorization', `Bearer ${newToken}`);
-
-                // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
-                proxyReq.setHeader('x-user-id', payload.id_usuario);
-                proxyReq.setHeader('x-user-role', payload.role);
-                proxyReq.setHeader('x-user-predio-id', payload.numero_predial || '');
             }
 
             if (req.body) {
@@ -294,8 +293,8 @@ app.get('/auth/users/by-status', authenticateToken, restrictTo('admin'), async (
         console.log(`🔍 [ORQUESTADOR] Hidratando usuarios con estado: ${status}`);
 
         // 1. Obtener los usuarios base de ms-auth
-        const usersRes = await internalApi.auth.get(`users/by-status?status=${status}`);
-        const baseUsers = usersRes.data;
+        const usersRes = await internalApi.auth.get(`users/by-status?status=${encodeURIComponent(status || 'inactivo')}`);
+        const baseUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
 
         // 2. Hidratar cada usuario con datos de ms-predios
         const hydratedUsers = await Promise.all(baseUsers.map(async (user) => {
@@ -341,8 +340,9 @@ app.get('/auth/users/by-status', authenticateToken, restrictTo('admin'), async (
         res.json(hydratedUsers);
 
     } catch (error) {
-        console.error('❌ [ORQUESTADOR] Error hidatando usuarios:', error.message);
-        res.status(500).json({ error: 'Error al obtener expediente completo de usuarios' });
+        const message = error?.message || error?.error || error?.response?.data?.error || error?.response?.data?.message || 'Error desconocido';
+        console.error('❌ [ORQUESTADOR] Error hidratando usuarios:', message);
+        res.status(error?.status || error?.response?.status || 500).json({ error: message });
     }
 });
 
@@ -351,7 +351,10 @@ app.use('/auth', (req, res, next) => {
     const publicPaths = ['/login', '/catalogos']; // /register ya no es manejado aquí
     const isPublic = publicPaths.some(path => req.path.startsWith(path));
 
+    if (req.method === 'OPTIONS') return next();
     if (isPublic) return next();
+
+    console.log(`📡 [GATEWAY] Recibida petición PATCH a profile. Body size: ${JSON.stringify(req.body).length} chars`);
 
     if (req.path.startsWith('/pending') || req.path.startsWith('/users')) {
         return authenticateToken(req, res, () => restrictTo('admin')(req, res, next));

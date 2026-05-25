@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { motion, AnimatePresence } from "framer-motion"
-import { Leaf, UserPlus, CheckCircle2 } from "lucide-react"
+import { Leaf, UserPlus, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 
 function LoginForm() {
   const { isLoading: authLoading } = useAuth()
@@ -58,19 +59,36 @@ function LoginForm() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
 
+      {/* Botones de Navegación arriba */}
+      <div className="absolute top-6 left-6 z-50 flex gap-4">
+        <Link href="/">
+          <Button variant="ghost" className="rounded-xl flex items-center gap-2 font-bold text-muted-foreground hover:text-primary transition-all">
+            <ArrowLeft className="w-4 h-4" />
+            Volver al Inicio
+          </Button>
+        </Link>
+      </div>
+
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, type: "spring" }}
         className="w-full max-w-[420px] z-10 px-4"
       >
-        <div className="flex flex-col items-center mb-8 gap-3">
-          <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+        <Link href="/" className="flex flex-col items-center mb-8 gap-3 group">
+          <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-all group-hover:border-primary/40 group-hover:shadow-lg group-hover:shadow-primary/10">
             <Leaf className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">ICA Hub</h1>
-          <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">Portal de Autenticación</p>
-        </div>
+          <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium uppercase tracking-widest transition-all group-hover:text-primary">
+            Portal de Autenticación
+            <ArrowRight className="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+          </div>
+        </Link>
 
         <Card className="shadow-2xl rounded-3xl border-border/50 bg-card/60 backdrop-blur-xl">
           <CardHeader className="space-y-1 pb-6 pt-8 px-8">

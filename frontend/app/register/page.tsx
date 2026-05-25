@@ -6,11 +6,11 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import api from "@/lib/api"
 import { motion, AnimatePresence } from "framer-motion"
-import { UserPlus, Mail, Lock, User, IdCard, MapPin, Briefcase, Loader2, ArrowRight } from "lucide-react"
-
+import { UserPlus, Mail, Lock, User, IdCard, MapPin, Briefcase, Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import {
   Select,
   SelectContent,
@@ -117,6 +117,21 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+
+      {/* Botones de Navegación arriba */}
+      <div className="absolute top-6 left-6 z-50 flex gap-4">
+        <Link href="/">
+          <Button variant="ghost" className="rounded-xl flex items-center gap-2 font-bold text-muted-foreground hover:text-primary transition-all">
+            <ArrowLeft className="w-4 h-4" />
+            Volver al Inicio
+          </Button>
+        </Link>
+      </div>
+
+      {/* Botón de Tema arriba a la derecha */}
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -126,12 +141,18 @@ export default function RegisterPage() {
         <Card className="bg-card backdrop-blur-xl border-border shadow-2xl overflow-hidden rounded-3xl">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
 
-          <CardHeader className="space-y-1 pb-8 pt-8 text-center">
-            <div className="mx-auto bg-emerald-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-emerald-500/20">
-              <UserPlus className="w-8 h-8 text-emerald-500" />
-            </div>
-            <CardTitle className="text-3xl font-bold tracking-tight">Únete a ICA Hub</CardTitle>
-            <CardDescription className="text-muted-foreground text-lg">
+          <CardHeader className="space-y-1 pb-8 pt-8 text-center relative">
+            <Link href="/" className="group inline-flex flex-col items-center">
+              <div className="mx-auto bg-emerald-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-emerald-500/20 group-hover:scale-110 transition-all group-hover:border-emerald-500/40 group-hover:shadow-lg group-hover:shadow-emerald-500/10">
+                <UserPlus className="w-8 h-8 text-emerald-500" />
+              </div>
+              <CardTitle className="text-3xl font-bold tracking-tight">Únete a ICA Hub</CardTitle>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium uppercase tracking-widest mt-1 transition-all group-hover:text-emerald-500">
+                Volver al Inicio
+                <ArrowRight className="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              </div>
+            </Link>
+            <CardDescription className="text-muted-foreground text-lg mt-4">
               Crea tu cuenta de exportador y registra tu primera unidad productiva
             </CardDescription>
           </CardHeader>

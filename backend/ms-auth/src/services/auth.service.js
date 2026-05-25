@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, findUserById, findUsersByRole, deleteUser } = require('../repositories/user.repository')
+const { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, updateUser, findUserById, findUsersByRole, deleteUser } = require('../repositories/user.repository')
 const { createRegion } = require('../repositories/catalogo.repository')
 const jwt = require('jsonwebtoken')
 const eventBus = require('./eventBus')
@@ -114,16 +114,19 @@ const getAllUsersService = async () => {
     return await getAllUsers()
 }
 
-const updateUserService = async (adminId, userId, { estado }) => {
-    const user = await updateStatus(userId, estado)
+const updateUserService = async (adminId, userId, updateData) => {
+    const user = await updateUser(userId, updateData)
 
     // 📣 Notificar a Auditoría
+    const action = updateData.estado ? `USER_${updateData.estado.toUpperCase()}` : 'USER_UPDATE'
+    const detail = updateData.estado ? `Cambio estado a ${updateData.estado}` : 'Actualización de perfil'
+
     eventBus.publish('audit_queue', {
         modulo: 'seguridad',
-        tipo_accion: `USER_${estado.toUpperCase()}`,
+        tipo_accion: action,
         id_referencia: user.id_usuario,
-        id_usuario: adminId,
-        detalles: `Admin ICA cambió estado de usuario ${user.correo} a ${estado}`,
+        id_usuario: adminId || userId,
+        detalles: `${detail} para usuario ${user.correo}`,
         timestamp: new Date().toISOString()
     })
 

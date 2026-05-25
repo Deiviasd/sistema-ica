@@ -63,13 +63,13 @@ export function InspectionCard({ inspection, onStart }: Props) {
               }
             }}
             title="Abrir ubicación en Google Maps"
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md ${isFinalizada ? 'bg-slate-900 border-slate-800 hover:border-slate-500' : 'bg-muted border-border hover:border-emerald-500 hover:shadow-emerald-500/20'}`}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md ${isFinalizada ? 'bg-muted border-border hover:border-muted-foreground/30' : 'bg-muted border-border hover:border-emerald-500 hover:shadow-emerald-500/20'}`}
           >
             <MapPin className={`${isFinalizada ? 'text-slate-500' : 'text-emerald-500'} w-6 h-6`} />
           </button>
           
           <div className="absolute top-[120%] left-0 opacity-0 group-hover/map:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-slate-900 border border-slate-700 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl flex items-center gap-2">
+            <div className="bg-card border border-border text-foreground text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl flex items-center gap-2">
               <MapPin className="w-3 h-3 text-emerald-400" />
               Ver en Google Maps
             </div>
@@ -90,24 +90,24 @@ export function InspectionCard({ inspection, onStart }: Props) {
 
       <div className="mb-4">
         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Lugar de Producción:</p>
-        <h3 className={`text-2xl font-black italic tracking-tight transition-colors uppercase ${isFinalizada ? 'text-slate-300' : 'group-hover:text-emerald-500'}`}>
+        <h3 className={`text-2xl font-black italic tracking-tight transition-colors uppercase ${isFinalizada ? 'text-muted-foreground/60' : 'group-hover:text-emerald-500'}`}>
           {inspection.lugar_produccion?.nombre_lugar}
         </h3>
       </div>
 
       <div className="space-y-4 mb-10">
-        <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-slate-900/50 border-slate-800/50' : 'bg-muted border-border'}`}>
-          <Calendar className={`w-5 h-5 ${isFinalizada ? 'text-slate-500' : 'text-emerald-500'}`} />
+        <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-muted/50 border-border/50' : 'bg-muted border-border'}`}>
+          <Calendar className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : 'text-emerald-500'}`} />
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">FECHA PROGRAMADA</span>
-            <span className={`text-sm font-bold capitalize ${isFinalizada ? 'text-slate-400' : ''}`}>{date} {time ? `• ${time}` : ''}</span>
+            <span className={`text-sm font-bold capitalize ${isFinalizada ? 'text-muted-foreground' : ''}`}>{date} {time ? `• ${time}` : ''}</span>
           </div>
         </div>
-        <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-slate-900/50 border-slate-800/50' : 'bg-muted border-border'}`}>
-          <MapPin className={`w-5 h-5 ${isFinalizada ? 'text-slate-500' : 'text-emerald-500'}`} />
+        <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-muted/50 border-border/50' : 'bg-muted border-border'}`}>
+          <MapPin className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : 'text-emerald-500'}`} />
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">LOCALIZACIÓN / REGIÓN</span>
-            <span className={`text-sm font-bold ${isFinalizada ? 'text-slate-400' : ''}`}>{inspection.lugar_produccion?.ubicacion}</span>
+            <span className={`text-sm font-bold ${isFinalizada ? 'text-muted-foreground' : ''}`}>{inspection.lugar_produccion?.ubicacion}</span>
           </div>
         </div>
       </div>

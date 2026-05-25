@@ -188,26 +188,26 @@ export default function ProductorDashboard() {
             initial={{ opacity: 0, y: -20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.97 }}
-            className="relative overflow-hidden rounded-3xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-950/80 via-rose-900/40 to-rose-950/60 backdrop-blur-sm p-6 shadow-xl shadow-rose-900/20"
+            className="relative overflow-hidden rounded-3xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/10 via-background to-rose-500/5 backdrop-blur-sm p-4 md:p-6 shadow-xl shadow-rose-900/10"
           >
             {/* Fondo decorativo */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(225,29,72,0.15),transparent_60%)]" />
-            <div className="relative flex items-start sm:items-center gap-5">
-              <div className="shrink-0 w-14 h-14 bg-rose-600/20 border border-rose-500/30 rounded-2xl flex items-center justify-center">
-                <ShieldAlert className="text-rose-400 w-7 h-7 animate-pulse" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(225,29,72,0.1),transparent_60%)]" />
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-5 text-left">
+              <div className="shrink-0 w-12 h-12 md:w-14 md:h-14 bg-rose-500/20 border border-rose-500/30 rounded-2xl flex items-center justify-center">
+                <ShieldAlert className="text-rose-500 w-6 h-6 md:w-7 md:h-7 animate-pulse" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-rose-300 font-black text-base uppercase tracking-widest italic leading-none mb-1">
+                <p className="text-rose-600 dark:text-rose-300 font-black text-sm md:text-base uppercase tracking-widest italic leading-none mb-1">
                   Inspección Fitosanitaria Activa
                 </p>
-                <p className="text-rose-400/80 text-sm font-medium leading-snug">
-                  Su Lugar de Producción se encuentra bajo una <span className="font-black text-rose-300">inspección técnica ICA</span> en curso o programada.
-                  Mientras esté activa, <span className="font-black text-rose-300">no se pueden realizar cambios</span> en predios, lotes ni cultivos.
+                <p className="text-rose-600/80 dark:text-rose-400/80 text-xs md:text-sm font-medium leading-snug">
+                  Su Lugar de Producción está bajo una <span className="font-black text-rose-600 dark:text-rose-300">inspección técnica ICA</span>.
+                  No se pueden modificar activos mientras esté activa.
                 </p>
               </div>
-              <div className="shrink-0 hidden sm:flex items-center gap-2 bg-rose-600/20 border border-rose-500/30 px-4 py-2 rounded-2xl">
-                <Lock className="w-4 h-4 text-rose-400" />
-                <span className="text-rose-300 font-black text-xs uppercase tracking-widest">
+              <div className="shrink-0 flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl">
+                <Lock className="w-3.5 h-3.5 text-rose-500" />
+                <span className="text-rose-600 dark:text-rose-300 font-black text-[10px] md:text-xs uppercase tracking-widest">
                   {inspeccionActivaGlobal.estado === 'en_proceso' ? 'EN CURSO' : 'PROGRAMADA'}
                 </span>
               </div>
@@ -244,34 +244,34 @@ export default function ProductorDashboard() {
         ) : (
           /* Card personalizada: Cultivos en el predio */
           <motion.div variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
-            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent border-blue-500/20 opacity-50" />
+            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full text-left">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-50" />
               <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-muted rounded-lg border border-border">
-                    <TrendingUp className="w-6 h-6 text-blue-500" />
+                    <TrendingUp className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate max-w-[120px]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate max-w-[120px]">
                     En {selectedPredio?.nombre_predio}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-tighter mb-2">Cultivos Activos</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-tighter mb-2">Cultivos Activos</p>
                   {especiesUnicasLista.length === 0 ? (
-                    <p className="text-slate-500 text-xs italic">Sin cultivos activos</p>
+                    <p className="text-muted-foreground text-xs italic">Sin cultivos activos</p>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {especiesUnicasLista.slice(0, MAX_ESPECIES_VISIBLES).map((especie, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20 max-w-[140px] truncate"
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 max-w-[140px] truncate"
                           title={especie}
                         >
                           {especie.length > 16 ? especie.slice(0, 15) + '…' : especie}
                         </span>
                       ))}
                       {especiesUnicasLista.length > MAX_ESPECIES_VISIBLES && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700/60 text-slate-400 border border-slate-600">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-muted text-muted-foreground border border-border">
                           +{especiesUnicasLista.length - MAX_ESPECIES_VISIBLES} más
                         </span>
                       )}
@@ -405,19 +405,19 @@ export default function ProductorDashboard() {
               </Button>
             )}
           </div>
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar text-left">
             {lotesFiltrados.length > 0 ? lotesFiltrados.map((l) => {
               const siembraActiva = siembras.find(s => s.id_lote === l.id_lote && !s.fecha_fin);
               const predio = predios.find(p => p.lote?.some(lot => lot.id_lote === l.id_lote));
 
               return (
-                <Card key={l.id_lote} className={`bg-card border-border transition-all shadow-sm ${!siembraActiva && l.estado === 'disponible' ? 'ring-1 ring-emerald-500/20' : ''}`}>
+                <Card key={l.id_lote} className={`bg-card border-border transition-all shadow-sm ${!siembraActiva && l.estado === 'disponible' ? 'ring-1 ring-primary/20' : ''}`}>
                   <CardContent className="p-4 flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-teal-500/10' :
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-primary/10' :
                       l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-muted'
                       }`}>
-                      <Sprout className={`w-5 h-5 ${siembraActiva ? 'text-teal-500' :
-                        l.estado === 'disponible' ? 'text-emerald-500' : 'text-slate-500'
+                      <Sprout className={`w-5 h-5 ${siembraActiva ? 'text-primary' :
+                        l.estado === 'disponible' ? 'text-emerald-500' : 'text-muted-foreground'
                         }`} />
                     </div>
 
@@ -427,17 +427,17 @@ export default function ProductorDashboard() {
                           {l.nombre_lote}
                         </p>
                         {!siembraActiva && (
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
                             }`}>
                             {l.estado === 'disponible' ? 'Disponible' : 'Inactivo'}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 italic">
+                      <p className="text-[10px] text-muted-foreground italic">
                         {predio?.nombre_predio || 'Sin predio asignado'}
                       </p>
                       {siembraActiva ? (
-                        <p className="text-xs font-medium text-teal-500 mt-1">
+                        <p className="text-xs font-medium text-primary mt-1">
                           🌱 {siembraActiva.variedad?.nombre_variedad || 'En cultivo'}
                         </p>
                       ) : (
@@ -448,15 +448,15 @@ export default function ProductorDashboard() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-xs font-bold text-teal-500">{siembraActiva?.cantidad_plantas || 0}</p>
-                      <p className="text-[10px] text-slate-600 uppercase">Plantas</p>
+                      <p className="text-xs font-bold text-primary">{siembraActiva?.cantidad_plantas || 0}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">Plantas</p>
                     </div>
                   </CardContent>
                 </Card>
               );
             }) : (
-              <div className="text-center py-12 bg-slate-900/20 rounded-3xl border border-dashed border-slate-800">
-                <p className="text-xs text-slate-500 italic">
+              <div className="text-center py-12 bg-muted/20 rounded-3xl border border-dashed border-border">
+                <p className="text-xs text-muted-foreground italic">
                   {selectedPredioId ? "Este predio aún no tiene lotes registrados" : "No tienes lotes configurados aún."}
                 </p>
               </div>
@@ -464,8 +464,8 @@ export default function ProductorDashboard() {
 
             {/* Mostrar mensaje si no hay ninguna producción activa en este predio seleccionado */}
             {selectedPredioId && lotesFiltrados.length > 0 && !lotesFiltrados.some(l => siembras.some(s => s.id_lote === l.id_lote && !s.fecha_fin)) && (
-              <div className="text-center py-6 opacity-60 bg-slate-950/10 rounded-2xl border border-slate-800/40">
-                <p className="text-xs text-slate-500 italic">No hay siembras activas en este predio</p>
+              <div className="text-center py-6 opacity-60 bg-muted/10 rounded-2xl border border-border">
+                <p className="text-xs text-muted-foreground italic">No hay siembras activas en este predio</p>
               </div>
             )}
           </div>
@@ -495,8 +495,8 @@ function StatCard({ title, value, icon, trend, color }: any) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{trend}</span>
           </div>
           <div className="space-y-1">
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-tighter">{title}</p>
+            <p className="text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-tighter">{title}</p>
           </div>
         </CardContent>
       </Card>

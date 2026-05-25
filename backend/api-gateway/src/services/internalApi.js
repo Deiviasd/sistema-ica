@@ -8,12 +8,14 @@ const jwt = require('jsonwebtoken');
 console.log("🔍 [INTERNAL_API] Iniciando configuración de microservicios...");
 console.log("🔑 [INTERNAL_API] INTERNAL_API_KEY detectada:", process.env.INTERNAL_API_KEY ? "SÍ" : "NO");
 
+const serviceUrl = (value) => (value || '').replace(/\/+$/, '');
+
 const internalApi = {
-    auth: axios.create({ baseURL: `${process.env.AUTH_SERVICE_URL}/auth` }),
-    predios: axios.create({ baseURL: process.env.PREDIOS_SERVICE_URL }),
-    cultivo: axios.create({ baseURL: process.env.CULTIVOS_SERVICE_URL }),
-    inspecciones: axios.create({ baseURL: process.env.INSPECCIONES_SERVICE_URL }),
-    auditoria: axios.create({ baseURL: process.env.AUDITORIA_SERVICE_URL }),
+    auth: axios.create({ baseURL: `${serviceUrl(process.env.AUTH_SERVICE_URL)}/auth` }),
+    predios: axios.create({ baseURL: serviceUrl(process.env.PREDIOS_SERVICE_URL) }),
+    cultivo: axios.create({ baseURL: serviceUrl(process.env.CULTIVOS_SERVICE_URL) }),
+    inspecciones: axios.create({ baseURL: serviceUrl(process.env.INSPECCIONES_SERVICE_URL) }),
+    auditoria: axios.create({ baseURL: serviceUrl(process.env.AUDITORIA_SERVICE_URL) }),
 
     /**
      * Helper para obtener los headers con el token re-firmado para un microservicio
@@ -38,15 +40,17 @@ const internalApi = {
             aud: 'authenticated'
         };
 
-        const targetSecret = (process.env[targetSecretEnv] || "").trim();
-        const newToken = jwt.sign(payload, targetSecret, { expiresIn: '1h' });
-
-        return {
-            headers: {
-                Authorization: `Bearer ${newToken}`,
-                'Content-Type': 'application/json'
-            }
+        const headers = {
+            'Content-Type': 'application/json'
         };
+
+        const targetSecret = (process.env[targetSecretEnv] || "").trim();
+        if (targetSecret) {
+            const newToken = jwt.sign(payload, targetSecret, { expiresIn: '1h' });
+            headers.Authorization = `Bearer ${newToken}`;
+        }
+
+        return { headers };
     }
 };
 
@@ -63,7 +67,7 @@ const setupInstance = (instance) => {
         response => response,
         error => {
             const status = error.response ? error.response.status : 500;
-            const message = error.response ? error.response.data.error || error.response.data.message : 'Error interno de microservicio';
+            const message = error.response ? error.response.data?.error || error.response.data?.message || error.message : 'Error interno de microservicio';
             return Promise.reject({ status, message });
         }
     );

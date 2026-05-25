@@ -87,6 +87,18 @@ const updateStatus = async (id, status) => {
     return data
 }
 
+const updateUser = async (id, updateData) => {
+    const { data, error } = await supabase
+        .from('usuario')
+        .update(updateData)
+        .eq('id_usuario', id)
+        .select('*, rol(*)')
+        .single()
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
 const findUserById = async (id) => {
     let query = supabase.from('usuario').select('*');
 
@@ -144,4 +156,4 @@ const deleteUser = async (id) => {
     return data
 }
 
-module.exports = { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, findUserById, findUsersByRole, deleteUser }
+module.exports = { createUser, findUserByEmail, getUsersByStatus, getAllUsers, updateStatus, updateUser, findUserById, findUsersByRole, deleteUser }

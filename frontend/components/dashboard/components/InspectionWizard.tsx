@@ -101,7 +101,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                 <div className="relative">
                   <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4 pointer-events-none" />
                   <select
-                    className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-10 text-white font-bold outline-none appearance-none cursor-pointer hover:border-slate-700 transition-colors"
+                    className="w-full bg-muted/50 border border-border rounded-2xl py-4 pl-14 pr-10 text-foreground font-bold outline-none appearance-none cursor-pointer hover:border-muted-foreground/30 transition-colors"
                     value={selectedPredioId ?? ""}
                     onChange={(e) => handleChangePredio(Number(e.target.value))}
                   >
@@ -128,10 +128,10 @@ export function InspectionWizard({ inspection, onClose }: Props) {
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Fecha de Inicio</label>
                 <div className="relative">
-                  <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4" />
+                  <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <input
                     disabled
-                    className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-bold outline-none"
+                    className="w-full bg-muted/50 border border-border rounded-2xl py-4 pl-14 pr-6 text-foreground font-bold outline-none"
                     value={new Date().toLocaleDateString('es-ES')}
                   />
                 </div>
@@ -139,12 +139,12 @@ export function InspectionWizard({ inspection, onClose }: Props) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">OBSERVACIONES GENERALES DEL PREDIO</label>
-              <textarea
-                className="w-full bg-slate-900/50 border border-slate-800 rounded-3xl p-8 text-white min-h-[120px] outline-none focus:border-teal-500/50 transition-all font-medium leading-relaxed"
-                placeholder="Condiciones generales observadas en el predio..."
-                value={formData.generalObs}
-                onChange={(e) => setFormData({ ...formData, generalObs: e.target.value })}
-              />
+                <textarea
+                  className="w-full bg-muted/50 border border-border rounded-3xl p-8 text-foreground min-h-[120px] outline-none focus:border-teal-500/50 transition-all font-medium leading-relaxed"
+                  placeholder="Condiciones generales observadas en el predio..."
+                  value={formData.generalObs}
+                  onChange={(e) => setFormData({ ...formData, generalObs: e.target.value })}
+                />
             </div>
           </div>
 
@@ -160,7 +160,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                   onClick={() => handleSelectLote(l)}
                   className={`p-6 rounded-3xl border-2 transition-all flex flex-col gap-4 text-left cursor-pointer ${String(currentEval.id_lote) === String(l.id_lote)
                     ? 'bg-emerald-600/10 border-emerald-500/50 shadow-xl'
-                    : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                    : 'bg-muted/40 border-border hover:border-muted-foreground/30'
                     }`}
                 >
                   <div className="flex justify-between items-start w-full gap-2">
@@ -174,8 +174,8 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                         <Check className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-white font-black italic uppercase tracking-tighter">{l.nombre_lote}</p>
-                        <p className="text-[9px] text-slate-500 font-bold">{l.area} m² · {l.estado_lote?.toUpperCase()}</p>
+                        <p className="text-foreground font-black italic uppercase tracking-tighter">{l.nombre_lote}</p>
+                        <p className="text-[9px] text-muted-foreground font-bold">{l.area} m² · {l.estado_lote?.toUpperCase()}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -253,7 +253,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
           </div>
 
           {/* SECCIÓN 3: FORMULARIO DE EVALUACIÓN */}
-          <Card className="bg-slate-900/40 border-slate-800 rounded-[3rem] overflow-hidden">
+          <Card className="bg-card border-border rounded-[3rem] overflow-hidden">
             <CardContent className="p-10 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Cultivo evaluado */}
@@ -270,7 +270,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-slate-600 font-bold italic text-sm">
+                    <div className="w-full bg-muted border border-border rounded-2xl py-4 px-6 text-muted-foreground font-bold italic text-sm">
                       Selecciona un lote arriba para ver el cultivo
                     </div>
                   )}
@@ -288,7 +288,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                       )}
                     </div>
                     <select
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-bold outline-none appearance-none cursor-pointer hover:border-slate-700 transition-all disabled:opacity-50"
+                      className="w-full bg-muted border border-border rounded-2xl py-4 pl-14 pr-12 text-foreground font-bold outline-none appearance-none cursor-pointer hover:border-muted-foreground/30 transition-all disabled:opacity-50"
                       disabled={loadingPlagas || !currentEval.siembra}
                       value={plagaPersonalizada ? '__otra__' : currentEval.plaga}
                       onChange={(e) => {
@@ -316,7 +316,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                   {plagaPersonalizada !== "" && (
                     <input
                       type="text"
-                      className="w-full bg-slate-950 border-2 border-emerald-500/40 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600 mt-2"
+                      className="w-full bg-muted border-2 border-emerald-500/40 rounded-2xl py-4 px-6 text-foreground font-bold outline-none focus:border-emerald-500 transition-all placeholder:text-muted-foreground mt-2"
                       placeholder="Ej: Phytophthora cinnamomi..."
                       value={plagaPersonalizada}
                       onChange={(e) => {
@@ -336,7 +336,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                     <span className="text-slate-400 font-bold italic text-sm">
                       {currentEval.totales ? `${currentEval.totales} plantas registradas (Lectura)` : 'Selecciona un lote'}
                     </span>
-                    <span className="text-white font-black text-lg bg-slate-950/60 px-5 py-2 rounded-xl border border-slate-800 select-none">
+                    <span className="text-foreground font-black text-lg bg-muted/60 px-5 py-2 rounded-xl border border-border select-none">
                       {currentEval.totales || 0}
                     </span>
                   </div>
@@ -353,14 +353,14 @@ export function InspectionWizard({ inspection, onClose }: Props) {
                         }
                       }}
                       disabled={!currentEval.siembra}
-                      className="absolute left-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer disabled:opacity-50 select-none text-xl"
+                      className="absolute left-2 bg-background hover:bg-muted border border-border text-foreground font-black w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer disabled:opacity-50 select-none text-xl"
                     >
                       -
                     </button>
                     <input
                       type="number"
                       disabled={!currentEval.siembra}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-14 text-center text-white font-bold outline-none focus:border-emerald-500 transition-all placeholder:text-slate-700"
+                      className="w-full bg-muted border border-border rounded-2xl py-4 px-14 text-center text-foreground font-bold outline-none focus:border-emerald-500 transition-all placeholder:text-muted-foreground"
                       placeholder={currentEval.siembra ? "0" : "Selecciona un lote"}
                       value={currentEval.afectadas || ""}
                       onChange={(e) => {
@@ -400,7 +400,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">RECOMENDACIÓN DE MANEJO</label>
                 <textarea
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white font-medium outline-none transition-all focus:border-emerald-500/50 min-h-[80px]"
+                  className="w-full bg-muted/30 border border-border rounded-2xl py-4 px-6 text-foreground font-medium outline-none transition-all focus:border-teal-500/50 min-h-[80px]"
                   placeholder="Escribe la recomendación de manejo..."
                   value={currentEval.recomendacion}
                   onChange={(e) => handleUpdateCurrentEval({ recomendacion: e.target.value })}
@@ -411,7 +411,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">OBSERVACIONES ESPECÍFICAS</label>
                 <textarea
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white font-medium outline-none transition-all focus:border-emerald-500/50 min-h-[120px]"
+                  className="w-full bg-muted/30 border border-border rounded-2xl py-4 px-6 text-foreground font-medium outline-none transition-all focus:border-teal-500/50 min-h-[120px]"
                   placeholder="Escribe observaciones específicas sobre este lote..."
                   value={currentEval.nota}
                   onChange={(e) => handleUpdateCurrentEval({ nota: e.target.value })}
@@ -455,12 +455,12 @@ export function InspectionWizard({ inspection, onClose }: Props) {
 
         {/* Columna derecha: resumen */}
         <div className="space-y-6">
-          <div className="p-8 bg-slate-900/60 border border-slate-800 rounded-[3rem] space-y-8 backdrop-blur-2xl sticky top-8">
+          <div className="p-8 bg-card border border-border rounded-[3rem] space-y-8 backdrop-blur-2xl sticky top-8 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-teal-500/20 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-teal-500/10 rounded-xl flex items-center justify-center">
                 <History className="text-teal-500 w-5 h-5" />
               </div>
-              <h4 className="text-white font-black italic uppercase tracking-widest">Resumen de Registro</h4>
+              <h4 className="text-foreground font-black italic uppercase tracking-widest">Resumen de Registro</h4>
             </div>
 
             {/* Barra de Progreso de Revisión */}
@@ -496,10 +496,10 @@ export function InspectionWizard({ inspection, onClose }: Props) {
               );
             })()}
 
-            <div className="space-y-4 pt-4 border-t border-slate-800">
+            <div className="space-y-4 pt-4 border-t border-border">
               <Button
                 onClick={() => setShowReport(true)}
-                className="w-full h-16 bg-slate-950 border border-slate-800 text-teal-400 hover:bg-slate-900 transition-all font-black uppercase tracking-widest flex items-center justify-center shadow-inner shadow-teal-500/5 group"
+                className="w-full h-16 bg-muted border border-border text-foreground hover:bg-muted/80 transition-all font-black uppercase tracking-widest flex items-center justify-center shadow-inner group"
               >
                 <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

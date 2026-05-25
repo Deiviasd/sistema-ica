@@ -94,6 +94,7 @@ const getProfileController = async (req, res) => {
                 documento: user.documento, // ✨ Añadir soporte de documento
                 identificacion: user.documento, // ✨ Soporte para compatibilidad frontend
                 numero_documento: user.documento, // ✨ Soporte para compatibilidad frontend
+                foto_perfil: user.foto_perfil, // ✨ Soporte para avatar
                 role: roleMap[user.id_rol] || 'guest',
                 app_metadata: {
                     role: roleMap[user.id_rol] || 'guest'
@@ -104,6 +105,17 @@ const getProfileController = async (req, res) => {
         res.status(200).json(response);
     } catch (error) {
         res.status(401).json({ error: error.message });
+    }
+}
+
+const updateProfileController = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user.sub
+        const result = await updateUserService(null, userId, req.body)
+        res.status(200).json(result)
+    } catch (error) {
+        console.error('❌ Error en updateProfileController:', error.message)
+        res.status(400).json({ error: error.message })
     }
 }
 
@@ -127,4 +139,4 @@ const checkEmailController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController, checkEmailController }
+module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController, checkEmailController, updateProfileController }

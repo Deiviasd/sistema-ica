@@ -11,8 +11,8 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, User, Menu } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LogOut, User, Menu, Sun, Moon } from "lucide-react"
 
 interface TopbarProps {
   onMenuClick?: () => void
@@ -44,11 +44,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
       
       <div className="flex items-center gap-4">
-        <ThemeToggle />
-        
         <DropdownMenu>
           <DropdownMenuTrigger className="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-border hover:ring-offset-2">
             <Avatar className="h-9 w-9 border border-border/50 shadow-sm">
+              <AvatarImage src={(user as any).foto_perfil} className="object-cover" />
               <AvatarFallback className="bg-primary/10 text-primary font-medium">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
@@ -60,12 +59,26 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </p>
             </div>
             <DropdownMenuSeparator className="bg-border/50" />
+            
             <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 hover:bg-muted focus:bg-muted transition-colors">
               <Link href="/dashboard/perfil" className="flex items-center w-full">
                 <User className="mr-2 h-4 w-4" />
                 <span>Mi Perfil</span>
               </Link>
             </DropdownMenuItem>
+
+            {/* Selector de Tema en el Dropdown */}
+            <div className="flex items-center justify-between px-3 py-2 hover:bg-muted rounded-lg transition-colors cursor-pointer" onClick={() => (document.getElementById('theme-trigger') as HTMLElement)?.click()}>
+                <div className="flex items-center gap-2">
+                   <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
+                   <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-blue-400" />
+                   <span className="text-sm">Cambiar Tema</span>
+                </div>
+                <div id="theme-trigger">
+                   <ThemeToggle />
+                </div>
+            </div>
+
             <DropdownMenuItem 
               onClick={handleLogout}
               className="cursor-pointer text-destructive focus:text-destructive rounded-lg px-3 py-2 hover:bg-destructive/10 focus:bg-destructive/10 transition-colors mt-1"

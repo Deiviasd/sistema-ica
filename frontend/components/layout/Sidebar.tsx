@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { useUserStore } from "@/lib/store"
 import {
   Users, Leaf, FileText, ClipboardCheck, LayoutDashboard,
-  Map, Sprout, FileStack, Calendar
+  Map, Sprout, FileStack, Calendar, X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -56,8 +56,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </h2>
           </div>
           {/* Botón cerrar para móvil */}
-          <button onClick={onClose} className="p-2 md:hidden text-muted-foreground hover:bg-muted rounded-lg">
-             <LayoutDashboard className="w-5 h-5 rotate-45" /> {/* Usando un icono temporal como X o simplemente un botón */}
+          <button onClick={onClose} className="p-2 md:hidden text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+             <X className="w-5 h-5" />
           </button>
         </div>
 

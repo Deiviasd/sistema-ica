@@ -33,16 +33,16 @@ export default function Dashboard() {
   // Si es productor, mostramos el dashboard especializado
   if (user.role === 'productor') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 md:space-y-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="mb-2"
+          className="mb-2 text-left"
         >
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-            {getGreeting()}, <span className="text-emerald-500">{user.nombre}</span>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
+            {getGreeting()}, <span className="text-primary">{user.nombre}</span>
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base md:text-lg">
             Aquí tienes el resumen de tu producción fitosanitaria.
           </p>
         </motion.div>
@@ -55,17 +55,17 @@ export default function Dashboard() {
   // Si es técnico, mostramos su dashboard especializado (Case-insensitive check)
   if (user.role?.toLowerCase() === 'tecnico') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 md:space-y-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: -0 }}
-          className="mb-2"
+          className="mb-2 text-left"
         >
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-            Panel Técnico ICA <span className="text-blue-500">| {user.nombre}</span>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
+            Panel Técnico ICA <span className="text-primary">| {user.nombre}</span>
           </h1>
-          <p className="text-muted-foreground text-lg">
-            Registro y control fitosanitario.
+          <p className="text-muted-foreground text-base md:text-lg">
+            Registro y control fitosanitario oficial.
           </p>
         </motion.div>
 
@@ -75,23 +75,23 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-left">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex mb-8"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-foreground">
             {getGreeting()}, <span className="text-primary">{user.nombre}</span>
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base md:text-lg">
             Bienvenido a tu panel de control {user.role}.
           </p>
         </div>
       </motion.div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {user.role === 'admin' && (
           <DashboardCard
             title="Aprobaciones Pendientes"
@@ -102,7 +102,7 @@ export default function Dashboard() {
           />
         )}
 
-        {(user.role === 'tecnico' || user.role === 'TECNICO') && (
+        {user.role?.toLowerCase() === 'tecnico' && (
           <DashboardCard
             title="Inspecciones Asignadas"
             value="0"
