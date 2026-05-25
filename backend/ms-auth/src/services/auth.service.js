@@ -115,6 +115,57 @@ const getAllUsersService = async () => {
 }
 
 const updateUserService = async (adminId, userId, updateData) => {
+    // 📸 Manejo de Foto de Perfil en Supabase Storage
+
+    // Caso 1: Subir/Reemplazar foto (Base64 → Storage)
+    if (updateData.foto_perfil && updateData.foto_perfil.startsWith('data:image')) {
+        try {
+            console.log(`🚀 Procesando subida de foto para usuario ${userId} a Supabase Storage...`)
+            
+            // 1. Extraer los datos puros del Base64
+            const base64Data = updateData.foto_perfil.split(';base64,').pop()
+            const buffer = Buffer.from(base64Data, 'base64')
+            const contentType = updateData.foto_perfil.split(';')[0].split(':')[1] || 'image/webp'
+            
+            // 2. Ruta estandarizada: carpeta-usuario/perfil.webp
+            const filePath = `${userId}/perfil.webp`
+
+            // 3. Subir usando SERVICE_ROLE_KEY (permisos totales)
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, buffer, {
+                    contentType,
+                    upsert: true
+                })
+
+            if (uploadError) throw uploadError
+
+            // 4. Obtener URL pública y reemplazar el Base64 por la URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath)
+
+            // Agregamos timestamp para evitar caché agresivo
+            updateData.foto_perfil = `${publicUrl}?t=${Date.now()}`
+            console.log(`✅ Foto subida exitosamente: ${updateData.foto_perfil}`)
+            
+        } catch (storageError) {
+            console.error('❌ Error crítico subiendo a Supabase Storage:', storageError.message)
+        }
+    }
+
+    // Caso 2: Eliminar foto (null → borrar del Storage y limpiar DB)
+    if (updateData.foto_perfil === null) {
+        try {
+            console.log(`🗑️ Eliminando foto de perfil del usuario ${userId}...`)
+            const filePath = `${userId}/perfil.webp`
+            await supabase.storage.from('avatars').remove([filePath])
+            console.log(`✅ Foto eliminada del Storage`)
+        } catch (storageError) {
+            console.error('❌ Error eliminando foto de Supabase Storage:', storageError.message)
+        }
+    }
+
     const user = await updateUser(userId, updateData)
 
     // 📣 Notificar a Auditoría
