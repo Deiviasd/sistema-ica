@@ -11,11 +11,11 @@ interface Props {
 export function InspectionCard({ inspection, onStart }: Props) {
   // Función robusta para parsear la fecha que viene del backend
   let dateObj = new Date();
-  
+
   if (inspection.fecha_programada) {
     // Si viene como "2026-05-21 08:00:00" (sin T), la reemplazamos para mejor compatibilidad
     const parsedDateStr = inspection.fecha_programada.replace(' ', 'T');
-    
+
     // Si la fecha termina en 00:00:00Z o no tiene horas especificadas (longitud corta), puede ser que sea solo la fecha
     if (parsedDateStr.length <= 10 || parsedDateStr.endsWith('00:00:00Z')) {
       // Agregamos una hora por defecto para que no se atrase por huso horario (ej: mediodía)
@@ -34,7 +34,7 @@ export function InspectionCard({ inspection, onStart }: Props) {
   const date = dateObj.toLocaleDateString('es-CO', {
     weekday: 'long', day: 'numeric', month: 'long'
   })
-  
+
   // Siempre mostramos la hora en formato 12h (AM/PM)
   const time = dateObj.toLocaleTimeString('es-CO', {
     hour: '2-digit', minute: '2-digit', hour12: true
@@ -45,17 +45,16 @@ export function InspectionCard({ inspection, onStart }: Props) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
-      className={`bg-card backdrop-blur-2xl border rounded-[2.5rem] p-8 transition-all group relative overflow-hidden shadow-sm ${
-        isFinalizada 
-          ? 'border-slate-800 opacity-80 hover:border-slate-600 grayscale-[0.2]' 
+      className={`bg-card backdrop-blur-2xl border rounded-[2.5rem] p-8 transition-all group relative overflow-hidden shadow-sm ${isFinalizada
+          ? 'border-slate-800 opacity-80 hover:border-slate-600 grayscale-[0.2]'
           : 'border-border hover:border-emerald-500/50'
-      }`}
+        }`}
     >
       <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full ${isFinalizada ? 'bg-slate-500/5' : 'bg-emerald-500/5'}`} />
 
       <div className="flex justify-between items-center mb-8 relative">
         <div className="group/map relative flex flex-col items-start z-20">
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               if (inspection.lugar_produccion?.ubicacion) {
@@ -67,7 +66,7 @@ export function InspectionCard({ inspection, onStart }: Props) {
           >
             <MapPin className={`${isFinalizada ? 'text-slate-500' : 'text-emerald-500'} w-6 h-6`} />
           </button>
-          
+
           <div className="absolute top-[120%] left-0 opacity-0 group-hover/map:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             <div className="bg-card border border-border text-foreground text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl flex items-center gap-2">
               <MapPin className="w-3 h-3 text-emerald-400" />
@@ -75,16 +74,15 @@ export function InspectionCard({ inspection, onStart }: Props) {
             </div>
           </div>
         </div>
-        <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-          inspection.estado === 'programada'
+        <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${inspection.estado === 'programada'
             ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
             : inspection.estado === 'en_proceso'
               ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
               : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-        }`}>
+          }`}>
           {inspection.estado === 'programada' ? 'PENDIENTE'
             : inspection.estado === 'en_proceso' ? 'EN TRABAJO'
-            : 'FINALIZADA'}
+              : 'FINALIZADA'}
         </div>
       </div>
 
@@ -114,11 +112,10 @@ export function InspectionCard({ inspection, onStart }: Props) {
 
       <Button
         onClick={onStart}
-        className={`w-full h-16 text-white font-black text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
-          inspection.estado === 'finalizada'
+        className={`w-full h-16 text-white font-black text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 ${inspection.estado === 'finalizada'
             ? 'bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm'
             : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
-        }`}
+          }`}
       >
         {inspection.estado === 'finalizada' ? (
           <>
