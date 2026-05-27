@@ -266,7 +266,7 @@ export function EvaluationForm({
                     Confirmar Plaga
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-500 font-bold mt-1.5 ml-1">Luego presiona "Confirmar Evaluación del Lote" para guardar todo</p>
+                <p className="text-[10px] text-slate-500 font-bold mt-1.5 ml-1">Luego presiona &quot;Confirmar Evaluación del Lote&quot; para guardar todo</p>
               </div>
             )}
           </div>
