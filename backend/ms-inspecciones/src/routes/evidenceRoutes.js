@@ -14,4 +14,7 @@ router.post('/upload', authenticateInternal, evidenceController.uploadEvidence);
 // Consultar todas las evidencias asociadas a un detalle/lote inspeccionado
 router.get('/detalle/:id_detalle', authenticateInternal, evidenceController.getEvidenceForDetail);
 
+// Eliminar una evidencia sincronizada
+router.delete('/:id_evidencia', authenticateInternal, evidenceController.deleteEvidence);
+
 module.exports = router;

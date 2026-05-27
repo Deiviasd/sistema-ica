@@ -55,7 +55,27 @@ const getEvidenceForDetail = async (req, res) => {
     }
 };
 
+const deleteEvidence = async (req, res) => {
+    try {
+        const { id_evidencia } = req.params;
+
+        if (!id_evidencia) {
+            return res.status(400).json({ error: 'El id_evidencia es obligatorio' });
+        }
+
+        await evidenceService.eliminarEvidencia(id_evidencia);
+        res.json({ success: true, message: 'Evidencia eliminada con éxito' });
+    } catch (error) {
+        console.error('❌ Error en deleteEvidence controller:', error);
+        res.status(500).json({
+            error: 'Fallo al eliminar la evidencia fotográfica',
+            details: error.message
+        });
+    }
+};
+
 module.exports = {
     uploadEvidence,
-    getEvidenceForDetail
+    getEvidenceForDetail,
+    deleteEvidence
 };

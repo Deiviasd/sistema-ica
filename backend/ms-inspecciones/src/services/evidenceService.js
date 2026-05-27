@@ -100,7 +100,70 @@ const obtenerEvidenciasPorDetalle = async (idDetalle) => {
     }
 };
 
+const obtenerNombreArchivoDesdeUrl = (imagenUrl) => {
+    if (!imagenUrl) return null;
+    const marker = '/evidencias-inspeccion/';
+    const markerIndex = imagenUrl.indexOf(marker);
+    if (markerIndex === -1) return null;
+    return decodeURIComponent(imagenUrl.slice(markerIndex + marker.length).split('?')[0]);
+};
+
+const eliminarEvidencia = async (idEvidencia) => {
+    try {
+        const id = parseInt(idEvidencia, 10);
+        if (!id) {
+            throw new Error('El ID de evidencia es requerido');
+        }
+
+        let evidencia = null;
+        let columnaId = null;
+
+        for (const columna of ['id_evidencia', 'id_evidencia_inspeccion', 'id']) {
+            const { data, error } = await supabase
+                .from('evidencia_inspeccion')
+                .select('*')
+                .eq(columna, id)
+                .maybeSingle();
+
+            if (!error && data) {
+                evidencia = data;
+                columnaId = columna;
+                break;
+            }
+        }
+
+        if (!evidencia || !columnaId) {
+            throw new Error('No se encontró la evidencia solicitada');
+        }
+
+        const { error: deleteError } = await supabase
+            .from('evidencia_inspeccion')
+            .delete()
+            .eq(columnaId, id);
+
+        if (deleteError) {
+            console.error('❌ Error eliminando evidencia en DB:', deleteError);
+            throw new Error(`Error en base de datos: ${deleteError.message}`);
+        }
+
+        const nombreArchivo = obtenerNombreArchivoDesdeUrl(evidencia?.imagen_url);
+        if (nombreArchivo) {
+            const { error: storageError } = await supabase.storage
+                .from('evidencias-inspeccion')
+                .remove([nombreArchivo]);
+
+            if (storageError) {
+                console.warn('⚠️ Evidencia eliminada de DB, pero no se pudo eliminar el archivo de Storage:', storageError.message);
+            }
+        }
+    } catch (error) {
+        console.error('💥 Error en eliminarEvidencia:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     guardarEvidencia,
-    obtenerEvidenciasPorDetalle
+    obtenerEvidenciasPorDetalle,
+    eliminarEvidencia
 };

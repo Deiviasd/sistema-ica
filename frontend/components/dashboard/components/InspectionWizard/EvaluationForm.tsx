@@ -1,5 +1,5 @@
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef, useState } from "react"
-import { Bug, Camera, Check, ChevronDown, Clock, Eye, ImagePlus, Loader2, Sprout, Wifi, WifiOff, X } from "lucide-react"
+import { Bug, Camera, Check, ChevronDown, Eye, ImagePlus, Loader2, Sprout, Wifi, WifiOff, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EvalItem, Lote, Plaga } from "../../types/inspection"
@@ -25,9 +25,9 @@ interface EvaluationFormProps {
   isCapturingEvidence: boolean
   processAndSaveImage: (file: File) => void
   evidenciasLote: EvidencePhoto[]
-  handleRemoveEvidenceLocal: (idTemporal: string) => void
+  handleRemoveEvidence: (photo: EvidencePhoto) => void
   activeLotes: Lote[]
-  handleSaveLoteEvaluation: (activeLotes: Lote[]) => SaveResult
+  handleSaveLoteEvaluation: (activeLotes: Lote[]) => Promise<SaveResult>
   showToast: (message: string, type: ToastType, duration?: number) => void
   onConfirmManualPlaga: (nombre: string) => Promise<void>
 }
@@ -45,7 +45,7 @@ export function EvaluationForm({
   isCapturingEvidence,
   processAndSaveImage,
   evidenciasLote,
-  handleRemoveEvidenceLocal,
+  handleRemoveEvidence,
   activeLotes,
   handleSaveLoteEvaluation,
   showToast,
@@ -410,40 +410,53 @@ export function EvaluationForm({
               </Button>
             </div>
 
-              {evidenciasLote.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4 p-5 bg-slate-950/40 rounded-3xl border border-slate-900">
-                  {evidenciasLote.map((foto, idx) => (
-                    <div key={foto.id_temporal || idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-800 group bg-slate-900 flex items-center justify-center">
-                      {foto.url ? (
-                        <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={foto.url} alt={`Evidencia ${idx + 1}`} className="w-full h-full object-cover" />
-                          {!foto.sincronizado && foto.id_temporal && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveEvidenceLocal(foto.id_temporal!)}
-                              className="absolute top-1 right-1 p-1 bg-rose-600/90 text-white rounded-full hover:bg-rose-500 transition-colors z-20 shadow-md"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                          <div className="absolute bottom-1 left-1 right-1 z-10">
-                            {foto.sincronizado ? (
-                              <span className="w-full inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded bg-emerald-600/80 text-[8px] font-black uppercase text-white tracking-widest backdrop-blur-sm leading-none">
-                                <Check className="w-2.5 h-2.5" /> Sincronizado
-                              </span>
-                            ) : (
-                              <span className="w-full inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded bg-amber-600/80 text-[8px] font-black uppercase text-white tracking-widest backdrop-blur-sm leading-none">
-                                <Clock className="w-2.5 h-2.5 animate-pulse" /> Pendiente
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                          Sin imagen
-                        </div>
-                      )}
+              {evidenciasLote.filter(f => f.url).length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 p-6 bg-slate-950/40 rounded-3xl border border-slate-900">
+                  {evidenciasLote.filter(f => f.url).map((foto, idx) => (
+                    <div 
+                      key={foto.id_temporal || idx} 
+                      className={`relative aspect-square rounded-3xl overflow-hidden border-4 group bg-slate-900 flex items-center justify-center shadow-lg transition-colors duration-300 cursor-pointer ${
+                        foto.sincronizado 
+                          ? "border-emerald-500/40 hover:border-emerald-500" 
+                          : isOnline 
+                            ? "border-indigo-500/40 hover:border-indigo-500"
+                            : "border-amber-500/40 hover:border-amber-500"
+                      }`}
+                      onClick={() => foto.url && setPreviewImage({ title: `Evidencia Fotográfica ${idx + 1}`, url: foto.url })}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={foto.url!} 
+                        alt={`Evidencia ${idx + 1}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-hover:blur-sm group-hover:brightness-50" 
+                      />
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveEvidence(foto); }}
+                        className="absolute top-3 right-3 p-2.5 bg-rose-600/90 text-white rounded-full hover:bg-rose-500 transition-transform hover:scale-110 z-20 shadow-xl"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                        {foto.sincronizado ? (
+                          <>
+                            <Check className="w-8 h-8 text-white drop-shadow-md" />
+                            <span className="text-white font-black uppercase tracking-widest text-xs drop-shadow-md">Cargada</span>
+                          </>
+                        ) : isOnline ? (
+                          <>
+                            <Wifi className="w-8 h-8 text-white animate-pulse drop-shadow-md" />
+                            <span className="text-white font-black uppercase tracking-widest text-xs drop-shadow-md">En cola</span>
+                          </>
+                        ) : (
+                          <>
+                            <WifiOff className="w-8 h-8 text-amber-400 drop-shadow-md" />
+                            <span className="text-amber-400 font-black uppercase tracking-widest text-xs drop-shadow-md">Offline</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -463,8 +476,8 @@ export function EvaluationForm({
           <div className="pt-6 border-t border-slate-800/60 flex justify-end">
             <Button
               type="button"
-              onClick={() => {
-                const res = handleSaveLoteEvaluation(activeLotes)
+              onClick={async () => {
+                const res = await handleSaveLoteEvaluation(activeLotes)
                 if (!res.success) {
                   showToast(res.error || "Error al guardar", "error", 3000)
                   return
