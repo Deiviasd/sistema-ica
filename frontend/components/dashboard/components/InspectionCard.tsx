@@ -46,8 +46,8 @@ export function InspectionCard({ inspection, onStart }: Props) {
     <motion.div
       whileHover={{ scale: 1.02 }}
       className={`bg-card backdrop-blur-2xl border rounded-[2.5rem] p-8 transition-all group relative overflow-hidden shadow-sm ${isFinalizada
-          ? 'border-slate-800 opacity-80 hover:border-slate-600 grayscale-[0.2]'
-          : 'border-border hover:border-emerald-500/50'
+        ? 'border-slate-800 opacity-80 hover:border-slate-600 grayscale-[0.2]'
+        : 'border-border hover:border-emerald-500/50'
         }`}
     >
       <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full ${isFinalizada ? 'bg-slate-500/5' : 'bg-emerald-500/5'}`} />
@@ -75,10 +75,10 @@ export function InspectionCard({ inspection, onStart }: Props) {
           </div>
         </div>
         <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${inspection.estado === 'programada'
-            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-            : inspection.estado === 'en_proceso'
-              ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-              : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+          : inspection.estado === 'en_proceso'
+            ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+            : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
           }`}>
           {inspection.estado === 'programada' ? 'PENDIENTE'
             : inspection.estado === 'en_proceso' ? 'EN TRABAJO'
@@ -113,8 +113,8 @@ export function InspectionCard({ inspection, onStart }: Props) {
       <Button
         onClick={onStart}
         className={`w-full h-16 text-white font-black text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 ${inspection.estado === 'finalizada'
-            ? 'bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm'
-            : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
+          ? 'bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm'
+          : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
           }`}
       >
         {inspection.estado === 'finalizada' ? (
