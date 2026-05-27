@@ -24,7 +24,6 @@ build/
 # production/builds
 dist/
 **/dist/
-lib/
 artifacts/
 
 # logs
