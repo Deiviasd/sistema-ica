@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { MapPin, ChevronRight, X, ShieldCheck, UserCheck, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Inspection } from "../types/inspection"
+import { InformeCompletoModal } from "./InformeCompletoModal"
 
 import { ContextoInspeccion, HallazgoPrevio, SiembraActiva } from "../types/inspection"
 
@@ -22,6 +24,7 @@ export function DossierModal({ context, onClose }: Props) {
   const [selectedLugar, setSelectedLugar] = useState<string | number | null>(null)
   const [selectedLote, setSelectedLote] = useState<string | number | null>(null)
   const [activeTabs, setActiveTabs] = useState<Record<string, TraceTab>>({})
+  const [selectedInspectionForReport, setSelectedInspectionForReport] = useState<Inspection | null>(null)
 
   const formatDate = (date?: string | null) => {
     if (!date) return 'N/A'
@@ -37,6 +40,12 @@ export function DossierModal({ context, onClose }: Props) {
     if (!siembra) return 'N/A'
     if (siembra.especie) return siembra.especie
     return typeof siembra.variedad === 'object' ? siembra.variedad.especie?.nombre_comun || 'N/A' : 'N/A'
+  }
+
+  const getCicloNombre = (siembra?: SiembraActiva | null) => {
+    if (!siembra) return 'N/A'
+    if (siembra.ciclo) return siembra.ciclo
+    return typeof siembra.variedad === 'object' ? siembra.variedad.especie?.ciclo || 'N/A' : 'N/A'
   }
 
   const getPlagaNombre = (hallazgo: HallazgoPrevio) => (
@@ -276,18 +285,18 @@ export function DossierModal({ context, onClose }: Props) {
                                 </div>
                                 <div className="flex-1 grid grid-cols-3 gap-3">
                                   <div>
-                                    <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Lote</p>
-                                    <p className="text-xs text-white font-black italic uppercase">{lote.nombre_lote}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Lote</p>
+                                    <p className="text-sm text-white font-black italic uppercase">{lote.nombre_lote}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Cultivo</p>
-                                    <p className={`text-xs font-black italic ${hasData ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Cultivo</p>
+                                    <p className={`text-sm font-black italic ${hasData ? 'text-emerald-400' : 'text-slate-600'}`}>
                                       {lote.siembra_activa?.especie || 'LIBRE'}
                                     </p>
                                   </div>
                                   <div className="text-right flex items-center justify-end gap-2">
-                                    <span className="text-[8px] text-slate-500 font-bold">{lote.area} m²</span>
-                                    <span className={`text-[7px] font-black px-2 py-1 rounded-full uppercase ${(lote.siembra_activa || lote.estado_lote === 'ocupado')
+                                    <span className="text-xs text-slate-400 font-bold">{lote.area} m²</span>
+                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase ${(lote.siembra_activa || lote.estado_lote === 'ocupado')
                                       ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                                       : lote.estado_lote === 'disponible'
                                         ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
@@ -314,50 +323,53 @@ export function DossierModal({ context, onClose }: Props) {
                                       {TRACE_TABS.map((tab) => (
                                         <button
                                           key={tab.id}
-                                          onClick={() => setTabForLote(lote.id_lote, tab.id)}
-                                          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTabForLote(lote.id_lote, tab.id);
+                                          }}
+                                          className={`flex-1 py-3.5 text-xs md:text-sm font-black uppercase tracking-wider transition-colors ${
                                             activeTab === tab.id
-                                              ? 'text-emerald-400 border-b-2 border-emerald-500'
-                                              : 'text-slate-500 hover:text-slate-300'
+                                              ? 'text-emerald-400 border-b-2 border-emerald-500 bg-emerald-500/5'
+                                              : 'text-slate-400 hover:text-slate-200'
                                           }`}
                                         >
                                           {tab.label}
                                         </button>
                                       ))}
                                     </div>
-
+ 
                                     {/* Tab Content */}
                                     <div className="p-5">
                                       {activeTab === 'historial' && (
                                         <div className="space-y-4">
                                           {lote.siembra_activa ? (
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Especie</p><p className="text-sm text-white font-bold italic">{getEspecieNombre(lote.siembra_activa)}</p></div>
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Variedad</p><p className="text-sm text-white font-bold italic">{getVariedadNombre(lote.siembra_activa)}</p></div>
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Ciclo</p><span className="text-[8px] font-black px-3 py-1 rounded uppercase bg-blue-500/20 text-blue-400">{lote.siembra_activa.ciclo || 'N/A'}</span></div>
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Fecha siembra</p><p className="text-sm text-white font-bold">{formatDate(lote.siembra_activa.fecha_siembra)}</p></div>
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Censo</p><p className="text-sm text-emerald-400 font-black">{lote.siembra_activa.cantidad_plantas || 0} plantas</p></div>
-                                              <div><p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Lote</p><p className="text-sm text-white font-bold italic">{lote.nombre_lote}</p></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Especie</p><p className="text-base text-white font-bold italic">{getEspecieNombre(lote.siembra_activa)}</p></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Variedad</p><p className="text-base text-white font-bold italic">{getVariedadNombre(lote.siembra_activa)}</p></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Ciclo</p><span className="text-xs font-black px-3 py-1.5 rounded-lg uppercase bg-blue-500/20 text-blue-400">{getCicloNombre(lote.siembra_activa)}</span></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Fecha siembra</p><p className="text-base text-white font-bold">{formatDate(lote.siembra_activa.fecha_siembra)}</p></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Censo</p><p className="text-base text-emerald-400 font-bold">{lote.siembra_activa.cantidad_plantas || 0} plantas</p></div>
+                                              <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Lote</p><p className="text-base text-white font-bold italic">{lote.nombre_lote}</p></div>
                                               {lote.siembra_activa.edad_dias && (
                                                 <div className="col-span-full bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4">
-                                                  <p className="text-[8px] text-emerald-500 font-black uppercase tracking-widest mb-1">Edad Cronológica</p>
-                                                  <p className="text-xl text-white font-black italic">{lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-sm">días</span></p>
+                                                  <p className="text-xs text-emerald-500 font-bold uppercase tracking-wider mb-1">Edad Cronológica</p>
+                                                  <p className="text-xl text-white font-black italic">{lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-sm font-bold">días</span></p>
                                                 </div>
                                               )}
                                             </div>
-                                           ) : <p className="text-slate-500 italic text-xs">Lote disponible — sin siembra activa registrada.</p>}
+                                           ) : <p className="text-slate-400 italic text-sm">Lote disponible — sin siembra activa registrada.</p>}
                                           
                                           <div className="pt-4 border-t border-slate-800">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Historial Cultivos</p>
-                                            {cultivosAnteriores.length === 0 ? <p className="text-[11px] text-slate-600 italic">Sin ciclos anteriores registrados.</p> : (
+                                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-3">Historial Cultivos</p>
+                                            {cultivosAnteriores.length === 0 ? <p className="text-sm text-slate-500 italic">Sin ciclos anteriores registrados.</p> : (
                                               <div className="space-y-2">
                                                 {cultivosAnteriores.map(s => (
-                                                  <div key={s.id_siembra} className="flex items-center justify-between p-3 bg-slate-950/70 rounded-xl border border-slate-800">
+                                                  <div key={s.id_siembra} className="flex items-center justify-between p-3.5 bg-slate-950/70 rounded-xl border border-slate-800">
                                                     <div>
-                                                      <p className="text-xs text-white font-bold">{getEspecieNombre(s)} · {getVariedadNombre(s)}</p>
-                                                      <p className="text-[10px] text-slate-400">Lote: {lote.nombre_lote} · {s.cantidad_plantas || 0} plantas · {s.ciclo || 'N/A'}</p>
+                                                      <p className="text-base text-white font-black uppercase italic tracking-tight">{getEspecieNombre(s)} · {getVariedadNombre(s)}</p>
+                                                      <p className="text-sm text-slate-400 mt-1">Lote: {lote.nombre_lote} · {s.cantidad_plantas || 0} plantas · {getCicloNombre(s)}</p>
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500">{formatDate(s.fecha_siembra)} - {formatDate(s.fecha_fin)} · {getDurationDays(s.fecha_siembra, s.fecha_fin)}</p>
+                                                    <p className="text-sm text-slate-400">{formatDate(s.fecha_siembra)} - {formatDate(s.fecha_fin)} · {getDurationDays(s.fecha_siembra, s.fecha_fin)}</p>
                                                   </div>
                                                 ))}
                                               </div>
@@ -365,52 +377,78 @@ export function DossierModal({ context, onClose }: Props) {
                                           </div>
                                         </div>
                                       )}
-
+ 
                                       {activeTab === 'plagas' && (
                                         <div className="space-y-3">
-                                          {hallazgosHistoricos.length === 0 ? <p className="text-slate-600 italic text-xs">Sin hallazgos fitosanitarios.</p> : (
+                                          {hallazgosHistoricos.length === 0 ? <p className="text-slate-400 italic text-sm">Sin hallazgos fitosanitarios.</p> : (
                                             hallazgosHistoricos.map((h, i) => {
                                               const inspection = inspeccionesHistoricas.find((ins) => String(ins.id_inspeccion) === String(h.id_inspeccion))
                                               const siembra = historial?.siembras.find((s) => String(s.id_siembra) === String(h.siembra_id))
                                               const severity = getSeverity(h.porcentaje_infestacion)
                                               return (
-                                                <div key={h.id_detalle || i} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
+                                                <div key={h.id_detalle || i} className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
                                                   <div>
-                                                    <p className="text-xs font-bold text-white">{getPlagaNombre(h)}{h.nombre_cientifico ? ` (${h.nombre_cientifico})` : ''}</p>
-                                                    <p className="text-[10px] text-slate-500">{formatDate(inspection?.fecha_programada)} · {getEspecieNombre(siembra)} · Lote {lote.nombre_lote}</p>
+                                                    <p className="text-base font-bold text-white">{getPlagaNombre(h)}{h.nombre_cientifico ? ` (${h.nombre_cientifico})` : ''}</p>
+                                                    <p className="text-sm text-slate-400 mt-1">{formatDate(inspection?.fecha_programada)} · {getEspecieNombre(siembra)} · Lote {lote.nombre_lote}</p>
                                                   </div>
-                                                  <div className="text-right space-y-1">
-                                                    <span className={`text-[9px] font-black px-2 py-1 rounded border uppercase ${severity.className}`}>{severity.label}</span>
-                                                    <p className="text-[10px] text-slate-500">{h.porcentaje_infestacion || 0}% incidencia</p>
+                                                  <div className="text-right space-y-1.5">
+                                                    <span className={`text-xs font-black px-2.5 py-0.5 rounded border uppercase ${severity.className}`}>{severity.label}</span>
+                                                    <p className="text-sm text-slate-450">{h.porcentaje_infestacion || 0}% incidencia</p>
                                                   </div>
                                                 </div>
                                               )
                                             })
                                           )}
-                                          <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-3 text-[10px] font-black uppercase text-slate-400">
+                                          <div className="flex flex-wrap gap-4 border-t border-slate-800 pt-4.5 text-sm font-black uppercase text-slate-300">
                                             <span>Total: {hallazgosHistoricos.length}</span>
+                                            <span className="text-slate-650">•</span>
                                             <span>Severidad máxima: {hallazgosHistoricos.length ? maxSeverity.label : 'N/A'}</span>
+                                            <span className="text-slate-650">•</span>
                                             <span>Controladas: {controlledCount}</span>
                                           </div>
                                         </div>
                                       )}
-
+ 
                                       {activeTab === 'inspecciones' && (
                                         <div className="space-y-3">
-                                          {inspeccionesHistoricas.length === 0 ? <p className="text-slate-600 italic text-xs">Sin inspecciones anteriores.</p> : (
+                                          {inspeccionesHistoricas.length === 0 ? <p className="text-sm text-slate-550 italic">Sin inspecciones anteriores.</p> : (
                                             inspeccionesHistoricas.map(ins => {
                                               const findings = hallazgosHistoricos.filter((h) => String(h.id_inspeccion) === String(ins.id_inspeccion))
                                               const firstCrop = findings[0] ? historial?.siembras.find((s) => String(s.id_siembra) === String(findings[0].siembra_id)) : lote.siembra_activa
                                               return (
-                                                <div key={ins.id_inspeccion} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
+                                                <div key={ins.id_inspeccion} className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center gap-4">
                                                   <div>
-                                                    <p className="text-xs font-bold text-white">#{ins.id_inspeccion} · Inspección fitosanitaria</p>
-                                                    <p className="text-[10px] text-slate-500">{formatDate(ins.fecha_programada)} · {ins.tecnico_nombre || 'Técnico no asignado'}</p>
-                                                    <p className="text-[10px] text-slate-500">Cultivo: {getEspecieNombre(firstCrop)} · Hallazgos: {findings.length ? findings.map(getPlagaNombre).join(', ') : 'Sin hallazgos'}</p>
+                                                    <p className="text-base font-bold text-white">#{ins.id_inspeccion} · Inspección fitosanitaria</p>
+                                                    <p className="text-sm text-slate-400 mt-1">{formatDate(ins.fecha_programada)} · {ins.tecnico_nombre || 'Técnico no asignado'}</p>
+                                                    <p className="text-sm text-slate-400 mt-0.5">Cultivo: {getEspecieNombre(firstCrop)} · Hallazgos: {findings.length ? findings.map(getPlagaNombre).join(', ') : 'Sin hallazgos'}</p>
                                                   </div>
                                                   <div className="flex items-center gap-3">
-                                                    <span className={`text-[9px] font-black px-2 py-1 rounded border uppercase ${getStatusClass(ins.estado)}`}>{ins.estado || 'N/A'}</span>
-                                                    <Button size="sm" variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
+                                                    <span className={`text-xs font-black px-2.5 py-0.5 rounded border uppercase ${getStatusClass(ins.estado)}`}>{ins.estado || 'N/A'}</span>
+                                                    <Button 
+                                                      size="sm" 
+                                                      variant="outline" 
+                                                      className="text-xs md:text-sm font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 px-4 py-2 rounded-xl"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const fakeInspection: Inspection = {
+                                                          id_inspeccion: String(ins.id_inspeccion),
+                                                          estado: (ins.estado === 'programada' || ins.estado === 'en_proceso' || ins.estado === 'finalizada' || ins.estado === 'cancelada') 
+                                                            ? ins.estado 
+                                                            : 'finalizada',
+                                                          observaciones_generales: ins.observaciones_generales || '',
+                                                          tecnico_nombre: ins.tecnico_nombre || '',
+                                                          tecnico_id: ins.tecnico_id || 0,
+                                                          productor_id: 0,
+                                                          id_lugar_produccion: context?.id_lugar_produccion || 0,
+                                                          fecha_programada: ins.fecha_programada || '',
+                                                          lugar_produccion: {
+                                                            nombre_lugar: context?.lugar_nombre || '',
+                                                            numero_predial: '',
+                                                          }
+                                                        };
+                                                        setSelectedInspectionForReport(fakeInspection);
+                                                      }}
+                                                    >
                                                       Ver inspección completa
                                                     </Button>
                                                   </div>
@@ -445,6 +483,15 @@ export function DossierModal({ context, onClose }: Props) {
           </Button>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {selectedInspectionForReport && (
+          <InformeCompletoModal
+            inspection={selectedInspectionForReport}
+            onClose={() => setSelectedInspectionForReport(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import api from "@/lib/api"
+import { OfflineDB } from "@/lib/offline-db"
 import { Inspection, EvalItem, FormData, ContextoInspeccion, Plaga, Predio, Lote, HallazgoPrevio, LugarProduccion } from "../components/dashboard/types/inspection"
 
 export function useInspectionWizard(inspection: Inspection, onClose: () => void) {
@@ -444,6 +445,20 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
 
         if (Array.isArray(savedRes.data) && savedRes.data.length > 0) {
           const savedItems: { siembra_id: number; id_detalle: number }[] = savedRes.data
+
+          // Asignar el ID de detalle real a las fotos encoladas de IndexedDB
+          try {
+            const db = new OfflineDB()
+            for (const s of savedItems) {
+              const evaluation = formData.evaluations.find(ev => Number(ev.siembra?.id_siembra) === Number(s.siembra_id))
+              if (evaluation && evaluation.id_lote) {
+                await db.asociarDetalleReal(evaluation.id_lote, s.id_detalle)
+              }
+            }
+          } catch (err) {
+            console.error("Error al asociar detalle real a fotos en IndexedDB:", err)
+          }
+
           const updatedEvaluations = formData.evaluations.map(ev => {
             const match = savedItems.find(
               s => Number(s.siembra_id) === Number(ev.siembra?.id_siembra)

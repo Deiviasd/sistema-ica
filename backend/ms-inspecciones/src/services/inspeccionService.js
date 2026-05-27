@@ -75,6 +75,7 @@ const obtenerContexto = async (id, reqUser) => {
         }
 
         const siembra = siembras[0] || null;
+
         let edadCronologica = null;
 
         if (siembra && siembra.fecha_siembra) {
@@ -82,7 +83,7 @@ const obtenerContexto = async (id, reqUser) => {
             edadCronologica = Math.ceil(diff / (1000 * 60 * 60 * 24));
         }
 
-        return {
+        const enrichedLote = {
             id_lote: lote.id_lote,
             nombre_lote: lote.nombre_lote,
             area: lote.area,
@@ -93,11 +94,13 @@ const obtenerContexto = async (id, reqUser) => {
                 id_especie: siembra.variedad?.id_especie, // 🌿 Agregado para el catálogo de plagas
                 variedad: siembra.variedad?.nombre_variedad || 'Genérica',
                 ciclo: siembra.variedad?.especie?.ciclo || 'N/A',
+                imagen_url: siembra.variedad?.especie?.imagen_url || null,
                 fecha_siembra: siembra.fecha_siembra,
                 cantidad_plantas: siembra.cantidad_plantas,
                 edad_dias: edadCronologica
             } : null
         };
+        return enrichedLote;
     };
 
     // Enriquecer TODOS los lugares con sus lotes y cultivos (Navegando Lugar -> Predio -> Lote)

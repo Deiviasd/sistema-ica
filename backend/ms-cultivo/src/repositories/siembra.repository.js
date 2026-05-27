@@ -16,7 +16,16 @@ const getSiembras = async (userId = null, role = 'productor', id_lote = null, au
         .from('siembra')
         .select(`
             *,
-            variedad(id_especie, nombre_variedad, especie(id_especie, nombre_comun, ciclo))
+            variedad(
+                id_especie, 
+                nombre_variedad, 
+                especie(
+                    id_especie, 
+                    nombre_comun, 
+                    ciclo, 
+                    imagen_url
+                )
+            )
         `);
 
     // 🛡️ Filtro por Lotes Autorizados (Orquestación Microservicios)
@@ -46,7 +55,16 @@ const getSiembraById = async (id) => {
         .from('siembra')
         .select(`
             *,
-            variedad(id_especie, nombre_variedad, especie(id_especie, nombre_comun, ciclo))
+            variedad(
+                id_especie, 
+                nombre_variedad, 
+                especie(
+                    id_especie, 
+                    nombre_comun, 
+                    ciclo, 
+                    imagen_url
+                )
+            )
         `)
         .eq('id_siembra', id)
         .single()

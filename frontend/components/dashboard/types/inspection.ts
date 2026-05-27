@@ -9,6 +9,7 @@ export interface SiembraActiva {
   fecha_fin?: string | null
   cantidad_plantas?: number
   edad_dias?: number
+  imagen_url?: string
   variedad?: string | {
     id_especie?: number
     nombre_variedad?: string
@@ -16,6 +17,7 @@ export interface SiembraActiva {
       id_especie?: number
       nombre_comun?: string
       ciclo?: string
+      imagen_url?: string
     }
   }
 }
@@ -138,5 +140,5 @@ export interface Plaga {
   nombre_comun: string
   nombre_cientifico?: string
   id_especie?: number
+  imagen_url?: string
 }
-

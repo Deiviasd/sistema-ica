@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { useOfflineSync } from "@/hooks/useOfflineSync"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Topbar } from "@/components/layout/Topbar"
 import { motion, AnimatePresence } from "framer-motion"
@@ -13,6 +14,9 @@ export default function DashboardLayout({
 }) {
   const { isLoading, user } = useAuth()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Inicializar la sincronización offline automática en segundo plano
+  useOfflineSync()
 
   // Pantalla de carga hermosa
   if (isLoading) {

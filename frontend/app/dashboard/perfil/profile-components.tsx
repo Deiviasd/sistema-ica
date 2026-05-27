@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react"
 import Link from "next/link"
+import Image from 'next/image'
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -180,7 +181,7 @@ export function ProfileSidebar({
               <div className="group relative w-32 h-32 rounded-full bg-gradient-to-br from-primary to-indigo-600 p-1 shadow-xl shadow-primary/10 cursor-pointer hover:scale-105 transition-all">
                 <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden border-2 border-background/50">
                   {profileData?.foto_perfil ? (
-                    <img src={profileData?.foto_perfil} className="w-full h-full object-cover" alt="Profile" />
+                    <Image src={profileData?.foto_perfil} className="w-full h-full object-cover" alt="Profile" />
                   ) : (
                     <span className="text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400">{initials}</span>
                   )}
@@ -209,10 +210,9 @@ export function ProfileSidebar({
             <div className="space-y-2">
               <h2 className="text-2xl font-black italic tracking-tight text-foreground uppercase leading-tight">{displayName}</h2>
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <Badge className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                  displayStatus === "activo"
-                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                <Badge className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${displayStatus === "activo"
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                   }`}>
                   <span className={`w-2 h-2 rounded-full mr-2 inline-block ${displayStatus === "activo" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
                   {displayStatus}
@@ -287,7 +287,7 @@ export function PhotoConfirmModal({
         className="relative bg-card border-2 border-border rounded-[2.5rem] overflow-hidden shadow-2xl max-w-md w-full"
       >
         {/* Header */}
-        <div className={`p-6 flex items-center justify-between ${ hasExistingPhoto ? 'bg-amber-500' : 'bg-primary'}`}>
+        <div className={`p-6 flex items-center justify-between ${hasExistingPhoto ? 'bg-amber-500' : 'bg-primary'}`}>
           <div className="flex items-center gap-3">
             {hasExistingPhoto
               ? <RefreshCw className="text-white w-6 h-6" />
@@ -309,6 +309,7 @@ export function PhotoConfirmModal({
         <div className="p-6 space-y-5">
           <div className="flex justify-center">
             <div className="w-56 h-56 max-w-[75vw] max-h-[75vw] rounded-full overflow-hidden border-4 border-border shadow-xl ring-4 ring-primary/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={pendingPhotoBase64} alt="Preview" className="w-full h-full object-cover" />
             </div>
           </div>
@@ -332,11 +333,10 @@ export function PhotoConfirmModal({
             <button
               onClick={onConfirm}
               disabled={isUploading}
-              className={`flex-[2] h-12 text-white font-black uppercase rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm ${
-                hasExistingPhoto
-                  ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
-                  : 'bg-primary hover:bg-primary/90 shadow-primary/20'
-              }`}
+              className={`flex-[2] h-12 text-white font-black uppercase rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm ${hasExistingPhoto
+                ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
+                : 'bg-primary hover:bg-primary/90 shadow-primary/20'
+                }`}
             >
               {isUploading
                 ? <Loader2 className="animate-spin w-5 h-5" />
@@ -722,4 +722,6 @@ function LinkedPredios({ predios, profileData }: { predios: PredioInfo[]; profil
       </div>
     </div>
   )
+
 }
+

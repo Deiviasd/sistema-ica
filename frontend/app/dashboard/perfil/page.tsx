@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react"
 import api from "@/lib/api"
 import { useUserStore } from "@/lib/store"
+import { Check, Trash2 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   AdminStatsSection,
   FullUserProfile,
@@ -27,7 +29,7 @@ interface SystemUserInfo {
 }
 
 export default function ProfilePage() {
-  const { user, setUser } = useUserStore()
+  const { user, setSession, token } = useUserStore()
   const [profileData, setProfileData] = useState<FullUserProfile | null>(null)
   const [lugares, setLugares] = useState<ProductionPlace[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +38,20 @@ export default function ProfilePage() {
   const [showCameraModal, setShowCameraModal] = useState(false)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [pendingPhotoBase64, setPendingPhotoBase64] = useState<string | null>(null)
+
+  // Estados para la notificación (toast) de confirmación
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState("")
+  const [toastType, setToastType] = useState<"success" | "delete">("success")
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showToast])
 
   const [producerStats, setProducerStats] = useState({
     predios: 0,
@@ -257,7 +273,13 @@ export default function ProfilePage() {
       // Limpiar input file por si acaso
       const input = document.getElementById("avatar-upload") as HTMLInputElement
       if (input) input.value = ""
-    } catch {
+
+      // Mostrar toast de éxito
+      setToastMessage("Foto de perfil actualizada con éxito")
+      setToastType("success")
+      setShowToast(true)
+    } catch (err) {
+      console.error("❌ Error al guardar foto de perfil:", err)
       setError("Error al guardar la foto en el servidor.")
     } finally {
       setIsUploading(false)
@@ -275,8 +297,16 @@ export default function ProfilePage() {
       setIsUploading(true)
       await api.patch("/auth/profile", { foto_perfil: null })
       if (profileData) setProfileData({ ...profileData, foto_perfil: undefined })
-      if (user) setUser({ ...user, foto_perfil: undefined })
-    } catch {
+      if (user && token) {
+        setSession({ ...user, foto_perfil: undefined }, token)
+      }
+
+      // Mostrar toast de éxito
+      setToastMessage("Foto de perfil eliminada con éxito")
+      setToastType("delete")
+      setShowToast(true)
+    } catch (err) {
+      console.error("❌ Error al eliminar foto de perfil:", err)
       setError("Error al eliminar la foto.")
     } finally {
       setIsUploading(false)
@@ -285,7 +315,9 @@ export default function ProfilePage() {
 
   const updateProfilePhoto = (fotoPerfil: string) => {
     if (profileData) setProfileData({ ...profileData, foto_perfil: fotoPerfil })
-    if (user) setUser({ ...user, foto_perfil: fotoPerfil })
+    if (user && token) {
+      setSession({ ...user, foto_perfil: fotoPerfil }, token)
+    }
   }
 
   if (loading) return <ProfileLoading />
@@ -297,7 +329,7 @@ export default function ProfilePage() {
   const initials = displayName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() || "US"
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 relative">
       <ProfileHeader />
       <ProfileError error={error} />
 
@@ -338,6 +370,29 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Notificación flotante de confirmación (Toast) */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-8 right-4 left-4 md:left-auto md:right-8 z-[110] px-5 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center md:justify-start gap-3 border backdrop-blur-md transition-all ${
+              toastType === "delete"
+                ? "bg-rose-500 text-white border-rose-400/50 shadow-rose-950/20"
+                : "bg-emerald-500 text-slate-950 border-emerald-400/50 shadow-emerald-500/20"
+            }`}
+          >
+            {toastType === "delete" ? (
+              <Trash2 className="w-4 h-4 text-white stroke-[3px]" />
+            ) : (
+              <Check className="w-4 h-4 text-slate-950 stroke-[3px]" />
+            )}
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

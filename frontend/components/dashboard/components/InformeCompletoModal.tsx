@@ -11,6 +11,29 @@ interface Props {
   onClose: () => void
 }
 
+function TruncatedValue({ value, tone = "white" }: { value: string; tone?: "white" | "emerald" }) {
+  const needsTooltip = value.length > 14
+  const textClass = tone === "emerald" ? "text-emerald-400" : "text-white"
+
+  if (!needsTooltip) {
+    return <p className={`text-[13px] font-black uppercase leading-tight ${textClass}`}>{value}</p>
+  }
+
+  return (
+    <button
+      type="button"
+      className="group relative block w-full text-left focus:outline-none"
+      aria-label={`Ver valor completo: ${value}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className={`block truncate text-[13px] font-black uppercase leading-tight ${textClass}`}>{value}</span>
+      <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2 text-[11px] font-bold normal-case leading-snug text-white opacity-0 shadow-2xl shadow-slate-950/60 transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
+        {value}
+      </span>
+    </button>
+  )
+}
+
 export function InformeCompletoModal({ inspection, liveFormData, onClose }: Props) {
   const [context, setContext] = useState<ContextoInspeccion | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,24 +63,31 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   const groupedEvals = useMemo(() => {
     const evals = liveFormData
       ? liveFormData.evaluations
-      : (context?.hallazgos_previos?.map((hp: HallazgoPrevio) => ({
-        id_lote: String(hp.id_lote || hp.siembra_id || ""),
-        siembra: { id_siembra: hp.siembra_id || 0 },
-        afectadas: hp.cantidad_plantas_afectadas || 0,
-        totales: hp.plantas_totales || hp.cantidad_plantas_afectadas || 0,
-        porcentaje: hp.porcentaje_infestacion || 0,
-        plaga: hp.observaciones_especificas.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || "Plaga guardada",
-        recomendacion: hp.observaciones_especificas.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
-        nota: hp.observaciones_especificas.split('] | ').pop() || ""
-      })) || [])
+      : (context?.hallazgos_previos?.map((hp: HallazgoPrevio) => {
+        const obs = hp.observaciones_especificas || "";
+        return {
+          id_lote: String(hp.id_lote || hp.siembra_id || ""),
+          siembra: { id_siembra: hp.siembra_id || 0 },
+          afectadas: hp.cantidad_plantas_afectadas || 0,
+          totales: hp.plantas_totales || hp.cantidad_plantas_afectadas || 0,
+          porcentaje: hp.porcentaje_infestacion || 0,
+          plaga: obs.match(/\[Plaga:(.+?)\]/)?.[1]?.trim() || hp.plaga || "Plaga guardada",
+          recomendacion: obs.match(/\[Recomendacion:(.+?)\]/)?.[1]?.trim() || "N/A",
+          nota: obs.split('] | ').pop() || ""
+        };
+      }) || [])
 
     const groups: Record<string, Record<string, EvalItem[]>> = {}
     evals.forEach((ev: EvalItem) => {
       let targetLugar: LugarProduccion | null = null
       let targetLote: Lote | null = null
       for (const lugar of (context?.lugares_produccion || [])) {
-        for (const lote of (lugar.lotes || [])) {
-          if (ev.id_lote === lote.id_lote || (ev.siembra && ev.siembra.id_siembra === lote.siembra_activa?.id_siembra)) {
+        const lotesDelLugar = [
+          ...(lugar.lotes || []),
+          ...(lugar.predios || []).flatMap((predio) => predio.lotes || [])
+        ]
+        for (const lote of lotesDelLugar) {
+          if (String(ev.id_lote) === String(lote.id_lote) || (ev.siembra && Number(ev.siembra.id_siembra) === Number(lote.siembra_activa?.id_siembra))) {
             targetLugar = lugar
             targetLote = lote
             break
@@ -210,7 +240,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
             <h4 className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em] flex items-center gap-2">
               <ClipboardList className="w-3.5 h-3.5" /> Lotes Inspeccionados
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
               {(() => {
                 const predios = context?.lugares_produccion?.flatMap((l) => l.predios || []) || []
                 const todosLotes = predios.flatMap((p) =>
@@ -225,7 +255,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                   const isOpen = selectedDossierLote === lote.id_lote
 
                   return (
-                    <div key={lote.id_lote} className={`rounded-xl border transition-all overflow-hidden ${isOpen ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-slate-900 border-slate-800/80 hover:border-slate-700'
+                    <div key={lote.id_lote} className={`self-start rounded-xl border transition-all overflow-hidden ${isOpen ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-slate-900 border-slate-800/80 hover:border-slate-700'
                       }`}>
                       <div onClick={() => setSelectedDossierLote(isOpen ? null : lote.id_lote)} className="flex items-center gap-3 p-3 cursor-pointer">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${lote.siembra_activa ? 'bg-emerald-500/10' : 'bg-slate-800'}`}>
@@ -311,13 +341,13 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
             ) : (
               <div className="rounded-xl border border-slate-800 overflow-hidden">
                 {/* Cabecera de tabla */}
-                <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-slate-900 border-b border-slate-800">
-                  <p className="col-span-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Lote / Cultivo</p>
-                  <p className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Plaga</p>
-                  <p className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Afectadas / Total</p>
-                  <p className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Incidencia</p>
-                  <p className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Severidad</p>
-                  <p className="col-span-1 text-[10px] font-black text-slate-400 uppercase tracking-widest"></p>
+                <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800">
+                  <p className="col-span-3 text-[11px] font-black text-slate-400 uppercase tracking-widest">Lote / Cultivo</p>
+                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Plaga</p>
+                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Afectadas / Total</p>
+                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Incidencia</p>
+                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Severidad</p>
+                  <p className="col-span-1 text-[11px] font-black text-slate-400 uppercase tracking-widest"></p>
                 </div>
 
                 {/* Filas */}
@@ -344,8 +374,12 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                       // Buscar loteInfo para especie/variedad
                       let loteInfo: Lote | null = null
                       for (const lugar of (context?.lugares_produccion || [])) {
-                        for (const lote of (lugar.lotes || [])) {
-                          if (ev.id_lote === lote.id_lote || (ev.siembra && ev.siembra.id_siembra === lote.siembra_activa?.id_siembra)) {
+                        const lotesDelLugar = [
+                          ...(lugar.lotes || []),
+                          ...(lugar.predios || []).flatMap((predio) => predio.lotes || [])
+                        ]
+                        for (const lote of lotesDelLugar) {
+                          if (String(ev.id_lote) === String(lote.id_lote) || (ev.siembra && Number(ev.siembra.id_siembra) === Number(lote.siembra_activa?.id_siembra))) {
                             loteInfo = lote; break
                           }
                         }
@@ -357,15 +391,15 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                           {/* Fila principal clickeable */}
                           <div
                             onClick={() => setSelectedDossierLugar(isOpen ? null : rowId)}
-                            className="grid grid-cols-12 gap-2 px-4 py-3.5 cursor-pointer items-center"
+                            className="grid grid-cols-12 gap-2 px-4 py-4 cursor-pointer items-center"
                           >
                             {/* Lote / Cultivo */}
                             <div className="col-span-3">
-                              <p className="text-xs font-black text-white uppercase tracking-wide truncate">{loteKey.split(' (')[0]}</p>
+                              <p className="text-sm font-black text-white uppercase tracking-wide truncate">{loteKey.split(' (')[0]}</p>
                               {loteInfo?.siembra_activa && (
-                                <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">
+                                <p className="text-[11px] text-slate-400 font-bold mt-0.5 truncate">
                                   {loteInfo.siembra_activa.especie}
-                                  {loteInfo.siembra_activa.variedad ? ` · ${loteInfo.siembra_activa.variedad}` : ''}
+                                  {loteInfo.siembra_activa.variedad ? ` · ${getVariedadNombre(loteInfo.siembra_activa)}` : ''}
                                 </p>
                               )}
                             </div>
@@ -373,21 +407,26 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                             {/* Plaga */}
                             <div className="col-span-2 flex items-center gap-1.5">
                               <Bug className={`w-3.5 h-3.5 flex-shrink-0 ${themeColor}`} />
-                              <p className="text-xs font-black text-white uppercase truncate">{ev.plaga}</p>
+                              <span className="group relative flex items-center min-w-0">
+                                <span className="block text-sm font-black text-white uppercase truncate">{ev.plaga}</span>
+                                <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2 text-[11px] font-bold normal-case leading-snug text-white opacity-0 shadow-2xl shadow-slate-950/60 transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
+                                  {ev.plaga}
+                                </span>
+                              </span>
                             </div>
 
                             {/* Afectadas / Total */}
                             <div className="col-span-2">
-                              <p className="text-xs font-black text-white">
+                              <p className="text-sm font-black text-white">
                                 <span className={themeColor}>{ev.afectadas}</span>
                                 <span className="text-slate-600"> / {ev.totales}</span>
                               </p>
-                              <p className="text-[9px] text-slate-500 font-bold uppercase">plantas</p>
+                              <p className="text-[10px] text-slate-500 font-bold uppercase">plantas</p>
                             </div>
 
                             {/* Barra + % */}
                             <div className="col-span-2 space-y-1">
-                              <p className={`text-xs font-black italic ${themeColor}`}>{pct.toFixed(1)}%</p>
+                              <p className={`text-sm font-black italic ${themeColor}`}>{pct.toFixed(1)}%</p>
                               <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                               </div>
@@ -416,16 +455,16 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {loteInfo?.siembra_activa && (
                                   <div className="space-y-2.5">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Datos del Cultivo</p>
+                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Datos del Cultivo</p>
                                     <div className="grid grid-cols-3 gap-2">
                                       {[
                                         { label: 'Especie', value: loteInfo.siembra_activa.especie || 'N/A' },
                                         { label: 'Variedad', value: getVariedadNombre(loteInfo.siembra_activa) },
                                         { label: 'Ciclo', value: loteInfo.siembra_activa.ciclo || 'N/A' },
                                       ].map(({ label, value }) => (
-                                        <div key={label} className="bg-slate-900 rounded-lg p-2 border border-slate-800/40">
-                                          <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{label}</p>
-                                          <p className="text-xs font-black text-white uppercase truncate">{value}</p>
+                                        <div key={label} className="bg-slate-900 rounded-lg p-2.5 border border-slate-800/40 min-w-0">
+                                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                                          <TruncatedValue value={String(value)} />
                                         </div>
                                       ))}
                                     </div>
@@ -434,9 +473,9 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                                         { label: 'Plantas Totales', value: loteInfo.siembra_activa.cantidad_plantas ? `${loteInfo.siembra_activa.cantidad_plantas} plantas` : '0 plantas' },
                                         { label: 'Área del Lote', value: `${loteInfo.area || 0} m²` },
                                       ].map(({ label, value }) => (
-                                        <div key={label} className="bg-slate-900 rounded-lg p-2 border border-slate-800/40">
-                                          <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{label}</p>
-                                          <p className="text-xs font-black text-emerald-400">{value}</p>
+                                        <div key={label} className="bg-slate-900 rounded-lg p-2.5 border border-slate-800/40 min-w-0">
+                                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                                          <TruncatedValue value={String(value)} tone="emerald" />
                                         </div>
                                       ))}
                                     </div>
@@ -445,15 +484,15 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
 
                                 {/* Recomendación + Observaciones */}
                                 <div className="space-y-2.5">
-                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recomendación de Intervención</p>
+                                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Recomendación de Intervención</p>
                                   <div className="bg-slate-900 border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
-                                    <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mb-1">Recomendación Técnica</p>
-                                    <p className="text-xs text-slate-200 leading-relaxed">{ev.recomendacion}</p>
+                                    <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest mb-1">Recomendación Técnica</p>
+                                    <p className="text-sm text-slate-200 leading-relaxed">{ev.recomendacion}</p>
                                   </div>
                                   {ev.nota && ev.nota !== ev.recomendacion && (
                                     <div className="bg-slate-900 border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
-                                      <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mb-1">Observaciones</p>
-                                      <p className="text-xs text-slate-200 leading-relaxed">{ev.nota}</p>
+                                      <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest mb-1">Observaciones</p>
+                                      <p className="text-sm text-slate-200 leading-relaxed">{ev.nota}</p>
                                     </div>
                                   )}
                                 </div>

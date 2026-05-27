@@ -9,7 +9,8 @@ const getPlagasByEspecie = async (idEspecie) => {
             plaga (
                 id_plaga,
                 nombre_cientifico,
-                nombre_comun
+                nombre_comun,
+                imagen_url
             )
         `)
         .eq('id_especie', idEspecie)
