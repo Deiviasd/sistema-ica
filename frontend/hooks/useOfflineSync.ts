@@ -56,7 +56,9 @@ export function useOfflineSync() {
           successCount++;
           console.log(`✅ [AUTO-SYNC] Foto de evidencia ${item.id_temporal} sincronizada y registrada en Supabase.`);
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
+          const errorMsg = err && typeof err === "object" && "response" in err
+            ? JSON.stringify((err as { response?: { data?: unknown } }).response?.data || err)
+            : err instanceof Error ? err.message : String(err);
           console.error(`❌ [AUTO-SYNC] Error subiendo evidencia ${item.id_temporal}:`, errorMsg);
           // Detener bucle si es un error de red global, o continuar si es un error del archivo individual
           if (errorMsg.toLowerCase().includes("network error")) {

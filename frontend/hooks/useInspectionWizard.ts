@@ -3,6 +3,12 @@ import api from "@/lib/api"
 import { OfflineDB } from "@/lib/offline-db"
 import { Inspection, EvalItem, FormData, ContextoInspeccion, Plaga, Predio, Lote, HallazgoPrevio, LugarProduccion } from "../components/dashboard/types/inspection"
 
+interface SaveResult {
+  success: boolean
+  error?: string
+  isUnchanged?: boolean
+}
+
 export function useInspectionWizard(inspection: Inspection, onClose: () => void) {
   const [loading, setLoading] = useState(true)
   const [context, setContext] = useState<ContextoInspeccion | null>(null)
@@ -230,7 +236,7 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
     }
   }
 
-  const handleSaveLoteEvaluation = (activeLotes: Lote[]) => {
+  const handleSaveLoteEvaluation = async (activeLotes: Lote[]): Promise<SaveResult> => {
     if (!currentEval.id_lote) return { success: false, error: "No hay lote seleccionado." }
 
     const hasPlaga = currentEval.plaga && currentEval.plaga.trim() !== ""
@@ -275,6 +281,74 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         evaluations: [...filtered, currentEval]
       }
     })
+
+    // Resolver plaga_id
+    let plagaId: number = 1
+    if (currentEval.plaga && currentEval.plaga !== "Ninguna") {
+      const isFromCatalog = catalogPlagas.find(p => p.nombre_comun === currentEval.plaga)
+      if (isFromCatalog) {
+        plagaId = isFromCatalog.id_plaga
+      } else {
+        try {
+          const resManual = await api.post('/cultivos/plagas/manual', {
+            nombre: currentEval.plaga,
+            id_especie: currentEval.siembra?.id_especie || 1
+          })
+          plagaId = resManual.data.id_plaga
+        } catch {
+          plagaId = 1
+        }
+      }
+    }
+
+    // Calcular porcentaje de infestación
+    const total = Number(currentEval.totales) || 1
+    const afectadas = Number(currentEval.afectadas) || 0
+    const porcentaje = Number(currentEval.porcentaje) || Number(((afectadas / total) * 100).toFixed(2))
+
+    // Crear/actualizar el detalle en el backend para obtener id_detalle real
+    try {
+      const payload = {
+        id_detalle: currentEval.id_detalle || undefined,
+        siembra_id: currentEval.siembra?.id_siembra || 1,
+        plaga_id: plagaId,
+        cantidad_plantas_afectadas: afectadas,
+        plantas_totales: Number(currentEval.totales) || 0,
+        porcentaje_infestacion: porcentaje,
+        observaciones_especificas: `[Plaga: ${currentEval.plaga || ''}] | [Recomendacion: ${currentEval.recomendacion || 'N/A'}] | ${currentEval.nota || ''}`
+      }
+
+      const savedRes = await api.post(
+        `/inspecciones/${inspection.id_inspeccion}/detalles`,
+        [payload]
+      )
+
+      if (Array.isArray(savedRes.data) && savedRes.data.length > 0) {
+        const saved = savedRes.data[0]
+        const newIdDetalle = saved.id_detalle
+
+        // Actualizar evaluación local con el id_detalle real
+        setFormData(prev => ({
+          ...prev,
+          evaluations: prev.evaluations.map(ev =>
+            String(ev.id_lote) === String(currentEval.id_lote) && !ev.id_detalle
+              ? { ...ev, id_detalle: newIdDetalle }
+              : ev
+          )
+        }))
+
+        // Asociar fotos encoladas (temp_*) al id_detalle real y disparar sync
+        try {
+          const db = new OfflineDB()
+          await db.asociarDetalleReal(currentEval.id_lote, newIdDetalle)
+          window.dispatchEvent(new Event("online"))
+        } catch (err) {
+          console.error("Error al asociar fotos al detalle:", err)
+        }
+      }
+    } catch (err) {
+      console.error("Error guardando detalle en backend:", err)
+    }
 
     advanceToNextLote(activeLotes)
     return { success: true, isUnchanged: false }
@@ -455,6 +529,8 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
                 await db.asociarDetalleReal(evaluation.id_lote, s.id_detalle)
               }
             }
+            // Disparar sync para subir las fotos que ahora tienen id_detalle real
+            window.dispatchEvent(new Event("online"))
           } catch (err) {
             console.error("Error al asociar detalle real a fotos en IndexedDB:", err)
           }

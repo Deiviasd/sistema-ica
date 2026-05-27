@@ -181,7 +181,7 @@ export function ProfileSidebar({
               <div className="group relative w-32 h-32 rounded-full bg-gradient-to-br from-primary to-indigo-600 p-1 shadow-xl shadow-primary/10 cursor-pointer hover:scale-105 transition-all">
                 <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden border-2 border-background/50">
                   {profileData?.foto_perfil ? (
-                    <Image src={profileData?.foto_perfil} className="w-full h-full object-cover" alt="Profile" />
+                    <Image src={profileData?.foto_perfil} className="w-full h-full object-cover" alt="Profile" width={128} height={128} />
                   ) : (
                     <span className="text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400">{initials}</span>
                   )}

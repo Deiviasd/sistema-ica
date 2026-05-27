@@ -56,9 +56,10 @@ export function useEvidenceManager({ currentEval, showToast }: UseEvidenceManage
         try {
           const res = await api.get(`/inspecciones/evidencias/detalle/${currentEval.id_detalle}`)
           const remotas = res.data || []
-          remotasMap = remotas.map((item: { imagen_url: string }) => ({
+          remotasMap = remotas.map((item: { id_evidencia?: number; id_evidencia_inspeccion?: number; id?: number; imagen_url: string }) => ({
             url: item.imagen_url,
-            sincronizado: true
+            sincronizado: true,
+            id_remoto: item.id_evidencia || item.id_evidencia_inspeccion || item.id
           }))
         } catch (err) {
           console.error("Error cargando evidencias remotas:", err)
@@ -146,7 +147,7 @@ export function useEvidenceManager({ currentEval, showToast }: UseEvidenceManage
 
           const idTemporal = `evid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
           const db = new OfflineDB()
-          const idAsociacion = currentEval.id_detalle ? currentEval.id_detalle : `temp_${currentEval.id_lote}`
+          const idAsociacion = `temp_${currentEval.id_lote}`
 
           await db.guardarEvidenciaPendiente({
             id_temporal: idTemporal,
@@ -156,12 +157,6 @@ export function useEvidenceManager({ currentEval, showToast }: UseEvidenceManage
             longitud,
             fecha_creacion: new Date().toISOString()
           })
-
-          if (isOnline) {
-            setTimeout(() => {
-              window.dispatchEvent(new Event("online"))
-            }, 100)
-          }
 
           showToast("Foto guardada localmente", "success", 2000)
           loadEvidenciasRef.current?.()
@@ -187,12 +182,33 @@ export function useEvidenceManager({ currentEval, showToast }: UseEvidenceManage
     }
   }
 
+  const handleRemoveEvidence = async (photo: EvidencePhoto) => {
+    try {
+      if (photo.id_temporal) {
+        // Local evidence, delete from offline DB
+        await handleRemoveEvidenceLocal(photo.id_temporal);
+      } else if (photo.id_remoto && isOnline) {
+        // Remote evidence, delete via API
+        await api.delete(`/inspecciones/evidencias/${photo.id_remoto}`);
+        showToast("Evidencia remota eliminada", "success", 2000);
+        // Refresh list
+        loadEvidenciasRef.current?.();
+      } else {
+        showToast("No se puede eliminar la evidencia", "error", 3000);
+      }
+    } catch (err) {
+      console.error("Error al eliminar evidencia:", err);
+      showToast("Error al eliminar evidencia", "error", 3000);
+    }
+  };
+
   return {
     evidenciasLote,
     isOnline,
     isCapturingEvidence,
     fileInputRef,
     processAndSaveImage,
-    handleRemoveEvidenceLocal
+    handleRemoveEvidenceLocal,
+    handleRemoveEvidence
   }
 }

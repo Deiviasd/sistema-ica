@@ -67,7 +67,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
     isCapturingEvidence,
     fileInputRef,
     processAndSaveImage,
-    handleRemoveEvidenceLocal
+    handleRemoveEvidence
   } = useEvidenceManager({ currentEval, showToast: notify })
 
   if (loading) return (
@@ -123,7 +123,7 @@ export function InspectionWizard({ inspection, onClose }: Props) {
             isCapturingEvidence={isCapturingEvidence}
             processAndSaveImage={processAndSaveImage}
             evidenciasLote={evidenciasLote}
-            handleRemoveEvidenceLocal={handleRemoveEvidenceLocal}
+            handleRemoveEvidence={handleRemoveEvidence}
             activeLotes={activeLotes}
             handleSaveLoteEvaluation={handleSaveLoteEvaluation}
             onConfirmManualPlaga={async (nombre) => {
