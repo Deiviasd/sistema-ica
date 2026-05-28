@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
-import { MapPin, ChevronRight, X, FileText, UserCheck, ClipboardList, Leaf, Bug } from "lucide-react"
+import { MapPin, ChevronRight, X, FileText, UserCheck, ClipboardList, Leaf, Bug, Image as ImageIcon } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import api from "@/lib/api"
 import { Inspection, FormData, ContextoInspeccion, LugarProduccion, Lote, EvalItem, HallazgoPrevio, SiembraActiva } from "../types/inspection"
@@ -40,6 +40,9 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   const [selectedDossierLugar, setSelectedDossierLugar] = useState<string | null>(null)
   const [selectedDossierLote, setSelectedDossierLote] = useState<string | number | null>(null)
   const [showPredios, setShowPredios] = useState(false)
+  const [evidenciasPorDetalle, setEvidenciasPorDetalle] = useState<Record<string, { imagen_url: string; fecha_creacion?: string }[]>>({})
+  const [loadingEvidencias, setLoadingEvidencias] = useState<Record<string, boolean>>({})
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null)
 
   const getVariedadNombre = (siembra?: SiembraActiva | null) => {
     if (!siembra?.variedad) return siembra?.variedad_nombre || 'Genérica'
@@ -66,6 +69,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
       : (context?.hallazgos_previos?.map((hp: HallazgoPrevio) => {
         const obs = hp.observaciones_especificas || "";
         return {
+          id_detalle: hp.id_detalle,
           id_lote: String(hp.id_lote || hp.siembra_id || ""),
           siembra: { id_siembra: hp.siembra_id || 0 },
           afectadas: hp.cantidad_plantas_afectadas || 0,
@@ -122,6 +126,19 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
   const prediosDelLugar = lugarInspeccion?.predios || [];
 
   const genObs = liveFormData ? liveFormData.generalObs : inspection.observaciones_generales
+
+  const fetchEvidenciasDetalle = async (idDetalle: number, rowId: string) => {
+    if (evidenciasPorDetalle[rowId] || loadingEvidencias[rowId]) return
+    setLoadingEvidencias(prev => ({ ...prev, [rowId]: true }))
+    try {
+      const res = await api.get(`/inspecciones/evidencias/detalle/${idDetalle}`)
+      setEvidenciasPorDetalle(prev => ({ ...prev, [rowId]: res.data || [] }))
+    } catch (err) {
+      console.error("Error cargando evidencias del informe:", err)
+    } finally {
+      setLoadingEvidencias(prev => ({ ...prev, [rowId]: false }))
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
@@ -445,13 +462,17 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                             </div>
                           </div>
 
-                          {/* Panel expandido */}
-                          {isOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="border-t border-slate-800/60 bg-slate-950/60 px-4 py-4"
-                            >
+                      {/* Panel expandido */}
+                      {isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="border-t border-slate-800/60 bg-slate-950/60 px-4 py-4"
+                          onAnimationStart={() => {
+                            const idDetalle = ev.id_detail || (ev as EvalItem).id_detalle
+                            if (idDetalle) fetchEvidenciasDetalle(idDetalle, rowId)
+                          }}
+                        >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {loteInfo?.siembra_activa && (
                                   <div className="space-y-2.5">
@@ -497,6 +518,62 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                                   )}
                                 </div>
                               </div>
+
+                              {/* Evidencias Fotográficas del Lote */}
+                              <div className="mt-6 pt-4 border-t border-slate-800/40">
+                                <div className="flex items-center justify-between mb-4">
+                                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <ImageIcon className="w-4 h-4" /> Evidencias Fotográficas — {loteInfo?.nombre_lote || loteKey.split(' (')[0]}
+                                  </p>
+                                  {evidenciasPorDetalle[rowId] && (
+                                    <span className="text-[10px] font-black text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                                      {evidenciasPorDetalle[rowId].length} foto{evidenciasPorDetalle[rowId].length !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                </div>
+                                {loadingEvidencias[rowId] ? (
+                                  <div className="flex items-center justify-center py-8 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                                    <div className="flex items-center gap-3">
+                                      <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                                      <span className="text-xs text-slate-500 font-bold">Cargando evidencias...</span>
+                                    </div>
+                                  </div>
+                                ) : evidenciasPorDetalle[rowId]?.length ? (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {evidenciasPorDetalle[rowId].map((evFoto, idx) => (
+                                      <div
+                                        key={idx}
+                                        onClick={() => setPreviewImage({ url: evFoto.imagen_url, title: `${loteInfo?.nombre_lote || loteKey.split(' (')[0]} — Evidencia ${idx + 1}` })}
+                                        className="group relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-slate-800 bg-slate-900 cursor-pointer hover:border-emerald-500/50 transition-all duration-300 shadow-lg hover:shadow-emerald-950/30"
+                                      >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={evFoto.imagen_url}
+                                          alt={`Evidencia ${idx + 1}`}
+                                          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-xs font-black text-white drop-shadow-lg truncate">{loteInfo?.nombre_lote || loteKey.split(' (')[0]}</p>
+                                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">Ver foto</span>
+                                          </div>
+                                        </div>
+                                        <div className="absolute top-3 left-3">
+                                          <span className="text-[9px] font-black text-white bg-slate-950/60 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-slate-700/50">
+                                            #{idx + 1}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center py-8 bg-slate-900/20 rounded-xl border border-dashed border-slate-800 gap-2">
+                                    <ImageIcon className="w-8 h-8 text-slate-700" />
+                                    <p className="text-xs text-slate-500 italic">Sin evidencias fotográficas registradas para este lote.</p>
+                                  </div>
+                                )}
+                              </div>
                             </motion.div>
                           )}
                         </div>
@@ -509,6 +586,41 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
           </div>
         </div>
       </motion.div>
+
+      {/* Lightbox de previsualización */}
+      {previewImage && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4 md:p-8 cursor-pointer"
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-5 right-5 w-12 h-12 bg-slate-900/80 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="relative max-w-4xl max-h-[85vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage.url}
+              alt={previewImage.title}
+              className="w-full h-full object-contain rounded-2xl shadow-2xl"
+            />
+            <div className="absolute -bottom-12 left-0 right-0 text-center">
+              <p className="text-sm font-black text-white/80 drop-shadow-lg">{previewImage.title}</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }
