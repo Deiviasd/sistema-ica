@@ -35,7 +35,6 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
   // 🐛 Efecto para cargar plagas sugeridas según la especie del cultivo seleccionado
   useEffect(() => {
     const idEspecie = currentEval.siembra?.id_especie;
-    console.log("🔍 Especie detectada para catálogo:", idEspecie);
     if (!idEspecie) {
       setCatalogPlagas([]);
       return;
@@ -258,22 +257,6 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
       }
     }
 
-    // Comparar con la evaluación existente en el estado local
-    const existing = formData.evaluations.find((ev) => String(ev.id_lote) === String(currentEval.id_lote))
-    if (existing) {
-      const isUnchanged =
-        String(existing.plaga || "") === String(currentEval.plaga || "") &&
-        Number(existing.afectadas) === Number(currentEval.afectadas) &&
-        Number(existing.totales) === Number(currentEval.totales) &&
-        String(existing.recomendacion || "") === String(currentEval.recomendacion || "") &&
-        String(existing.nota || "") === String(currentEval.nota || "")
-
-      if (isUnchanged) {
-        advanceToNextLote(activeLotes)
-        return { success: true, isUnchanged: true }
-      }
-    }
-
     setFormData(prev => {
       const filtered = prev.evaluations.filter(ev => String(ev.id_lote) !== String(currentEval.id_lote))
       return {
@@ -301,53 +284,40 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
       }
     }
 
-    // Calcular porcentaje de infestación
+    // Calcular porcentaje
     const total = Number(currentEval.totales) || 1
     const afectadas = Number(currentEval.afectadas) || 0
-    const porcentaje = Number(currentEval.porcentaje) || Number(((afectadas / total) * 100).toFixed(2))
+    const porcentaje = Number(((afectadas / total) * 100).toFixed(2))
 
-    // Crear/actualizar el detalle en el backend para obtener id_detalle real
+    // Payload directo
+    const payload = {
+      id_detalle: currentEval.id_detalle || undefined,
+      siembra_id: currentEval.siembra?.id_siembra || 1,
+      plaga_id: plagaId,
+      cantidad_plantas_afectadas: afectadas,
+      plantas_totales: Number(currentEval.totales) || 0,
+      porcentaje_infestacion: porcentaje,
+      observaciones_especificas: `[Plaga: ${currentEval.plaga || ''}] | [Recomendacion: ${currentEval.recomendacion || 'N/A'}] | ${currentEval.nota || ''}`
+    }
+
     try {
-      const payload = {
-        id_detalle: currentEval.id_detalle || undefined,
-        siembra_id: currentEval.siembra?.id_siembra || 1,
-        plaga_id: plagaId,
-        cantidad_plantas_afectadas: afectadas,
-        plantas_totales: Number(currentEval.totales) || 0,
-        porcentaje_infestacion: porcentaje,
-        observaciones_especificas: `[Plaga: ${currentEval.plaga || ''}] | [Recomendacion: ${currentEval.recomendacion || 'N/A'}] | ${currentEval.nota || ''}`
-      }
-
-      const savedRes = await api.post(
-        `/inspecciones/${inspection.id_inspeccion}/detalles`,
-        [payload]
-      )
+      const savedRes = await api.post(`/inspecciones/${inspection.id_inspeccion}/detalles`, [payload])
 
       if (Array.isArray(savedRes.data) && savedRes.data.length > 0) {
-        const saved = savedRes.data[0]
-        const newIdDetalle = saved.id_detalle
+        const newIdDetalle = savedRes.data[0].id_detalle
 
-        // Actualizar evaluación local con el id_detalle real
-        setFormData(prev => ({
-          ...prev,
-          evaluations: prev.evaluations.map(ev =>
-            String(ev.id_lote) === String(currentEval.id_lote) && !ev.id_detalle
-              ? { ...ev, id_detalle: newIdDetalle }
-              : ev
-          )
-        }))
-
-        // Asociar fotos encoladas (temp_*) al id_detalle real y disparar sync
+        // Asociar fotos
         try {
           const db = new OfflineDB()
           await db.asociarDetalleReal(currentEval.id_lote, newIdDetalle)
           window.dispatchEvent(new Event("online"))
         } catch (err) {
-          console.error("Error al asociar fotos al detalle:", err)
+          console.error("Error al asociar fotos:", err)
         }
       }
     } catch (err) {
-      console.error("Error guardando detalle en backend:", err)
+      console.error("Error guardando:", err)
+      return { success: false, error: "Error al guardar en el servidor." }
     }
 
     advanceToNextLote(activeLotes)

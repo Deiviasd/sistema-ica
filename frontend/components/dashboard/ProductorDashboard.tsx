@@ -215,24 +215,52 @@ export default function ProductorDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div className={`grid gap-6 ${selectedPredioId ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
-        {!selectedPredioId && (
-          <StatCard
-            title="Predios Registrados"
-            value={predios.length.toString()}
-            icon={<MapPin className="w-6 h-6 text-emerald-500" />}
-            trend={`+${prediosEsteMes} este mes`}
-            color="emerald"
-          />
-        )}
+      <div className={`grid gap-6 ${selectedPredioId ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'} items-stretch`}>
+        {/* 1. Alertas (Siempre visible) */}
         <StatCard
-          title={selectedPredioId ? "Siembras en lotes" : "Lotes y Siembras"}
-          value={siembrasActivasFiltradas.length.toString()}
-          icon={<Sprout className="w-6 h-6 text-teal-500" />}
-          trend={selectedPredioId ? `En ${selectedPredio?.nombre_predio}` : "En producción"}
-          color="teal"
+          title="Alertas"
+          value="0"
+          icon={<AlertTriangle className="w-6 h-6 text-rose-500" />}
+          trend="Sin riesgos"
+          color="rose"
         />
-        {/* Card: Inspecciones (sin predio) o Especies en Cultivo (con predio) */}
+
+        {/* 2. Lotes (Siempre visible) */}
+        <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+          <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/20 to-transparent border-teal-500/20 opacity-50" />
+            <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-muted rounded-lg border border-border">
+                    <Sprout className="w-6 h-6 text-teal-500" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-tighter leading-none">Lotes</p>
+                  {lotesFiltrados.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {lotesFiltrados.slice(0, 3).map((l, idx) => (
+                        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-500/10 text-teal-400 border border-teal-500/20 max-w-[100px] truncate" title={l.nombre_lote}>
+                          {l.nombre_lote}
+                        </span>
+                      ))}
+                      {lotesFiltrados.length > 3 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-muted text-muted-foreground border border-border">
+                          +{lotesFiltrados.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic pt-1">Sin lotes</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 3. Inspecciones Realizadas (Sin predio) o Cultivos Activos (Con predio) */}
         {!selectedPredioId ? (
           <StatCard
             title="Inspecciones Realizadas"
@@ -243,57 +271,92 @@ export default function ProductorDashboard() {
           />
         ) : (
           /* Card personalizada: Cultivos en el predio */
-          <motion.div variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
-            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full text-left">
+          <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-50" />
-              <CardContent className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-muted rounded-lg border border-border">
-                    <TrendingUp className="w-6 h-6 text-primary" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate max-w-[120px]">
-                    En {selectedPredio?.nombre_predio}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-tighter mb-2">Cultivos Activos</p>
-                  {especiesUnicasLista.length === 0 ? (
-                    <p className="text-muted-foreground text-xs italic">Sin cultivos activos</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {especiesUnicasLista.slice(0, MAX_ESPECIES_VISIBLES).map((especie, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 max-w-[140px] truncate"
-                          title={especie}
-                        >
-                          {especie.length > 16 ? especie.slice(0, 15) + '…' : especie}
-                        </span>
-                      ))}
-                      {especiesUnicasLista.length > MAX_ESPECIES_VISIBLES && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-muted text-muted-foreground border border-border">
-                          +{especiesUnicasLista.length - MAX_ESPECIES_VISIBLES} más
-                        </span>
-                      )}
+              <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 bg-muted rounded-lg border border-border">
+                      <TrendingUp className="w-6 h-6 text-primary" />
                     </div>
-                  )}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate max-w-[120px]">
+                      En {selectedPredio?.nombre_predio}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-tighter mb-2">Cultivos Activos</p>
+                    {especiesUnicasLista.length === 0 ? (
+                      <p className="text-muted-foreground text-xs italic">Sin cultivos activos</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {especiesUnicasLista.slice(0, MAX_ESPECIES_VISIBLES).map((especie, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 max-w-[140px] truncate"
+                            title={especie}
+                          >
+                            {especie.length > 16 ? especie.slice(0, 15) + '…' : especie}
+                          </span>
+                        ))}
+                        {especiesUnicasLista.length > MAX_ESPECIES_VISIBLES && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-muted text-muted-foreground border border-border">
+                            +{especiesUnicasLista.length - MAX_ESPECIES_VISIBLES} más
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
-        <StatCard
-          title="Alertas"
-          value="0"
-          icon={<AlertTriangle className="w-6 h-6 text-rose-500" />}
-          trend="Sin riesgos"
-          color="rose"
-        />
+
+        {/* 4. pp Pred (Solo si no hay predio seleccionado) */}
+        {!selectedPredioId && (
+          <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent border-emerald-500/20 opacity-50" />
+              <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-muted rounded-lg border border-border">
+                      <MapPin className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      {`+${prediosEsteMes} este mes`}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-tighter leading-none">pp Pred</p>
+                    {predios.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {predios.slice(0, 3).map((p, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 max-w-[100px] truncate" title={p.nombre_predio}>
+                            {p.nombre_predio}
+                          </span>
+                        ))}
+                        {predios.length > 3 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-muted text-muted-foreground border border-border">
+                            +{predios.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic pt-1">Sin predios</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Lista de Predios */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`${selectedPredioId ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-6`}>
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <Leaf className="w-6 h-6 text-emerald-500" />
@@ -309,12 +372,13 @@ export default function ProductorDashboard() {
                 </span>
               )}
             </h2>
-            {!selectedPredioId && (
-              <p className="text-xs text-muted-foreground italic hidden sm:block">
-                Selecciona una tarjeta para filtrar los lotes e inspecciones.
-              </p>
-            )}
           </div>
+
+          {!selectedPredioId && (
+            <p className="text-sm text-muted-foreground italic">
+              Selecciona una tarjeta para filtrar los lotes e inspecciones.
+            </p>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
             {predios.length > 0 ? predios.map((predio) => {
@@ -388,88 +452,80 @@ export default function ProductorDashboard() {
         </div>
 
         {/* Panel Lateral: Estado de Lotes y Siembras REAL */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sprout className="w-5 h-5 text-teal-400" />
-              {selectedPredioId ? "Lotes del Predio" : "Lotes y Producción"}
-            </h2>
-            {selectedPredioId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-teal-400 hover:text-teal-300 font-bold hover:bg-teal-950/30 px-2.5 py-1 h-7 rounded-lg transition-all"
-                onClick={() => setSelectedPredioId(null)}
-              >
-                Ver todos
-              </Button>
-            )}
-          </div>
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar text-left">
-            {lotesFiltrados.length > 0 ? lotesFiltrados.map((l) => {
-              const siembraActiva = siembras.find(s => s.id_lote === l.id_lote && !s.fecha_fin);
-              const predio = predios.find(p => p.lote?.some(lot => lot.id_lote === l.id_lote));
+        {selectedPredioId && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black flex items-center gap-2 tracking-tight">
+                <Sprout className="w-6 h-6 text-teal-400" />
+                {selectedPredioId ? "Lotes del Predio" : "Lotes y Producción"}
+              </h2>
+            </div>
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar text-left">
+              {lotesFiltrados.length > 0 ? lotesFiltrados.map((l) => {
+                const siembraActiva = siembras.find(s => s.id_lote === l.id_lote && !s.fecha_fin);
+                const predio = predios.find(p => p.lote?.some(lot => lot.id_lote === l.id_lote));
 
-              return (
-                <Card key={l.id_lote} className={`bg-card border-border transition-all shadow-sm ${!siembraActiva && l.estado === 'disponible' ? 'ring-1 ring-primary/20' : ''}`}>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-primary/10' :
-                      l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-muted'
-                      }`}>
-                      <Sprout className={`w-5 h-5 ${siembraActiva ? 'text-primary' :
-                        l.estado === 'disponible' ? 'text-emerald-500' : 'text-muted-foreground'
-                        }`} />
-                    </div>
+                return (
+                  <Card key={l.id_lote} className={`bg-card border-border transition-all shadow-md hover:shadow-lg ${!siembraActiva && l.estado === 'disponible' ? 'ring-2 ring-primary/20' : ''}`}>
+                    <CardContent className="p-5 flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${siembraActiva ? 'bg-primary/10' :
+                        l.estado === 'disponible' ? 'bg-emerald-500/10' : 'bg-muted'
+                        }`}>
+                        <Sprout className={`w-6 h-6 ${siembraActiva ? 'text-primary' :
+                          l.estado === 'disponible' ? 'text-emerald-500' : 'text-muted-foreground'
+                          }`} />
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold truncate">
-                          {l.nombre_lote}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-base font-black truncate text-foreground leading-tight">
+                            {l.nombre_lote}
+                          </p>
+                          {!siembraActiva && (
+                            <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full leading-none ${l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
+                              }`}>
+                              {l.estado === 'disponible' ? 'Disponible' : 'Inactivo'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-semibold italic mt-0.5">
+                          predio: <span>{predio?.nombre_predio || 'Sin predio asignado'}</span>
                         </p>
-                        {!siembraActiva && (
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${l.estado === 'disponible' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
-                            }`}>
-                            {l.estado === 'disponible' ? 'Disponible' : 'Inactivo'}
-                          </span>
+                        {siembraActiva ? (
+                          <p className="text-sm font-bold text-primary mt-1.5">
+                            cultivo: <span>{siembraActiva.variedad?.nombre_variedad || 'En cultivo'}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-muted-foreground mt-1.5">
+                            {l.estado === 'disponible' ? 'Listo para nueva siembra' : 'Finalizado - Inactivo'}
+                          </p>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        {predio?.nombre_predio || 'Sin predio asignado'}
-                      </p>
-                      {siembraActiva ? (
-                        <p className="text-xs font-medium text-primary mt-1">
-                          🌱 {siembraActiva.variedad?.nombre_variedad || 'En cultivo'}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {l.estado === 'disponible' ? 'Listo para nueva siembra' : 'Finalizado - Inactivo'}
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-primary">{siembraActiva?.cantidad_plantas || 0}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase">Plantas</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }) : (
-              <div className="text-center py-12 bg-muted/20 rounded-3xl border border-dashed border-border">
-                <p className="text-xs text-muted-foreground italic">
-                  {selectedPredioId ? "Este predio aún no tiene lotes registrados" : "No tienes lotes configurados aún."}
-                </p>
-              </div>
-            )}
+                      <div className="text-right flex-shrink-0 pl-2">
+                        <p className="text-base font-black text-primary leading-tight">{siembraActiva?.cantidad_plantas || 0}</p>
+                        <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Plantas</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }) : (
+                <div className="text-center py-12 bg-muted/20 rounded-3xl border border-dashed border-border">
+                  <p className="text-sm text-muted-foreground italic font-semibold">
+                    {selectedPredioId ? "Este predio aún no tiene lotes registrados" : "No tienes lotes configurados aún."}
+                  </p>
+                </div>
+              )}
 
-            {/* Mostrar mensaje si no hay ninguna producción activa en este predio seleccionado */}
-            {selectedPredioId && lotesFiltrados.length > 0 && !lotesFiltrados.some(l => siembras.some(s => s.id_lote === l.id_lote && !s.fecha_fin)) && (
-              <div className="text-center py-6 opacity-60 bg-muted/10 rounded-2xl border border-border">
-                <p className="text-xs text-muted-foreground italic">No hay siembras activas en este predio</p>
-              </div>
-            )}
+              {/* Mostrar mensaje si no hay ninguna producción activa en este predio seleccionado */}
+              {selectedPredioId && lotesFiltrados.length > 0 && !lotesFiltrados.some(l => siembras.some(s => s.id_lote === l.id_lote && !s.fecha_fin)) && (
+                <div className="text-center py-6 opacity-60 bg-muted/10 rounded-2xl border border-border">
+                  <p className="text-sm text-muted-foreground italic font-semibold">No hay siembras activas en este predio</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </motion.div>
   )
@@ -484,19 +540,21 @@ function StatCard({ title, value, icon, trend, color }: any) {
   }
 
   return (
-    <motion.div variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
-      <Card className={`bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg`}>
+    <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+      <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full flex flex-col justify-between">
         <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[color]} opacity-50`} />
-        <CardContent className="p-6 relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-muted rounded-lg border border-border">
-              {icon}
+        <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-muted rounded-lg border border-border">
+                {icon}
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{trend}</span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{trend}</span>
-          </div>
-          <div className="space-y-1">
-            <p className="text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
-            <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-tighter">{title}</p>
+            <div className="space-y-1">
+              <p className="text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
+              <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-tighter">{title}</p>
+            </div>
           </div>
         </CardContent>
       </Card>

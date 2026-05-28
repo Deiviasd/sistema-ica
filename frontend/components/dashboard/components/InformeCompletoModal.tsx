@@ -63,6 +63,14 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
     fetchContext()
   }, [inspection])
 
+  useEffect(() => {
+    // Bloquear el scroll del cuerpo de la página mientras el modal está abierto
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [])
+
   const groupedEvals = useMemo(() => {
     const evals = liveFormData
       ? liveFormData.evaluations
@@ -173,7 +181,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
         </div>
 
         {/* Scroll body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+        <div className={`flex-1 p-6 space-y-6 custom-scrollbar ${previewImage ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {/* Productor / Lugar */}
           {/* Info General — basado en secciones I y II del informe ICA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -469,7 +477,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
                           animate={{ opacity: 1, height: 'auto' }}
                           className="border-t border-slate-800/60 bg-slate-950/60 px-4 py-4"
                           onAnimationStart={() => {
-                            const idDetalle = ev.id_detail || (ev as EvalItem).id_detalle
+                            const idDetalle = (ev as EvalItem).id_detalle
                             if (idDetalle) fetchEvidenciasDetalle(idDetalle, rowId)
                           }}
                         >
@@ -594,11 +602,11 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4 md:p-8 cursor-pointer"
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden"
         >
           <button
             onClick={() => setPreviewImage(null)}
-            className="absolute top-5 right-5 w-12 h-12 bg-slate-900/80 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
+            className="absolute top-5 right-5 w-12 h-12 bg-slate-900/50 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
           >
             <X className="w-6 h-6" />
           </button>
@@ -606,19 +614,19 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="relative max-w-4xl max-h-[85vh] w-full"
+            className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewImage.url}
               alt={previewImage.title}
-              className="w-full h-full object-contain rounded-2xl shadow-2xl"
+              className="w-full h-full object-contain select-none"
             />
-            <div className="absolute -bottom-12 left-0 right-0 text-center">
-              <p className="text-sm font-black text-white/80 drop-shadow-lg">{previewImage.title}</p>
-            </div>
           </motion.div>
+          <div className="mt-4 text-center max-w-[90vw]">
+            <p className="text-sm md:text-base font-black text-white/90 drop-shadow-lg">{previewImage.title}</p>
+          </div>
         </motion.div>
       )}
     </div>

@@ -127,14 +127,15 @@ export class OfflineDB {
       const transaction = db.transaction(this.storeName, "readwrite");
       const store = transaction.objectStore(this.storeName);
       const request = store.getAll();
-
+      
       request.onsuccess = () => {
         const todas = request.result || [];
-        const filtradas = todas.filter((item) =>
+
+        const filtradas = todas.filter((item) => 
           String(item.id_detalle_inspeccion) === String(idLote) ||
           String(item.id_detalle_inspeccion) === `temp_${idLote}`
         );
-
+        
         for (const item of filtradas) {
           item.id_detalle_inspeccion = idDetalleReal;
           store.put(item);

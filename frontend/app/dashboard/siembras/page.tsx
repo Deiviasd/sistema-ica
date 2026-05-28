@@ -17,12 +17,14 @@ import {
   TrendingUp,
   History,
   ExternalLink,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import api from "@/lib/api"
 import { useUserStore } from "@/lib/store"
+import { LoteCard } from "./components/LoteCard"
 
 interface Siembra {
   id_siembra: number
@@ -37,6 +39,7 @@ interface Siembra {
     nombre_variedad: string
     especie: {
       nombre_comun: string
+      imagen_url?: string
     }
   }
 }
@@ -78,6 +81,7 @@ export default function SiembrasPage() {
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null)
   const [selectedSiembra, setSelectedSiembra] = useState<Siembra | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null)
 
   const [isManualEspecie, setIsManualEspecie] = useState(false)
   const [isManualVariedad, setIsManualVariedad] = useState(false)
@@ -104,6 +108,17 @@ export default function SiembrasPage() {
       setFormData(prev => ({ ...prev, id_predio: selectedPredioId }))
     }
   }, [showRegisterModal, selectedPredioId])
+
+  useEffect(() => {
+    if (previewImage) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [previewImage])
 
   const lotesConEstado = useMemo(() => {
     const allLotes: (Lote & { nombre_predio: string, id_predio: number, siembraActiva?: Siembra })[] = []
@@ -368,103 +383,16 @@ export default function SiembrasPage() {
         {lotesConEstado.map((lote, idx) => {
           const isLocked = lockedLugares.includes(Number(lote.id_lugar_produccion))
           return (
-            <motion.div key={lote.id_lote} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
-              onClick={() => lote.estado === 'ocupado' && lote.siembraActiva && setSelectedSiembra({ ...lote.siembraActiva, nombre_lote: lote.nombre_lote, nombre_lugar: lote.nombre_predio, area: lote.area, id_predio: lote.id_predio, id_lugar_produccion: lote.id_lugar_produccion } as any)}
-              className="cursor-pointer select-none"
-            >
-              <Card className={`relative overflow-hidden transition-all border-2 text-left ${lote.estado === 'ocupado' ? 'bg-card border-border hover:border-primary' : 'bg-muted/40 border-border border-dashed hover:border-border/80'}`}>
-                <CardContent className="p-6 md:p-8">
-                  <div className="flex justify-between items-start mb-6 gap-2">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center ${lote.siembraActiva ? 'bg-primary/10' : 'bg-muted'}`}>
-                        <Layers className={`${lote.siembraActiva ? 'text-primary' : 'text-muted-foreground'} w-6 h-6 md:w-7 md:h-7`} />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xl md:text-2xl font-black text-foreground italic uppercase tracking-tighter leading-none truncate">{lote.nombre_lote}</h3>
-                        <p className="text-muted-foreground font-bold text-[9px] md:text-[10px] uppercase tracking-widest mt-1 flex items-center gap-1 truncate">
-                          <MapPin className="w-3 h-3 text-primary" /> {lote.nombre_predio}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {isLocked && (
-                        <span className="px-2 py-0.5 text-[7px] md:text-[8px] font-black uppercase rounded-full bg-destructive/10 text-destructive border border-destructive/20 animate-pulse">
-                          Congelado
-                        </span>
-                      )}
-                      <span className={`px-2 md:px-3 py-1 text-[8px] md:text-[9px] font-black uppercase rounded-full border ${lote.estado === 'ocupado' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-muted text-muted-foreground border-border'}`}>
-                        {lote.estado === 'ocupado' ? 'Ocupado' : 'Disponible'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {lote.estado === 'ocupado' ? (
-                    <div className="space-y-6 text-left">
-                      {/* Sección Cultivo */}
-                      <div className="py-4 md:py-6 border-y border-border flex justify-between items-end gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[9px] md:text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-2">Cultivo Actual</p>
-                          <p className="text-2xl md:text-3xl font-black text-primary uppercase italic leading-none mb-2 truncate">
-                            {lote.siembraActiva?.variedad?.especie?.nombre_comun || 'Cargando...'}
-                          </p>
-                          <p className="text-xs md:text-sm font-bold text-foreground uppercase tracking-tight truncate">
-                            Variedad: <span className="text-muted-foreground">{lote.siembraActiva?.variedad?.nombre_variedad || 'N/A'}</span>
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-[9px] md:text-[10px] text-muted-foreground font-black uppercase mb-1">Siembra</p>
-                          <p className="text-foreground font-bold text-xs md:text-sm">
-                            {lote.siembraActiva?.fecha_siembra
-                              ? new Date(lote.siembraActiva.fecha_siembra).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-                              : '---'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Sección Métricas */}
-                      <div className="grid grid-cols-2 gap-3 md:gap-4">
-                        <div className="p-3 md:p-4 bg-muted/40 rounded-xl md:rounded-2xl border border-border text-left">
-                          <p className="text-xl md:text-2xl font-black text-foreground italic leading-none mb-1">{lote.area || 0} m²</p>
-                          <p className="text-[8px] md:text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Área lote</p>
-                        </div>
-                        <div className="p-3 md:p-4 bg-muted/40 rounded-xl md:rounded-2xl border border-border text-left">
-                          <p className="text-xl md:text-2xl font-black text-foreground italic leading-none mb-1">{lote.siembraActiva?.cantidad_plantas || 0}</p>
-                          <p className="text-[8px] md:text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Plantas</p>
-                        </div>
-                      </div>
-
-                      {/* Acción Principal */}
-                      <div className="pt-2">
-                        <Button
-                          className="w-full bg-muted hover:bg-primary text-foreground hover:text-primary-foreground border border-border hover:border-primary rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest h-12 md:h-14 transition-all group/btn shadow-md"
-                        >
-                          <TrendingUp className="w-4 h-4 md:w-5 md:h-5 mr-3 text-primary group-hover/btn:text-primary-foreground" />
-                          Gestionar cultivo
-                          <ExternalLink className="w-3.5 h-3.5 md:w-4 h-4 ml-2 opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="pt-6 border-t border-border space-y-3">
-                      <Button
-                        disabled={isLocked}
-                        onClick={(e) => { e.stopPropagation(); setSelectedLote(lote); setShowAssignModal(true); }}
-                        className={`w-full bg-muted hover:bg-emerald-600 text-muted-foreground hover:text-white font-black text-[10px] md:text-xs tracking-widest h-12 md:h-14 rounded-xl md:rounded-2xl transition-all border border-border uppercase shadow-md ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        {isLocked ? '🔒 Asignación Bloqueada' : 'Asignar Nueva Siembra'}
-                      </Button>
-                      <Button
-                        disabled={isLocked}
-                        onClick={(e) => { e.stopPropagation(); handleDeleteLote(lote.id_lote); }}
-                        className={`w-full bg-background hover:bg-destructive/10 text-destructive/40 hover:text-destructive font-bold text-[10px] md:text-xs tracking-widest h-10 md:h-12 rounded-xl md:rounded-2xl transition-all border border-border hover:border-destructive/30 uppercase ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" /> Eliminar Lote
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+            <LoteCard
+              key={lote.id_lote}
+              lote={lote}
+              idx={idx}
+              isLocked={isLocked}
+              onSelectSiembra={(l) => setSelectedSiembra({ ...l.siembraActiva, nombre_lote: l.nombre_lote, nombre_lugar: l.nombre_predio, area: l.area, id_predio: l.id_predio, id_lugar_produccion: l.id_lugar_produccion } as any)}
+              onAssignSiembra={(l) => { setSelectedLote(l); setShowAssignModal(true); }}
+              onDeleteLote={(id) => handleDeleteLote(id)}
+              onPreviewImage={(url, title) => setPreviewImage({ url, title })}
+            />
           )
         })}
       </div>
@@ -561,21 +489,36 @@ export default function SiembrasPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Especie */}
                   {!isManualEspecie ? (
-                    <select required className="bg-background border border-border p-3 md:p-4 rounded-xl md:rounded-2xl text-foreground font-bold outline-none focus:border-primary transition-all text-xs md:text-sm"
-                      value={formData.id_especie}
-                      onChange={(e) => {
-                        if (e.target.value === 'manual') {
-                          setIsManualEspecie(true);
-                          setIsManualVariedad(true); // Si la especie es nueva, la variedad también debe serlo
-                          setFormData({ ...formData, id_especie: 'manual', id_variedad: 'manual' })
-                        } else {
-                          setFormData({ ...formData, id_especie: e.target.value, id_variedad: "" })
-                        }
-                      }}>
-                      <option value="">Especie...</option>
-                      {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
-                      <option value="manual" className="text-primary font-black italic">+ AGREGAR NUEVA...</option>
-                    </select>
+                    <div className="flex items-center gap-2 w-full">
+                      <select required className="flex-1 bg-background border border-border p-3 md:p-4 rounded-xl md:rounded-2xl text-foreground font-bold outline-none focus:border-primary transition-all text-xs md:text-sm h-12 md:h-14 animate-none"
+                        value={formData.id_especie}
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualEspecie(true);
+                            setIsManualVariedad(true); // Si la especie es nueva, la variedad también debe serlo
+                            setFormData({ ...formData, id_especie: 'manual', id_variedad: 'manual' })
+                          } else {
+                            setFormData({ ...formData, id_especie: e.target.value, id_variedad: "" })
+                          }
+                        }}>
+                        <option value="">Especie...</option>
+                        {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
+                        <option value="manual" className="text-primary font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                      {formData.id_especie && formData.id_especie !== 'manual' && (() => {
+                        const esp = especies.find(e => String(e.id_especie) === String(formData.id_especie))
+                        return esp?.imagen_url ? (
+                          <Button
+                            type="button"
+                            onClick={() => setPreviewImage({ url: esp.imagen_url, title: `Visualización: ${esp.nombre_comun}` })}
+                            className="h-12 md:h-14 w-12 md:w-14 shrink-0 rounded-xl md:rounded-2xl border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center p-0"
+                            title="Visualizar cultivo"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </Button>
+                        ) : null
+                      })()}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="relative">
@@ -657,21 +600,36 @@ export default function SiembrasPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
                   {/* Especie */}
                   {!isManualEspecie ? (
-                    <select required className="bg-background border border-border p-3 md:p-4 rounded-xl md:rounded-2xl text-foreground font-bold outline-none focus:border-primary text-xs md:text-sm"
-                      value={formData.id_especie}
-                      onChange={(e) => {
-                        if (e.target.value === 'manual') {
-                          setIsManualEspecie(true);
-                          setIsManualVariedad(true);
-                          setFormData({ ...formData, id_especie: 'manual', id_variedad: 'manual' })
-                        } else {
-                          setFormData({ ...formData, id_especie: e.target.value, id_variedad: "" })
-                        }
-                      }}>
-                      <option value="">Especie...</option>
-                      {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
-                      <option value="manual" className="text-primary font-black italic">+ AGREGAR NUEVA...</option>
-                    </select>
+                    <div className="flex items-center gap-2 w-full">
+                      <select required className="flex-1 bg-background border border-border p-3 md:p-4 rounded-xl md:rounded-2xl text-foreground font-bold outline-none focus:border-primary text-xs md:text-sm h-12 md:h-14 animate-none"
+                        value={formData.id_especie}
+                        onChange={(e) => {
+                          if (e.target.value === 'manual') {
+                            setIsManualEspecie(true);
+                            setIsManualVariedad(true);
+                            setFormData({ ...formData, id_especie: 'manual', id_variedad: 'manual' })
+                          } else {
+                            setFormData({ ...formData, id_especie: e.target.value, id_variedad: "" })
+                          }
+                        }}>
+                        <option value="">Especie...</option>
+                        {especies.map(e => <option key={e.id_especie} value={e.id_especie}>{e.nombre_comun}</option>)}
+                        <option value="manual" className="text-primary font-black italic">+ AGREGAR NUEVA...</option>
+                      </select>
+                      {formData.id_especie && formData.id_especie !== 'manual' && (() => {
+                        const esp = especies.find(e => String(e.id_especie) === String(formData.id_especie))
+                        return esp?.imagen_url ? (
+                          <Button
+                            type="button"
+                            onClick={() => setPreviewImage({ url: esp.imagen_url, title: `Visualización: ${esp.nombre_comun}` })}
+                            className="h-12 md:h-14 w-12 md:w-14 shrink-0 rounded-xl md:rounded-2xl border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center p-0"
+                            title="Visualizar cultivo"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </Button>
+                        ) : null
+                      })()}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="relative">
@@ -733,6 +691,37 @@ export default function SiembrasPage() {
                 </Button>
               </form>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox de previsualización de imágenes */}
+      <AnimatePresence>
+        {previewImage && (
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden text-center" onClick={() => setPreviewImage(null)}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-5 right-5 w-12 h-12 bg-slate-900/50 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-full object-contain select-none"
+              />
+            </motion.div>
+            <div className="mt-4 text-center max-w-[90vw]">
+              <p className="text-sm md:text-base font-black text-white/90 drop-shadow-lg">{previewImage.title}</p>
+            </div>
           </div>
         )}
       </AnimatePresence>

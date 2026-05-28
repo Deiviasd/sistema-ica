@@ -42,9 +42,6 @@ export default function Dashboard() {
           <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
             {getGreeting()}, <span className="text-primary">{user.nombre}</span>
           </h1>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Aquí tienes el resumen de tu producción fitosanitaria.
-          </p>
         </motion.div>
 
         <ProductorDashboard />
