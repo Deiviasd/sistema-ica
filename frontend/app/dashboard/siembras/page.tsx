@@ -385,7 +385,7 @@ export default function SiembrasPage() {
           return (
             <LoteCard
               key={lote.id_lote}
-              lote={lote}
+              lote={lote as any}
               idx={idx}
               isLocked={isLocked}
               onSelectSiembra={(l) => setSelectedSiembra({ ...l.siembraActiva, nombre_lote: l.nombre_lote, nombre_lugar: l.nombre_predio, area: l.area, id_predio: l.id_predio, id_lugar_produccion: l.id_lugar_produccion } as any)}

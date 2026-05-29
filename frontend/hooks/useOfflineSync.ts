@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { OfflineDB } from "@/lib/offline-db";
+import { OfflineDB, EvidenciaOffline } from "@/lib/offline-db";
 
 /**
  * Hook global para gestionar la sincronización automática de evidencias fotográficas

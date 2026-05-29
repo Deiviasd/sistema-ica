@@ -76,7 +76,7 @@ export default function ProductorDashboard() {
   }, [user])
 
   const handleAgendar = () => {
-    window.location.href = `/dashboard/inspecciones/agendar`;
+    window.location.href = `/dashboard/agendar`;
   }
 
   const container = {

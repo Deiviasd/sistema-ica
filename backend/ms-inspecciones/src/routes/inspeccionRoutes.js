@@ -16,6 +16,9 @@ router.get('/lugar-produccion/:id/inspeccion-activa', inspeccionController.getIn
 router.get('/predio/:id/inspeccion-activa', inspeccionController.getInspeccionActivaPredio);
 router.post('/agendar', authenticateInternal, inspeccionController.postAgendar);
 
+// Eliminar inspección completa
+router.delete('/:id', authenticateInternal, inspeccionController.deleteInspeccion);
+
 // Eliminar detalle/hallazgo de inspección
 router.delete('/detalles/:id_detalle', authenticateInternal, inspeccionController.deleteDetalle);
 

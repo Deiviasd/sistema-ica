@@ -27,9 +27,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Auditoría", href: "/dashboard/auditoria", icon: FileText, roles: ["admin"] },
     { name: "Predios", href: "/dashboard/predios", icon: Map, roles: ["productor"] },
     { name: "Lotes y Siembras", href: "/dashboard/siembras", icon: Sprout, roles: ["productor"] },
-    { name: "Agendar Inspección", href: "/dashboard/inspecciones/agendar", icon: Calendar, roles: ["productor", "admin"] },
-    { name: "Registro Integral", href: "/dashboard/registro-integral", icon: Leaf, roles: ["productor"] },
-    { name: "Inspecciones", href: "/dashboard/inspecciones", icon: ClipboardCheck, roles: ["tecnico"] },
+    { name: "Agendar Inspección", href: "/dashboard/agendar", icon: Calendar, roles: ["productor", "admin"] },
+    { name: "Historial Registros", href: "/dashboard/historial-registros", icon: Leaf, roles: ["productor"] },
     { name: "Reportes", href: "/dashboard/reportes", icon: FileStack, roles: ["tecnico"] },
   ]
 

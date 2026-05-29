@@ -9,6 +9,8 @@ interface Props {
   inspection: Inspection
   liveFormData?: FormData
   onClose: () => void
+  filterPredioId?: string | null
+  filterLoteId?: string | null
 }
 
 function TruncatedValue({ value, tone = "white" }: { value: string; tone?: "white" | "emerald" }) {
@@ -34,7 +36,7 @@ function TruncatedValue({ value, tone = "white" }: { value: string; tone?: "whit
   )
 }
 
-export function InformeCompletoModal({ inspection, liveFormData, onClose }: Props) {
+export function InformeCompletoModal({ inspection, liveFormData, onClose, filterPredioId, filterLoteId }: Props) {
   const [context, setContext] = useState<ContextoInspeccion | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDossierLugar, setSelectedDossierLugar] = useState<string | null>(null)
@@ -93,20 +95,53 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
     evals.forEach((ev: EvalItem) => {
       let targetLugar: LugarProduccion | null = null
       let targetLote: Lote | null = null
+      
       for (const lugar of (context?.lugares_produccion || [])) {
-        const lotesDelLugar = [
-          ...(lugar.lotes || []),
-          ...(lugar.predios || []).flatMap((predio) => predio.lotes || [])
-        ]
-        for (const lote of lotesDelLugar) {
-          if (String(ev.id_lote) === String(lote.id_lote) || (ev.siembra && Number(ev.siembra.id_siembra) === Number(lote.siembra_activa?.id_siembra))) {
-            targetLugar = lugar
-            targetLote = lote
-            break
+        let found = false
+        // Check lotes inside predios first to ensure we get the id_predio mapping
+        if (lugar.predios) {
+          for (const predio of lugar.predios) {
+            if (predio.lotes) {
+              for (const lote of predio.lotes) {
+                if (String(ev.id_lote) === String(lote.id_lote) || (ev.siembra && Number(ev.siembra.id_siembra) === Number(lote.siembra_activa?.id_siembra))) {
+                  targetLugar = lugar
+                  targetLote = { ...lote, id_predio: predio.id_predio } as any
+                  found = true
+                  break
+                }
+              }
+            }
+            if (found) break
           }
         }
-        if (targetLugar) break
+        // Check top-level lotes in lugar as fallback
+        if (!found && lugar.lotes) {
+          for (const lote of lugar.lotes) {
+            if (String(ev.id_lote) === String(lote.id_lote) || (ev.siembra && Number(ev.siembra.id_siembra) === Number(lote.siembra_activa?.id_siembra))) {
+              targetLugar = lugar
+              targetLote = lote
+              found = true
+              break
+            }
+          }
+        }
+        if (found) break
       }
+
+      // Filter by Predio prop
+      if (filterPredioId && filterPredioId !== "all") {
+        if (String((targetLote as any)?.id_predio) !== String(filterPredioId)) {
+          return // skip this eval!
+        }
+      }
+
+      // Filter by Lote prop
+      if (filterLoteId && filterLoteId !== "all") {
+        if (String(targetLote?.id_lote) !== String(filterLoteId)) {
+          return // skip this eval!
+        }
+      }
+
       const lugarKey = targetLugar ? targetLugar.nombre_lugar : 'Sin Lugar Identificado'
       const siembra = targetLote ? targetLote.siembra_activa : null
       const siembraDetail = siembra
@@ -120,18 +155,25 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
       groups[lugarKey][loteKey].push(ev)
     })
     return groups
-  }, [liveFormData, context?.hallazgos_previos, context?.lugares_produccion])
+  }, [liveFormData, context?.hallazgos_previos, context?.lugares_produccion, filterPredioId, filterLoteId])
+
+  const lugarInspeccion = context?.lugares_produccion?.find(
+    (l) => l.id_lugar_produccion === context?.id_lugar_produccion
+  ) || context?.lugares_produccion?.[0];
+
+  const prediosDelLugar = useMemo(() => {
+    let list = lugarInspeccion?.predios || []
+    if (filterPredioId && filterPredioId !== "all") {
+      list = list.filter(p => String(p.id_predio) === String(filterPredioId))
+    }
+    return list
+  }, [lugarInspeccion, filterPredioId])
 
   if (loading) return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md">
       <Loader2 className="w-12 h-12 text-teal-500 animate-spin" />
     </div>
   )
-
-  const lugarInspeccion = context?.lugares_produccion?.find(
-    (l) => l.id_lugar_produccion === context?.id_lugar_produccion
-  ) || context?.lugares_produccion?.[0];
-  const prediosDelLugar = lugarInspeccion?.predios || [];
 
   const genObs = liveFormData ? liveFormData.generalObs : inspection.observaciones_generales
 
@@ -269,14 +311,23 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose }: Prop
               {(() => {
                 const predios = context?.lugares_produccion?.flatMap((l) => l.predios || []) || []
                 const todosLotes = predios.flatMap((p) =>
-                  (p.lotes || []).map((lote) => ({ ...lote, predio_nombre: p.nombre_predio }))
+                  (p.lotes || []).map((lote) => ({ ...lote, predio_nombre: p.nombre_predio, id_predio: p.id_predio }))
                 )
-                if (todosLotes.length === 0) return (
+                
+                let filteredTodosLotes = todosLotes;
+                if (filterPredioId && filterPredioId !== "all") {
+                  filteredTodosLotes = filteredTodosLotes.filter(l => String(l.id_predio) === String(filterPredioId))
+                }
+                if (filterLoteId && filterLoteId !== "all") {
+                  filteredTodosLotes = filteredTodosLotes.filter(l => String(l.id_lote) === String(filterLoteId))
+                }
+
+                if (filteredTodosLotes.length === 0) return (
                   <p className="col-span-full text-slate-500 italic text-sm text-center py-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                    No hay lotes registrados.
+                    No hay lotes registrados para el filtro seleccionado.
                   </p>
                 )
-                return todosLotes.map((lote) => {
+                return filteredTodosLotes.map((lote) => {
                   const isOpen = selectedDossierLote === lote.id_lote
 
                   return (

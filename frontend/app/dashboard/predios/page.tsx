@@ -284,7 +284,7 @@ export default function PrediosPage() {
   }
 
   const handleAgendar = (idLugar: number) => {
-    window.location.href = `/dashboard/inspecciones/agendar?id_lugar_produccion=${idLugar}`;
+    window.location.href = `/dashboard/agendar?id_lugar_produccion=${idLugar}`;
   }
 
   // 🛡️ Validador de Texto Real

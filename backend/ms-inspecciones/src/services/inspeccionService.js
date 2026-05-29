@@ -292,10 +292,15 @@ const eliminarDetalle = async (idDetalle) => {
 
 const generarReporte = async (reqUser) => {
     const { id_usuario, role } = reqUser;
+    const userRole = role?.toLowerCase();
 
     let query = supabase.from('inspeccion').select('*, detalle_inspeccion(*)');
 
-    if (role !== 'ADMIN_ICA' && role !== 'admin') {
+    if (userRole === 'tecnico') {
+        const tecnicoId = Number(id_usuario);
+        if (isNaN(tecnicoId)) return [];
+        query = query.eq('tecnico_id', tecnicoId);
+    } else if (userRole !== 'admin' && userRole !== 'admin_ica') {
         const producerId = Number(id_usuario);
         if (isNaN(producerId)) return [];
         query = query.eq('productor_id', producerId);
@@ -401,12 +406,17 @@ const obtenerAsignadas = async (reqUser) => {
 };
 
 const finalizarInspeccion = async (id, observaciones_generales, estado) => {
+    const updatePayload = { observaciones_generales };
+    if (estado !== undefined && estado !== null) {
+        updatePayload.estado = estado;
+    }
+
     const { error } = await supabase.from('inspeccion')
-        .update({ estado, observaciones_generales })
+        .update(updatePayload)
         .eq('id_inspeccion', id);
 
     if (error) throw error;
-    return { message: 'Inspección finalizada con éxito' };
+    return { message: 'Inspección actualizada con éxito' };
 };
 
 const agendarInspeccion = async (body, reqUser) => {
@@ -660,8 +670,37 @@ const obtenerInspeccionActivaPredio = async (id) => {
 
 
 
+const eliminarInspeccion = async (id) => {
+    // 1. Obtener detalles de la inspección
+    const { data: detalles } = await supabase
+        .from('detalle_inspeccion')
+        .select('id_detalle')
+        .eq('id_inspeccion', id);
+    
+    // 2. Si hay detalles, borrar evidencias y luego los detalles
+    if (detalles && detalles.length > 0) {
+        const idsDetalle = detalles.map(d => d.id_detalle);
+        await supabase.from('evidencia_inspeccion')
+            .delete()
+            .in('id_detalle_inspeccion', idsDetalle);
+        await supabase.from('detalle_inspeccion')
+            .delete()
+            .eq('id_inspeccion', id);
+    }
+
+    // 3. Borrar la inspección
+    const { error: inspErr } = await supabase
+        .from('inspeccion')
+        .delete()
+        .eq('id_inspeccion', id);
+        
+    if (inspErr) throw inspErr;
+    return { message: 'Inspección eliminada con éxito' };
+};
+
 module.exports = {
     obtenerContexto,
+    eliminarInspeccion,
     registrarDetalles,
     eliminarDetalle,
     generarReporte,

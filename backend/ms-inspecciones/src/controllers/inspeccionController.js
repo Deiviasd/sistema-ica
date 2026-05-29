@@ -126,10 +126,22 @@ const getInspeccionActivaPredio = async (req, res) => {
     }
 };
 
+const deleteInspeccion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const resultado = await inspeccionService.eliminarInspeccion(id);
+        res.json(resultado);
+    } catch (error) {
+        console.error('❌ Error en DELETE /inspecciones/:id:', error);
+        res.status(500).json({ error: 'Fallo al eliminar la inspección', details: error.message });
+    }
+};
+
 module.exports = {
     getContexto,
     postDetalles,
     deleteDetalle,
+    deleteInspeccion,
     getReporte,
     getAsignadas,
     patchFinalizar,

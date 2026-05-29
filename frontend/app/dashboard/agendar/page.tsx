@@ -416,17 +416,17 @@ function AgendarForm() {
       <AnimatePresence>
         {showConfirmModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" 
-              onClick={() => setShowConfirmModal(false)} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              onClick={() => setShowConfirmModal(false)}
             />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-lg bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl z-10"
             >
               <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -436,7 +436,7 @@ function AgendarForm() {
                 Atención: Inspección de Lugar de Producción
               </h3>
               <p className="text-muted-foreground text-center mb-6 leading-relaxed">
-                Al solicitar esta asignación técnica, el funcionario ICA evaluará 
+                Al solicitar esta asignación técnica, el funcionario ICA evaluará
                 <span className="text-amber-500 font-bold"> todo el Lugar de Producción</span>.
               </p>
 
@@ -461,27 +461,27 @@ function AgendarForm() {
                     })}
                   </ul>
                   {selectedLugar.predio.some(p => {
-                     const lpRegion = selectedLugar.region;
-                     return p.region && lpRegion && (p.region.municipio !== lpRegion.municipio || p.region.vereda !== lpRegion.vereda || p.region.direccion !== lpRegion.direccion);
+                    const lpRegion = selectedLugar.region;
+                    return p.region && lpRegion && (p.region.municipio !== lpRegion.municipio || p.region.vereda !== lpRegion.vereda || p.region.direccion !== lpRegion.direccion);
                   }) && (
-                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-xs font-bold flex gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <div>
-                        Algunos predios están en ubicaciones diferentes. El técnico podría requerir realizar múltiples visitas o coordinar traslados.
+                      <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-xs font-bold flex gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <div>
+                          Algunos predios están en ubicaciones diferentes. El técnico podría requerir realizar múltiples visitas o coordinar traslados.
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
 
               <div className="space-y-3">
-                <Button 
-                   className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-black text-lg rounded-2xl transition-all active:scale-95"
+                <Button
+                  className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-black text-lg rounded-2xl transition-all active:scale-95"
                   onClick={() => confirmSubmit()}
                 >
                   CONFIRMAR AGENDAMIENTO
                 </Button>
-                <Button 
+                <Button
                   variant="ghost"
                   className="w-full h-14 text-muted-foreground hover:bg-muted rounded-2xl font-bold transition-all"
                   onClick={() => setShowConfirmModal(false)}
