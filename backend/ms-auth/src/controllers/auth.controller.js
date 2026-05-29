@@ -1,4 +1,4 @@
-const { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService } = require('../services/auth.service')
+const { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService, updateUserRoleService } = require('../services/auth.service')
 
 const registerController = async (req, res) => {
     try {
@@ -43,6 +43,18 @@ const updateStatusController = async (req, res) => {
         const { id } = req.params
         const adminId = req.user.id // ID del Admin ICA (extraído del token)
         const result = await updateUserService(adminId, id, req.body)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const updateRoleController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const adminId = req.user.id
+        const { rol } = req.body
+        const result = await updateUserRoleService(adminId, id, rol)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({ error: error.message })
@@ -139,4 +151,4 @@ const checkEmailController = async (req, res) => {
     }
 }
 
-module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, deleteController, getUserController, getUsersByRoleController, getProfileController, checkEmailController, updateProfileController }
+module.exports = { loginController, registerController, getUsersByStatusController, getAllController, updateStatusController, updateRoleController, deleteController, getUserController, getUsersByRoleController, getProfileController, checkEmailController, updateProfileController }

@@ -290,11 +290,16 @@ const eliminarDetalle = async (idDetalle) => {
     return { success: true, message: 'Detalle eliminado' };
 };
 
-const generarReporte = async (reqUser) => {
+const generarReporte = async (reqUser, filters = {}) => {
     const { id_usuario, role } = reqUser;
     const userRole = role?.toLowerCase();
 
     let query = supabase.from('inspeccion').select('*, detalle_inspeccion(*)');
+
+    if (filters.fecha_inicio) query = query.gte('fecha_programada', filters.fecha_inicio);
+    if (filters.fecha_fin) query = query.lte('fecha_programada', filters.fecha_fin);
+    if (filters.estado) query = query.eq('estado', filters.estado);
+    if (filters.tecnico_id) query = query.eq('tecnico_id', filters.tecnico_id);
 
     if (userRole === 'tecnico') {
         const tecnicoId = Number(id_usuario);
@@ -310,16 +315,40 @@ const generarReporte = async (reqUser) => {
     if (error) throw error;
 
     const enriched = await Promise.all((data || []).map(async (ins) => {
-        if (!ins.tecnico_id) return { ...ins, tecnico_nombre: 'Por asignar' };
+        let base = { ...ins, tecnico_nombre: 'Por asignar' };
+
+        try {
+            const headers = { 'x-user-id': id_usuario, 'x-user-role': role };
+            const lugares = await prediosClient.getLugaresProduccion(headers);
+            const lugar = lugares.find(p => p.id_lugar_produccion === ins.id_lugar_produccion);
+            const predioInfo = Array.isArray(lugar?.predio)
+                ? (ins.id_predio ? lugar.predio.find(p => p.id_predio === ins.id_predio) : lugar.predio[0])
+                : lugar?.predio;
+
+            base = {
+                ...base,
+                lugar_produccion: lugar,
+                lugar_produccion_nombre: lugar?.nombre_lugar || lugar?.nombre || 'Sin lugar',
+                predio_nombre: predioInfo?.nombre_predio || 'Sin predio',
+                municipio: lugar?.region?.municipio || predioInfo?.region?.municipio,
+                region: lugar?.region?.departamento || predioInfo?.region?.departamento
+            };
+        } catch {}
+
+        if (!ins.tecnico_id) return base;
         try {
             const authRes = await authClient.getUsuarioById(ins.tecnico_id);
-            return { ...ins, tecnico_nombre: authRes?.nombre || `Técnico #${ins.tecnico_id}` };
+            return { ...base, tecnico_nombre: authRes?.nombre || `Técnico #${ins.tecnico_id}` };
         } catch {
-            return { ...ins, tecnico_nombre: `Técnico #${ins.tecnico_id}` };
+            return { ...base, tecnico_nombre: `Técnico #${ins.tecnico_id}` };
         }
     }));
 
-    return enriched;
+    return enriched.filter((ins) => {
+        const regionOk = !filters.region || String(ins.region || '').toLowerCase().includes(String(filters.region).toLowerCase());
+        const municipioOk = !filters.municipio || String(ins.municipio || '').toLowerCase().includes(String(filters.municipio).toLowerCase());
+        return regionOk && municipioOk;
+    });
 };
 
 const obtenerAsignadas = async (reqUser) => {

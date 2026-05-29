@@ -12,9 +12,13 @@ import {
   Shield, 
   MapPin,
   Calendar,
+  Eye,
+  Fingerprint,
   ExternalLink,
+  Info,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from "lucide-react"
 import api from "@/lib/api"
 import { Card } from "@/components/ui/card"
@@ -44,6 +48,9 @@ export default function DirectorioUsuarios() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<DirectoryUser | null>(null)
+  const [roleDraft, setRoleDraft] = useState("productor")
+  const [toastMessage, setToastMessage] = useState("")
 
   const { user } = useUserStore()
   const router = useRouter()
@@ -69,6 +76,15 @@ export default function DirectorioUsuarios() {
     fetchAllUsers()
   }, [])
 
+  useEffect(() => {
+    if (selectedUser) setRoleDraft(roleToValue(selectedUser.id_rol))
+  }, [selectedUser])
+
+  const showToast = (message: string) => {
+    setToastMessage(message)
+    window.setTimeout(() => setToastMessage(""), 2800)
+  }
+
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'activo' ? 'bloqueado' : 'activo'
     setIsUpdating(id)
@@ -91,6 +107,41 @@ export default function DirectorioUsuarios() {
       setUsers(prev => prev.filter(u => u.id_usuario !== id))
     } catch (error) {
       alert("Error al eliminar el usuario. Es posible que tenga registros vinculados (predios, cultivos) que impiden el borrado directo.")
+    } finally {
+      setIsUpdating(null)
+    }
+  }
+
+  const roleToValue = (role: string) => {
+    if (role === "ADMIN_ICA") return "admin"
+    if (role === "TECNICO") return "tecnico"
+    return "productor"
+  }
+
+  const roleToId = (role: string) => {
+    if (role === "admin") return "ADMIN_ICA"
+    if (role === "tecnico") return "TECNICO"
+    return "PRODUCTOR"
+  }
+
+  const formatRegion = (region?: DirectoryUser["region"]) => {
+    if (!region) return "Ubicación no especificada"
+    return [region.vereda, region.municipio, region.departamento].filter(Boolean).join(", ") || "Ubicación no especificada"
+  }
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser) return
+    if (!confirm(`Vas a cambiar el rol de ${selectedUser.nombre} a ${roleDraft}. Esta acción modifica sus permisos. ¿Deseas continuar?`)) return
+
+    setIsUpdating(selectedUser.id_usuario)
+    try {
+      const res = await api.patch(`/auth/users/${selectedUser.id_usuario}/rol`, { rol: roleDraft })
+      const updated = { ...selectedUser, id_rol: res.data?.id_rol || roleToId(roleDraft) }
+      setSelectedUser(updated)
+      setUsers(prev => prev.map(u => u.id_usuario === updated.id_usuario ? updated : u))
+      showToast("Rol actualizado correctamente")
+    } catch (error) {
+      alert("Error al actualizar el rol")
     } finally {
       setIsUpdating(null)
     }
@@ -228,6 +279,14 @@ export default function DirectorioUsuarios() {
                         </Badge>
                         
                         <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-2xl border border-border">
+                            <button
+                              onClick={() => setSelectedUser(user)}
+                              title="Ver expediente"
+                              className="p-2 hover:bg-background hover:text-primary text-muted-foreground transition-all rounded-xl"
+                            >
+                                <Eye className="w-4 h-4" />
+                            </button>
+
                             <button 
                               onClick={() => handleToggleStatus(user.id_usuario, user.estado)}
                               disabled={isUpdating === user.id_usuario}
@@ -268,6 +327,109 @@ export default function DirectorioUsuarios() {
           </AnimatePresence>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/90 backdrop-blur-md"
+              onClick={() => setSelectedUser(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              className="relative w-full max-w-2xl bg-card border border-border rounded-[3rem] shadow-2xl overflow-hidden"
+            >
+              <div className="bg-primary/5 border-b border-border p-8 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Expediente de Usuario</h2>
+                  <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Caso #{String(selectedUser.id_usuario).slice(0, 8)}</p>
+                </div>
+                <button onClick={() => setSelectedUser(null)} className="p-3 bg-background rounded-full text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6 max-h-[68vh] overflow-y-auto">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-background p-5 rounded-2xl border border-border space-y-4">
+                    <p className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest"><Info className="w-3 h-3" /> Datos del Usuario</p>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Nombre Completo</p>
+                      <p className="font-bold text-foreground">{selectedUser.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Documento</p>
+                      <p className="font-mono text-foreground flex items-center gap-2"><Fingerprint className="w-3 h-3 text-primary" /> {selectedUser.documento || "No registrado"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Correo</p>
+                      <p className="text-sm text-foreground break-all">{selectedUser.correo}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-background p-5 rounded-2xl border border-border space-y-4">
+                    <p className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest"><Shield className="w-3 h-3" /> Contexto Operativo</p>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Rol Actual</p>
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-black uppercase">{selectedUser.id_rol}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Estado</p>
+                      <Badge variant="outline" className={`font-black uppercase ${getStatusStyle(selectedUser.estado)}`}>{selectedUser.estado}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground font-black uppercase">Ubicación</p>
+                      <p className="text-sm font-bold text-foreground flex gap-2"><MapPin className="w-3 h-3 text-primary mt-1" /> {formatRegion(selectedUser.region)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-card rounded-3xl border border-border space-y-4">
+                  <p className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest"><Shield className="w-3 h-3" /> Gestión de Rol</p>
+                  <div className="grid md:grid-cols-[1fr_auto] gap-3">
+                    <select
+                      value={roleDraft}
+                      onChange={(e) => setRoleDraft(e.target.value)}
+                      disabled={selectedUser.estado === "inactivo" || isUpdating === selectedUser.id_usuario}
+                      className="bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground font-bold disabled:opacity-50"
+                    >
+                      <option value="productor">productor</option>
+                      <option value="tecnico">tecnico</option>
+                      <option value="admin">admin</option>
+                    </select>
+                    <button
+                      disabled={selectedUser.estado === "inactivo" || isUpdating === selectedUser.id_usuario || roleDraft === roleToValue(selectedUser.id_rol)}
+                      onClick={handleUpdateRole}
+                      className="px-5 py-3 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs disabled:opacity-50"
+                    >
+                      Actualizar Rol
+                    </button>
+                  </div>
+                  {selectedUser.estado === "inactivo" && <p className="text-xs text-muted-foreground">El campo está deshabilitado para usuarios en estado inactivo.</p>}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-8 right-4 z-[120] px-5 py-3 rounded-2xl bg-card border border-border text-foreground shadow-xl font-black text-xs uppercase tracking-widest"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

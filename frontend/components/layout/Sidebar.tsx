@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { useUserStore } from "@/lib/store"
 import {
   Users, Leaf, FileText, ClipboardCheck, LayoutDashboard,
-  Map, Sprout, FileStack, Calendar, X
+  Map, Sprout, FileStack, Calendar, X, BookOpen, BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -25,9 +25,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "productor", "tecnico"] },
     { name: "Usuarios Pendientes", href: "/dashboard/usuarios", icon: Users, roles: ["admin"] },
     { name: "Auditoría", href: "/dashboard/auditoria", icon: FileText, roles: ["admin"] },
+    { name: "Catálogos", href: "/dashboard/catalogos", icon: BookOpen, roles: ["admin"] },
+    { name: "Reportes", href: "/dashboard/reportes", icon: BarChart3, roles: ["admin"] },
     { name: "Predios", href: "/dashboard/predios", icon: Map, roles: ["productor"] },
     { name: "Lotes y Siembras", href: "/dashboard/siembras", icon: Sprout, roles: ["productor"] },
-    { name: "Agendar Inspección", href: "/dashboard/agendar", icon: Calendar, roles: ["productor", "admin"] },
+    { name: "Agendar Inspección", href: "/dashboard/agendar", icon: Calendar, roles: ["productor"] },
     { name: "Historial Registros", href: "/dashboard/historial-registros", icon: Leaf, roles: ["productor"] },
     { name: "Reportes", href: "/dashboard/reportes", icon: FileStack, roles: ["tecnico"] },
   ]

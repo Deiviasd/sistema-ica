@@ -12,7 +12,8 @@ const {
     getUsersByRoleController,
     getProfileController,
     checkEmailController,
-    updateProfileController
+    updateProfileController,
+    updateRoleController
 } = require('../controllers/auth.controller')
 const { verifyToken, requireAdmin } = require('../middleware/auth.middleware')
 
@@ -28,6 +29,7 @@ router.get('/usuarios/rol/:role', getUsersByRoleController)
 router.get('/users/by-status', verifyToken, requireAdmin, getUsersByStatusController)
 router.get('/users/all', verifyToken, requireAdmin, getAllController)
 router.patch('/users/:id/status', verifyToken, requireAdmin, updateStatusController)
+router.patch('/users/:id/rol', verifyToken, requireAdmin, updateRoleController)
 router.delete('/users/:id', verifyToken, requireAdmin, deleteController)
 
 module.exports = router

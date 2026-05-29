@@ -175,13 +175,18 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
             // Si el Gateway ve que pasó una creación/edición de cualquier microservicio, ¡él mismo levanta el evento!
             if (isModifying && isSuccess) {
                 const actorId = req.user?.id_usuario || req.user?.sub || 'sistema';
+                const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
                 eventBus.publish('audit_queue', {
                     modulo: req.originalUrl.split('/')[1] || 'gateway',
-                    tipo_accion: `${req.method}_${req.originalUrl}`,
-                    id_referencia: `HTTP ${proxyRes.statusCode}`,
+                    tipo_accion: `${req.method}_${req.originalUrl.split('?')[0]}`,
                     id_usuario: actorId,
+                    nombre_usuario: req.user?.nombre || req.user?.email || 'Desconocido',
+                    correo: req.user?.email || 'N/A',
+                    rol: req.user?.app_metadata?.role || req.user?.role || 'authenticated',
+                    ip: clientIp,
                     timestamp: new Date().toISOString(),
-                    descripcion: `Acción ${req.method} orquestada hacia ${target}`
+                    descripcion: `Acción ${req.method} procesada exitosamente en ${req.originalUrl}`
                 });
             }
         }

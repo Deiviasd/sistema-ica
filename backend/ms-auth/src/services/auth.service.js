@@ -90,20 +90,34 @@ const loginService = async ({ email, password }) => {
         { expiresIn: '24h' }
     )
 
-    return { 
-
+    const loginResult = { 
         token, 
         user: { 
+            id: user.id_usuario,
             email: user.correo, 
             role: userRole, 
             nombre: user.nombre,
-            documento: user.documento, // ✨ Soporte de documento
-            identificacion: user.documento, // ✨ Soporte para compatibilidad frontend
-            numero_documento: user.documento, // ✨ Soporte para compatibilidad frontend
+            documento: user.documento,
+            identificacion: user.documento,
+            numero_documento: user.documento,
             nombre_predio: predio?.nombre_predio || '',
             numero_predial: predio?.numero_predial || ''
         } 
     }
+
+    // 📣 Notificar a Auditoría (Login exitoso)
+    eventBus.publish('audit_queue', {
+        modulo: 'seguridad',
+        tipo_accion: 'LOGIN',
+        id_usuario: user.id_usuario,
+        nombre_usuario: user.nombre,
+        correo: user.correo,
+        rol: userRole,
+        descripcion: `Inicio de sesión exitoso`,
+        timestamp: new Date().toISOString()
+    })
+
+    return loginResult
 }
 
 const getUsersByStatusService = async (status) => {
@@ -172,28 +186,74 @@ const updateUserService = async (adminId, userId, updateData) => {
     const action = updateData.estado ? `USER_${updateData.estado.toUpperCase()}` : 'USER_UPDATE'
     const detail = updateData.estado ? `Cambio estado a ${updateData.estado}` : 'Actualización de perfil'
 
+    // Intentamos obtener info del que realiza la acción (admin o el propio usuario)
+    let performer = { nombre: 'Sistema', email: 'sistema@ica.gov.co', rol: 'SISTEMA' };
+    try {
+        const p = await findUserById(adminId || userId);
+        if (p) {
+            performer = { 
+                nombre: p.nombre, 
+                email: p.correo, 
+                rol: roleMap[p.id_rol] || 'authenticated' 
+            };
+        }
+    } catch (e) {}
+
     eventBus.publish('audit_queue', {
         modulo: 'seguridad',
         tipo_accion: action,
         id_referencia: user.id_usuario,
         id_usuario: adminId || userId,
-        detalles: `${detail} para usuario ${user.correo}`,
+        nombre_usuario: performer.nombre,
+        correo: performer.email,
+        rol: performer.rol,
+        descripcion: `${detail} para usuario ${user.correo}`,
         timestamp: new Date().toISOString()
     })
 
     return user
 }
 
+const updateUserRoleService = async (adminId, userId, rol) => {
+    const roleMap = {
+        admin: 'ADMIN_ICA',
+        tecnico: 'TECNICO',
+        productor: 'PRODUCTOR'
+    }
+
+    const normalizedRole = String(rol || '').toLowerCase()
+    const idRol = roleMap[normalizedRole]
+    if (!idRol) throw new Error('Rol inválido')
+
+    return await updateUserService(adminId, userId, { id_rol: idRol })
+}
+
 const deleteUserService = async (adminId, userId) => {
     const user = await deleteUser(userId)
 
     // 📣 Notificar a Auditoría
+    let performer = { nombre: 'Sistema', email: 'sistema@ica.gov.co', rol: 'SISTEMA' };
+    try {
+        const p = await findUserById(adminId);
+        if (p) {
+            const roleMap = { 'ADMIN_ICA': 'admin', 'TECNICO': 'tecnico', 'PRODUCTOR': 'productor' };
+            performer = { 
+                nombre: p.nombre, 
+                email: p.correo, 
+                rol: roleMap[p.id_rol] || 'admin' 
+            };
+        }
+    } catch (e) {}
+
     eventBus.publish('audit_queue', {
         modulo: 'seguridad',
         tipo_accion: 'USER_DELETE',
         id_referencia: userId,
         id_usuario: adminId,
-        detalles: `Admin ICA eliminó permanentemente al usuario ${user?.correo || userId}`,
+        nombre_usuario: performer.nombre,
+        correo: performer.email,
+        rol: performer.rol,
+        descripcion: `Admin eliminó al usuario ${user?.correo || userId}`,
         timestamp: new Date().toISOString()
     })
 
@@ -215,4 +275,4 @@ const checkEmailService = async (email) => {
     return !!user
 }
 
-module.exports = { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, deleteUserService, getUserService, getUsersByRoleService, checkEmailService }
+module.exports = { loginService, registerService, getUsersByStatusService, getAllUsersService, updateUserService, updateUserRoleService, deleteUserService, getUserService, getUsersByRoleService, checkEmailService }

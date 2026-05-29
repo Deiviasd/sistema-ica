@@ -48,7 +48,7 @@ const deleteDetalle = async (req, res) => {
 
 const getReporte = async (req, res) => {
     try {
-        const resultado = await inspeccionService.generarReporte(req.user);
+        const resultado = await inspeccionService.generarReporte(req.user, req.query);
         res.json(resultado);
     } catch (error) {
         console.error('❌ Error en GET /reporte:', error);

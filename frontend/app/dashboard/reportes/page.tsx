@@ -1,5 +1,6 @@
-﻿"use client"
+"use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Search,
@@ -14,8 +15,12 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
-  ShieldAlert
+  ShieldAlert,
+  FileSpreadsheet,
+  FileText
 } from "lucide-react"
+import api from "@/lib/api"
+import { useUserStore } from "@/lib/store"
 
 import { InformeCompletoModal } from "@/components/dashboard/components/InformeCompletoModal"
 import { EditarInspeccionModal } from "./EditarInspeccionModal"
@@ -31,7 +36,13 @@ const formatFecha = (fecha: string, long = false) =>
 
 
 // ── Componente ──────────────────────────────────────────────────
-export default function ReportesTecnicosPage() {
+export default function ReportesPage() {
+  const { user } = useUserStore()
+  if (user?.role === "admin") return <ReportesAdminPage />
+  return <ReportesTecnicosPage />
+}
+
+function ReportesTecnicosPage() {
   const {
     inspecciones,
     filteredInspecciones,
@@ -556,6 +567,127 @@ export default function ReportesTecnicosPage() {
         )}
         */}
       </AnimatePresence>
+    </motion.div>
+  )
+}
+
+interface ReporteInspeccion {
+  id_inspeccion: number
+  predio_nombre?: string
+  lugar_produccion_nombre?: string
+  tecnico_nombre?: string
+  tecnico_id?: number
+  fecha_programada?: string
+  estado?: string
+  region?: string
+  municipio?: string
+}
+
+interface TecnicoOption {
+  id_usuario: string
+  nombre: string
+  id_rol: string
+  estado: string
+}
+
+function ReportesAdminPage() {
+  const [data, setData] = useState<ReporteInspeccion[]>([])
+  const [tecnicos, setTecnicos] = useState<TecnicoOption[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({ fecha_inicio: "", fecha_fin: "", tecnico_id: "", estado: "", region: "", municipio: "" })
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => { if (value) params.append(key, value) })
+    return params.toString()
+  }, [filters])
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const [reportRes, usersRes] = await Promise.all([
+        api.get(`/inspecciones/reporte${query ? `?${query}` : ""}`),
+        api.get<TecnicoOption[]>("/auth/users/all")
+      ])
+      setData(reportRes.data || [])
+      setTecnicos((usersRes.data || []).filter((u) => u.id_rol === "TECNICO"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchData() }, [query])
+
+  const rows = data.map((item) => ({
+    Predio: item.predio_nombre || "Sin predio",
+    Lugar: item.lugar_produccion_nombre || "Sin lugar",
+    Tecnico: item.tecnico_nombre || "Por asignar",
+    Fecha: item.fecha_programada ? new Date(item.fecha_programada).toLocaleDateString("es-CO") : "Sin fecha",
+    Estado: item.estado || "Sin estado"
+  }))
+
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx")
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inspecciones")
+    XLSX.writeFile(workbook, "reporte-inspecciones.xlsx")
+  }
+
+  const exportPdf = async () => {
+    const { default: jsPDF } = await import("jspdf")
+    const { default: autoTable } = await import("jspdf-autotable")
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text("ICA HUB", 14, 16)
+    doc.setFontSize(12)
+    doc.text("Reporte de Inspecciones", 14, 24)
+    doc.setFontSize(9)
+    doc.text(`Generado: ${new Date().toLocaleString("es-CO")}`, 14, 31)
+    autoTable(doc, {
+      startY: 38,
+      head: [["Predio", "Lugar", "Técnico", "Fecha", "Estado"]],
+      body: rows.map((row) => [row.Predio, row.Lugar, row.Tecnico, row.Fecha, row.Estado])
+    })
+    doc.setFontSize(9)
+    doc.text(`Total de registros: ${rows.length} | Fecha: ${new Date().toLocaleDateString("es-CO")}`, 14, doc.internal.pageSize.height - 10)
+    doc.save("reporte-inspecciones.pdf")
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">Reportes Exportables</h1>
+          <p className="text-muted-foreground">Consolidado administrativo de inspecciones.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportExcel} className="flex items-center gap-2 bg-card border border-border rounded-2xl px-4 py-3 text-xs font-black uppercase text-foreground hover:bg-background"><FileSpreadsheet className="w-4 h-4 text-primary" /> Exportar Excel</button>
+          <button onClick={exportPdf} className="flex items-center gap-2 bg-card border border-border rounded-2xl px-4 py-3 text-xs font-black uppercase text-foreground hover:bg-background"><FileText className="w-4 h-4 text-primary" /> Exportar PDF</button>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-3xl p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <input type="date" value={filters.fecha_inicio} onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })} className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground" />
+        <input type="date" value={filters.fecha_fin} onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })} className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground" />
+        <select value={filters.tecnico_id} onChange={(e) => setFilters({ ...filters, tecnico_id: e.target.value })} className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground"><option value="">Técnico</option>{tecnicos.map((t) => <option key={t.id_usuario} value={t.id_usuario}>{t.nombre}</option>)}</select>
+        <select value={filters.estado} onChange={(e) => setFilters({ ...filters, estado: e.target.value })} className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground"><option value="">Estado</option><option value="programada">programada</option><option value="en_proceso">en_proceso</option><option value="finalizada">finalizada</option><option value="cancelada">cancelada</option></select>
+        <input value={filters.region} onChange={(e) => setFilters({ ...filters, region: e.target.value })} placeholder="Región" className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground" />
+        <input value={filters.municipio} onChange={(e) => setFilters({ ...filters, municipio: e.target.value })} placeholder="Municipio" className="bg-background border border-border rounded-2xl px-3 py-2 text-sm text-foreground" />
+      </div>
+
+      <div className="bg-card border border-border rounded-3xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-background border-b border-border text-xs uppercase text-muted-foreground"><tr><th className="p-4 text-left">Predio</th><th className="p-4 text-left">Lugar de producción</th><th className="p-4 text-left">Técnico asignado</th><th className="p-4 text-left">Fecha</th><th className="p-4 text-left">Estado</th></tr></thead>
+            <tbody className="divide-y divide-border">
+              {loading ? <tr><td colSpan={5} className="p-8 text-muted-foreground">Cargando reporte...</td></tr> : rows.map((row, index) => (
+                <tr key={`${row.Predio}-${index}`} className="hover:bg-background transition-colors"><td className="p-4 font-bold text-foreground">{row.Predio}</td><td className="p-4 text-muted-foreground">{row.Lugar}</td><td className="p-4 text-muted-foreground">{row.Tecnico}</td><td className="p-4 text-muted-foreground">{row.Fecha}</td><td className="p-4 text-muted-foreground">{row.Estado}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </motion.div>
   )
 }

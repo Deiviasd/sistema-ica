@@ -2,7 +2,11 @@ const {
     listEspecies, 
     listVariedadesByEspecie,
     createEspecie,
-    createVariedad 
+    createVariedad,
+    updateEspecie,
+    deleteEspecie,
+    updateVariedad,
+    deleteVariedad
 } = require('../repositories/catalogo.repository')
 
 const getEspecies = async (req, res) => {
@@ -32,10 +36,6 @@ const addEspecie = async (req, res) => {
 const getVariedades = async (req, res) => {
     try {
         const { id_especie } = req.query;
-        if (!id_especie) {
-            return res.status(400).json({ error: 'Se requiere id_especie para consultar variedades' });
-        }
-        
         const variedades = await listVariedadesByEspecie(id_especie);
         res.json(variedades);
     } catch (error) {
@@ -59,4 +59,40 @@ const addVariedad = async (req, res) => {
     }
 }
 
-module.exports = { getEspecies, addEspecie, getVariedades, addVariedad }
+const patchEspecie = async (req, res) => {
+    try {
+        const data = await updateEspecie(req.params.id, req.body)
+        res.json(data)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const removeEspecie = async (req, res) => {
+    try {
+        const data = await deleteEspecie(req.params.id)
+        res.json(data)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const patchVariedad = async (req, res) => {
+    try {
+        const data = await updateVariedad(req.params.id, req.body)
+        res.json(data)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+const removeVariedad = async (req, res) => {
+    try {
+        const data = await deleteVariedad(req.params.id)
+        res.json(data)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
+
+module.exports = { getEspecies, addEspecie, getVariedades, addVariedad, patchEspecie, removeEspecie, patchVariedad, removeVariedad }

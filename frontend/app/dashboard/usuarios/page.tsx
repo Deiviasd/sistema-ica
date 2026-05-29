@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Check, X, ShieldAlert, User, Mail, Calendar, 
   MapPin, Fingerprint, ClipboardCheck, Info,
-  ExternalLink, ArrowRight, Briefcase, Users
+  ExternalLink, ArrowRight, Briefcase, Users, Eye
 } from "lucide-react"
 
 import {
@@ -48,6 +48,8 @@ export default function UsuariosPendientes() {
   const [loading, setLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [viewStatus, setViewStatus] = useState<'inactivo' | 'rechazado'>('inactivo')
+  const [roleDraft, setRoleDraft] = useState("productor")
+  const [toastMessage, setToastMessage] = useState("")
 
   const { user } = useUserStore()
   const router = useRouter()
@@ -75,6 +77,15 @@ export default function UsuariosPendientes() {
     fetchUsers()
   }, [viewStatus])
 
+  useEffect(() => {
+    if (selectedUser) setRoleDraft(roleToValue(selectedUser.id_rol))
+  }, [selectedUser])
+
+  const showToast = (message: string) => {
+    setToastMessage(message)
+    window.setTimeout(() => setToastMessage(""), 2800)
+  }
+
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     setIsUpdating(true)
     try {
@@ -83,6 +94,36 @@ export default function UsuariosPendientes() {
       setSelectedUser(null)
     } catch (error) {
       alert("Error al actualizar usuario")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const roleToValue = (role: string) => {
+    if (role === "ADMIN_ICA") return "admin"
+    if (role === "TECNICO") return "tecnico"
+    return "productor"
+  }
+
+  const roleToId = (role: string) => {
+    if (role === "admin") return "ADMIN_ICA"
+    if (role === "tecnico") return "TECNICO"
+    return "PRODUCTOR"
+  }
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser) return
+    if (!confirm(`Vas a cambiar el rol de ${selectedUser.nombre} a ${roleDraft}. Esta acción modifica sus permisos. ¿Deseas continuar?`)) return
+
+    setIsUpdating(true)
+    try {
+      const res = await api.patch(`/auth/users/${selectedUser.id_usuario}/rol`, { rol: roleDraft })
+      const updated = { ...selectedUser, id_rol: res.data?.id_rol || roleToId(roleDraft) }
+      setSelectedUser(updated)
+      setUsers((prev) => prev.map((u) => u.id_usuario === updated.id_usuario ? updated : u))
+      showToast("Rol actualizado correctamente")
+    } catch (error) {
+      alert("Error al actualizar el rol")
     } finally {
       setIsUpdating(false)
     }
@@ -198,9 +239,9 @@ export default function UsuariosPendientes() {
                         <Calendar className="w-3 h-3" />
                         {new Date(user.fecha_registro).toLocaleDateString()}
                      </div>
-                     <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-bold text-xs">
-                        Revisar <ArrowRight className="w-3 h-3" />
-                     </span>
+                     <div className="p-2 bg-primary/10 rounded-xl text-primary opacity-0 group-hover:opacity-100 transition-all">
+                        <Eye className="w-4 h-4" />
+                     </div>
                   </div>
                 </div>
               </Card>
@@ -328,8 +369,37 @@ export default function UsuariosPendientes() {
                      </div>
                   )}
 
-                  {/* Check de idoneidad */}
-                  <div className="p-6 bg-muted/80 rounded-3xl border border-border italic">
+                   {/* Check de idoneidad */}
+                   <div className="p-6 bg-card rounded-3xl border border-border space-y-4">
+                      <div className="flex items-center gap-3 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
+                         <ShieldAlert className="w-3 h-3" /> Gestión de Rol
+                      </div>
+                      <div className="grid md:grid-cols-[1fr_auto] gap-3">
+                         <select
+                            value={roleDraft}
+                            onChange={(e) => setRoleDraft(e.target.value)}
+                            disabled={selectedUser.estado === "inactivo" || isUpdating}
+                            className="bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground font-bold disabled:opacity-50"
+                         >
+                            <option value="productor">productor</option>
+                            <option value="tecnico">tecnico</option>
+                            <option value="admin">admin</option>
+                         </select>
+                         <Button
+                            disabled={selectedUser.estado === "inactivo" || isUpdating || roleDraft === roleToValue(selectedUser.id_rol)}
+                            onClick={handleUpdateRole}
+                            className="rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs"
+                         >
+                            Actualizar Rol
+                         </Button>
+                      </div>
+                      {selectedUser.estado === "inactivo" && (
+                         <p className="text-xs text-muted-foreground">El cambio de rol está deshabilitado hasta aprobar o resolver el estado del usuario.</p>
+                      )}
+                   </div>
+
+                   {/* Check de idoneidad */}
+                   <div className="p-6 bg-muted/80 rounded-3xl border border-border italic">
                      <p className="text-[10px] text-muted-foreground font-black uppercase mb-3 tracking-[0.2em] flex items-center gap-2">
                         <ShieldAlert className="w-3 h-3" /> Recordatorio ICA Hub
                      </p>
@@ -359,6 +429,18 @@ export default function UsuariosPendientes() {
                </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-8 right-4 z-[120] px-5 py-3 rounded-2xl bg-card border border-border text-foreground shadow-xl font-black text-xs uppercase tracking-widest"
+          >
+            {toastMessage}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
