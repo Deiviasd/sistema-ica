@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState, type ChangeEvent } from "react"
 import api from "@/lib/api"
@@ -380,12 +380,12 @@ export default function ProfilePage() {
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             className={`fixed bottom-8 right-4 left-4 md:left-auto md:right-8 z-[110] px-5 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center md:justify-start gap-3 border backdrop-blur-md transition-all ${
               toastType === "delete"
-                ? "bg-rose-500 text-white border-rose-400/50 shadow-rose-950/20"
+                ? "bg-rose-500 text-foreground border-rose-400/50 shadow-rose-950/20"
                 : "bg-emerald-500 text-slate-950 border-emerald-400/50 shadow-emerald-500/20"
             }`}
           >
             {toastType === "delete" ? (
-              <Trash2 className="w-4 h-4 text-white stroke-[3px]" />
+              <Trash2 className="w-4 h-4 text-foreground stroke-[3px]" />
             ) : (
               <Check className="w-4 h-4 text-slate-950 stroke-[3px]" />
             )}

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
@@ -136,13 +136,13 @@ export default function UsuariosPendientes() {
              </button>
              <button 
                 onClick={() => setViewStatus('rechazado')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewStatus === 'rechazado' ? 'bg-rose-600 text-white italic' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewStatus === 'rechazado' ? 'bg-rose-600 text-foreground italic' : 'text-muted-foreground hover:text-slate-300'}`}
              >
                 <X className="w-3.5 h-3.5" /> Rechazados
              </button>
              <div className="w-[1px] h-6 bg-border self-center mx-1" />
              <Link href="/dashboard/usuarios/directorio">
-                <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-all">
+                <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-card border border-transparent hover:border-border transition-all">
                     <Users className="w-3.5 h-3.5" /> Directorio
                 </button>
              </Link>
@@ -217,7 +217,7 @@ export default function UsuariosPendientes() {
                initial={{ opacity: 0 }} 
                animate={{ opacity: 1 }} 
                exit={{ opacity: 0 }} 
-               className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" 
+               className="absolute inset-0 bg-background/90 backdrop-blur-md"
                onClick={() => !isUpdating && setSelectedUser(null)} 
             />
             
@@ -240,7 +240,7 @@ export default function UsuariosPendientes() {
                   </div>
                   <button 
                      onClick={() => setSelectedUser(null)}
-                     className="p-3 bg-slate-950 rounded-full text-slate-500 hover:text-white transition-colors"
+                     className="p-3 bg-background rounded-full text-muted-foreground hover:text-foreground transition-colors"
                   >
                      <X className="w-5 h-5" />
                   </button>
@@ -256,18 +256,18 @@ export default function UsuariosPendientes() {
                         </div>
                         <div className="bg-muted/50 p-5 rounded-2xl border border-border space-y-6">
                            <div>
-                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mb-1">Nombre Completo</p>
-                              <p className="text-white font-bold">{selectedUser.nombre}</p>
+                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter mb-1">Nombre Completo</p>
+                              <p className="text-foreground font-bold">{selectedUser.nombre}</p>
                            </div>
                            <div className="space-y-1">
-                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mb-1">Cédula / ID</p>
-                              <p className="text-white font-mono flex items-center gap-2">
+                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter mb-1">Cédula / ID</p>
+                              <p className="text-foreground font-mono flex items-center gap-2">
                                  <Fingerprint className="w-3 h-3 text-primary" /> {selectedUser.documento || 'No registrado'}
                               </p>
                            </div>
                            <div className="space-y-1">
-                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mb-1">Email de Contacto</p>
-                              <p className="text-white text-sm break-all">{selectedUser.correo}</p>
+                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter mb-1">Email de Contacto</p>
+                              <p className="text-foreground text-sm break-all">{selectedUser.correo}</p>
                            </div>
                         </div>
                      </div>
@@ -278,14 +278,14 @@ export default function UsuariosPendientes() {
                         </div>
                         <div className="bg-muted/50 p-5 rounded-2xl border border-border space-y-6">
                            <div>
-                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mb-1">Rol Solicitado</p>
+                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter mb-1">Rol Solicitado</p>
                               <Badge className="bg-primary/10 text-primary border-primary/20 font-black italic uppercase text-xs py-1">
                                  {selectedUser.id_rol}
                               </Badge>
                            </div>
                            <div>
-                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mb-1">Ubicación Administrativa</p>
-                              <p className="text-white font-bold flex items-start gap-2 leading-tight">
+                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter mb-1">Ubicación Administrativa</p>
+                              <p className="text-foreground font-bold flex items-start gap-2 leading-tight">
                                  <MapPin className="w-3 h-3 text-primary mt-1 flex-shrink-0" /> {formatRegion(selectedUser.region)}
                               </p>
                            </div>
@@ -308,10 +308,10 @@ export default function UsuariosPendientes() {
                                     </div>
                                     <div>
                                        <p className="text-[9px] text-emerald-500 font-black uppercase leading-tight italic mb-1">Propiedad Registrada</p>
-                                       <p className="text-white font-black text-xl italic uppercase tracking-tighter">
+                                       <p className="text-foreground font-black text-xl italic uppercase tracking-tighter">
                                           {selectedUser.usuario_predio[0].nombre_predio}
                                        </p>
-                                       <p className="text-slate-500 text-xs font-mono">ID Catastral: {selectedUser.usuario_predio[0].numero_predial}</p>
+                                       <p className="text-muted-foreground text-xs font-mono">ID Catastral: {selectedUser.usuario_predio[0].numero_predial}</p>
                                     </div>
                                  </div>
                                  <div className="text-right">
@@ -352,7 +352,7 @@ export default function UsuariosPendientes() {
                   <Button
                      disabled={isUpdating}
                      onClick={() => handleUpdateStatus(selectedUser.id_usuario, "activo")}
-                     className="flex-2 h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 transition-all font-black uppercase italic tracking-tighter text-lg px-10"
+                     className="flex-2 h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-foreground shadow-xl shadow-emerald-500/20 transition-all font-black uppercase italic tracking-tighter text-lg px-10"
                   >
                      {isUpdating ? "PROCESANDO..." : <><Check className="w-6 h-6 mr-3" /> Aprobar Acceso</>}
                   </Button>

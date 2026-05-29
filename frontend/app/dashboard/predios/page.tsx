@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -382,16 +382,16 @@ export default function PrediosPage() {
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
             <Navigation className="text-emerald-500 w-10 h-10" />
             Mis Predios
           </h1>
-          <p className="text-slate-400 mt-2 text-lg">Administre sus unidades productivas con arrastre inteligente.</p>
+          <p className="text-muted-foreground mt-2 text-lg">Administre sus unidades productivas con arrastre inteligente.</p>
         </div>
 
         <Button
           onClick={() => setShowModal(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-14 px-8 rounded-2xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
+          className="bg-emerald-600 hover:bg-emerald-500 text-foreground font-bold h-14 px-8 rounded-2xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
         >
           <Plus className="w-5 h-5 mr-2" /> Registrar Predio
         </Button>
@@ -440,9 +440,9 @@ export default function PrediosPage() {
       </DndContext>
 
       {lugares.length === 0 && (
-        <div className="col-span-full py-20 text-center bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-[3rem]">
+        <div className="col-span-full py-20 text-center bg-card/20 border-2 border-dashed border-border rounded-[3rem]">
           <MapPin className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-          <p className="text-slate-500 text-xl font-medium">No tiene predios registrados aún.</p>
+          <p className="text-muted-foreground text-xl font-medium">No tiene predios registrados aún.</p>
         </div>
       )}
 
@@ -454,7 +454,7 @@ export default function PrediosPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-background/80 backdrop-blur-md"
               onClick={() => !isSaving && setShowModal(false)}
             />
 
@@ -462,24 +462,24 @@ export default function PrediosPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] custom-scrollbar"
+              className="relative w-full max-w-3xl bg-card border border-border rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] custom-scrollbar"
             >
               <div className="p-6 lg:p-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-black text-white italic uppercase tracking-tight">Nuevo Registro</h2>
-                  <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                    <X className="w-5 h-5 text-slate-500" />
+                  <h2 className="text-2xl font-black text-foreground italic uppercase tracking-tight">Nuevo Registro</h2>
+                  <button onClick={() => setShowModal(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                    <X className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Lugar de Producción</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Lugar de Producción</label>
                       {lugaresProduccion.length > 1 ? (
                         <select
                           required
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm appearance-none h-12"
+                          className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm appearance-none h-12"
                           value={formData.id_lugar_produccion}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -513,7 +513,7 @@ export default function PrediosPage() {
                           ))}
                         </select>
                       ) : (
-                        <div className="w-full bg-slate-950/50 border border-emerald-500/30 rounded-xl py-2.5 px-4 text-emerald-400 font-bold text-sm italic flex items-center justify-between h-12">
+                        <div className="w-full bg-background/50 border border-emerald-500/30 rounded-xl py-2.5 px-4 text-emerald-400 font-bold text-sm italic flex items-center justify-between h-12">
                           {lugaresProduccion[0]?.nombre_lugar || "Cargando..."}
                           <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                         </div>
@@ -522,10 +522,10 @@ export default function PrediosPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre del Predio</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Nombre del Predio</label>
                       <input
                         required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12"
                         placeholder="Ej: Lote San Jerónimo"
                         value={formData.nombre}
                         onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -535,15 +535,15 @@ export default function PrediosPage() {
 
                   {/* Toggle para usar la misma ubicación del lugar de producción */}
                   {formData.id_lugar_produccion && (
-                    <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-xs font-bold text-white uppercase tracking-tight">¿La ubicación es la misma que la del lugar de producción?</span>
+                    <div className="flex items-center justify-between bg-background/50 p-3 rounded-xl border border-border">
+                      <span className="text-xs font-bold text-foreground uppercase tracking-tight">¿La ubicación es la misma que la del lugar de producción?</span>
                       <div
                         onClick={handleMismaUbicacionToggle}
                         className="w-16 h-8 rounded-full p-1 cursor-pointer transition-colors relative flex items-center bg-slate-700"
                         style={{ backgroundColor: formData.misma_ubicacion ? '#059669' : '#374151' }}
                       >
-                        <span className={`absolute left-2 text-[9px] font-black text-white transition-opacity ${formData.misma_ubicacion ? 'opacity-100' : 'opacity-0'}`}>SÍ</span>
-                        <span className={`absolute right-2 text-[9px] font-black text-white transition-opacity ${formData.misma_ubicacion ? 'opacity-0' : 'opacity-100'}`}>NO</span>
+                        <span className={`absolute left-2 text-[9px] font-black text-foreground transition-opacity ${formData.misma_ubicacion ? 'opacity-100' : 'opacity-0'}`}>SÍ</span>
+                        <span className={`absolute right-2 text-[9px] font-black text-foreground transition-opacity ${formData.misma_ubicacion ? 'opacity-0' : 'opacity-100'}`}>NO</span>
                         <motion.div
                           animate={{ x: formData.misma_ubicacion ? 32 : 0 }}
                           className="w-6 h-6 bg-white rounded-full shadow-md z-10"
@@ -561,11 +561,11 @@ export default function PrediosPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Departamento</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Departamento</label>
                       <select
                         required
                         disabled={formData.misma_ubicacion}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
                         value={departamentos.find(d => d.name === formData.departamento)?.id || ""}
                         onChange={(e) => {
                           const dept = departamentos.find(d => d.id === Number(e.target.value))
@@ -579,11 +579,11 @@ export default function PrediosPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Municipio</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Municipio</label>
                       <select
                         required
                         disabled={formData.misma_ubicacion || !formData.departamento}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12 appearance-none disabled:opacity-50"
                         value={formData.municipio}
                         onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
                       >
@@ -594,11 +594,11 @@ export default function PrediosPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vereda</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Vereda</label>
                       <input
                         required
                         disabled={formData.misma_ubicacion}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
                         placeholder="Ej: El Placer"
                         value={formData.vereda}
                         onChange={(e) => setFormData({ ...formData, vereda: e.target.value })}
@@ -607,11 +607,11 @@ export default function PrediosPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Dirección / Referencia</label>
+                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Dirección / Referencia</label>
                     <input
                       required
                       disabled={formData.misma_ubicacion}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
+                      className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12 disabled:opacity-50"
                       placeholder="Ej: Km 5 vía al mar, portón verde"
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
@@ -620,22 +620,22 @@ export default function PrediosPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Área Total (Hectáreas)</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Área Total (Hectáreas)</label>
                       <input
                         required
                         type="number"
                         step="0.01"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12"
                         placeholder="Ej: 5.5"
                         value={formData.area}
                         onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número Predial / ICA</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Número Predial / ICA</label>
                       <input
                         required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12"
                         placeholder="Ej: 123456789"
                         value={formData.numero_predial}
                         onChange={(e) => setFormData({ ...formData, numero_predial: e.target.value })}
@@ -645,22 +645,22 @@ export default function PrediosPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Latitud (Opcional)</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Latitud (Opcional)</label>
                       <input
                         type="number"
                         step="any"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12"
                         placeholder="Ej: 5.0688"
                         value={formData.latitud}
                         onChange={(e) => setFormData({ ...formData, latitud: e.target.value })}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Longitud (Opcional)</label>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Longitud (Opcional)</label>
                       <input
                         type="number"
                         step="any"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-white focus:border-emerald-500 outline-none transition-all text-sm h-12"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-foreground focus:border-emerald-500 outline-none transition-all text-sm h-12"
                         placeholder="Ej: -75.5174"
                         value={formData.longitud}
                         onChange={(e) => setFormData({ ...formData, longitud: e.target.value })}
@@ -669,16 +669,16 @@ export default function PrediosPage() {
                   </div>
 
                   {/* Lógica de Propietario */}
-                  <div className="pt-4 border-t border-slate-800/80 space-y-4">
-                    <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-xs font-bold text-white uppercase tracking-tight">¿Es usted el propietario?</span>
+                  <div className="pt-4 border-t border-border/80 space-y-4">
+                    <div className="flex items-center justify-between bg-background/50 p-3 rounded-xl border border-border">
+                      <span className="text-xs font-bold text-foreground uppercase tracking-tight">¿Es usted el propietario?</span>
                       <div
                         onClick={() => setFormData({ ...formData, es_propietario: !formData.es_propietario })}
                         className="w-16 h-8 rounded-full p-1 cursor-pointer transition-colors relative flex items-center bg-slate-700"
                         style={{ backgroundColor: formData.es_propietario ? '#059669' : '#374151' }}
                       >
-                        <span className={`absolute left-2 text-[9px] font-black text-white transition-opacity ${formData.es_propietario ? 'opacity-100' : 'opacity-0'}`}>SÍ</span>
-                        <span className={`absolute right-2 text-[9px] font-black text-white transition-opacity ${formData.es_propietario ? 'opacity-0' : 'opacity-100'}`}>NO</span>
+                        <span className={`absolute left-2 text-[9px] font-black text-foreground transition-opacity ${formData.es_propietario ? 'opacity-100' : 'opacity-0'}`}>SÍ</span>
+                        <span className={`absolute right-2 text-[9px] font-black text-foreground transition-opacity ${formData.es_propietario ? 'opacity-0' : 'opacity-100'}`}>NO</span>
                         <motion.div
                           animate={{ x: formData.es_propietario ? 32 : 0 }}
                           className="w-6 h-6 bg-white rounded-full shadow-md z-10"
@@ -694,21 +694,21 @@ export default function PrediosPage() {
                       >
                         <input
                           required
-                          className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-xs h-10 focus:border-emerald-500 outline-none"
+                          className="bg-background border border-border rounded-lg py-2 px-3 text-foreground text-xs h-10 focus:border-emerald-500 outline-none"
                           placeholder="Nombre Propietario"
                           value={formData.prop_nombre}
                           onChange={(e) => setFormData({ ...formData, prop_nombre: e.target.value })}
                         />
                         <input
                           required
-                          className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-xs h-10 focus:border-emerald-500 outline-none"
+                          className="bg-background border border-border rounded-lg py-2 px-3 text-foreground text-xs h-10 focus:border-emerald-500 outline-none"
                           placeholder="ID / Cédula"
                           value={formData.prop_identificacion}
                           onChange={(e) => setFormData({ ...formData, prop_identificacion: e.target.value })}
                         />
                         <input
                           required
-                          className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-xs h-10 focus:border-emerald-500 outline-none"
+                          className="bg-background border border-border rounded-lg py-2 px-3 text-foreground text-xs h-10 focus:border-emerald-500 outline-none"
                           placeholder="Teléfono"
                           value={formData.prop_telefono}
                           onChange={(e) => setFormData({ ...formData, prop_telefono: e.target.value })}
@@ -716,7 +716,7 @@ export default function PrediosPage() {
                         <input
                           required
                           type="email"
-                          className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-xs h-10 focus:border-emerald-500 outline-none"
+                          className="bg-background border border-border rounded-lg py-2 px-3 text-foreground text-xs h-10 focus:border-emerald-500 outline-none"
                           placeholder="Email"
                           value={formData.prop_email}
                           onChange={(e) => setFormData({ ...formData, prop_email: e.target.value })}
@@ -754,14 +754,14 @@ export default function PrediosPage() {
                     </motion.div>
                   )}
 
-                  <div className="flex gap-3 pt-4 border-t border-slate-800">
-                    <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1 h-14 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition-colors">
+                  <div className="flex gap-3 pt-4 border-t border-border">
+                    <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1 h-14 rounded-xl border-slate-700 text-slate-300 hover:bg-muted hover:text-foreground font-bold transition-colors">
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSaving || (!!formData.id_lugar_produccion && lockedLugares.includes(Number(formData.id_lugar_produccion)))}
-                      className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                      className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-foreground font-bold rounded-xl shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                     >
                       {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "GUARDAR REGISTRO"}
                     </Button>

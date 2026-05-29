@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { motion } from "framer-motion"
 import type { ChangeEvent, ReactNode } from "react"
@@ -96,20 +96,20 @@ export function ProfileLoading() {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-12 h-12 text-teal-500 animate-spin" />
-      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Cargando Perfil del Usuario...</p>
+      <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs animate-pulse">Cargando Perfil del Usuario...</p>
     </div>
   )
 }
 
 export function ProfileHeader() {
   return (
-    <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+    <div className="flex items-center justify-between border-b border-border pb-5">
       <div className="space-y-1">
-        <Link href="/dashboard" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-teal-400 transition-colors mb-2">
+        <Link href="/dashboard" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-teal-400 transition-colors mb-2">
           <ArrowLeft className="w-3.5 h-3.5" /> Volver al Inicio
         </Link>
-        <h1 className="text-3xl font-black italic tracking-tight text-white uppercase leading-none">Mi Perfil</h1>
-        <p className="text-xs text-slate-500 font-bold uppercase">Gestión y visualización de credenciales y activos registrados ante el ICA.</p>
+        <h1 className="text-3xl font-black italic tracking-tight text-foreground uppercase leading-none">Mi Perfil</h1>
+        <p className="text-xs text-muted-foreground font-bold uppercase">Gestión y visualización de credenciales y activos registrados ante el ICA.</p>
       </div>
     </div>
   )
@@ -198,7 +198,7 @@ export function ProfileSidebar({
                 <button
                   onClick={onDeletePhoto}
                   title="Eliminar foto de perfil"
-                  className="absolute -bottom-1 -right-1 w-9 h-9 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-rose-500/30 transition-all hover:scale-110 active:scale-95 border-2 border-background"
+                  className="absolute -bottom-1 -right-1 w-9 h-9 bg-rose-500 hover:bg-rose-600 text-foreground rounded-full flex items-center justify-center shadow-lg shadow-rose-500/30 transition-all hover:scale-110 active:scale-95 border-2 border-background"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -290,19 +290,19 @@ export function PhotoConfirmModal({
         <div className={`p-6 flex items-center justify-between ${hasExistingPhoto ? 'bg-amber-500' : 'bg-primary'}`}>
           <div className="flex items-center gap-3">
             {hasExistingPhoto
-              ? <RefreshCw className="text-white w-6 h-6" />
-              : <CheckCircle2 className="text-white w-6 h-6" />
+              ? <RefreshCw className="text-foreground w-6 h-6" />
+              : <CheckCircle2 className="text-foreground w-6 h-6" />
             }
             <div>
-              <h3 className="text-white font-black italic uppercase tracking-tighter leading-tight">
+              <h3 className="text-foreground font-black italic uppercase tracking-tighter leading-tight">
                 {hasExistingPhoto ? 'Reemplazar Foto' : 'Confirmar Foto'}
               </h3>
-              <p className="text-white/70 text-xs">
+              <p className="text-foreground/70 text-xs">
                 {hasExistingPhoto ? 'Esta acción reemplazará tu foto actual' : 'Revisa tu foto antes de guardar'}
               </p>
             </div>
           </div>
-          <button onClick={onCancel} className="text-white/80 hover:text-white"><X /></button>
+          <button onClick={onCancel} className="text-foreground/80 hover:text-foreground"><X /></button>
         </div>
 
         {/* Preview */}
@@ -333,7 +333,7 @@ export function PhotoConfirmModal({
             <button
               onClick={onConfirm}
               disabled={isUploading}
-              className={`flex-[2] h-12 text-white font-black uppercase rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm ${hasExistingPhoto
+              className={`flex-[2] h-12 text-foreground font-black uppercase rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm ${hasExistingPhoto
                 ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
                 : 'bg-primary hover:bg-primary/90 shadow-primary/20'
                 }`}
@@ -371,10 +371,10 @@ function CameraModal({
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-card border-2 border-border rounded-[2.5rem] overflow-hidden shadow-2xl max-w-md w-full">
         <div className="bg-primary p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Camera className="text-white w-6 h-6" />
-            <h3 className="text-white font-black italic uppercase tracking-tighter">Capturar Perfil</h3>
+            <Camera className="text-foreground w-6 h-6" />
+            <h3 className="text-foreground font-black italic uppercase tracking-tighter">Capturar Perfil</h3>
           </div>
-          <button onClick={onStopCamera} className="text-white/80 hover:text-white"><X /></button>
+          <button onClick={onStopCamera} className="text-foreground/80 hover:text-foreground"><X /></button>
         </div>
         <div className="p-6 space-y-6">
           <div className="relative aspect-square rounded-3xl overflow-hidden bg-black border-4 border-muted">
@@ -382,7 +382,7 @@ function CameraModal({
           </div>
           <div className="flex gap-4">
             <button onClick={onStopCamera} className="flex-1 h-14 bg-muted text-muted-foreground font-black uppercase rounded-2xl border border-border">Cancelar</button>
-            <button onClick={onCapturePhoto} disabled={isUploading} className="flex-[2] h-14 bg-primary text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+            <button onClick={onCapturePhoto} disabled={isUploading} className="flex-[2] h-14 bg-primary text-foreground font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
               {isUploading ? <Loader2 className="animate-spin" /> : <><RotateCw className="w-5 h-5" /> CAPTURAR</>}
             </button>
           </div>
@@ -394,12 +394,12 @@ function CameraModal({
 
 function ProtectedNotice() {
   return (
-    <Card className="bg-slate-950/30 border border-slate-900 rounded-3xl p-5">
+    <Card className="bg-background/30 border border-border rounded-3xl p-5">
       <div className="flex items-start gap-3">
         <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h4 className="text-white text-xs font-black uppercase tracking-wider">Entorno Protegido</h4>
-          <p className="text-[11px] text-slate-500 leading-relaxed">Este perfil está encriptado con protocolos SSL y resguardado bajo control de acceso de roles del Instituto Colombiano Agropecuario (ICA).</p>
+          <h4 className="text-foreground text-xs font-black uppercase tracking-wider">Entorno Protegido</h4>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">Este perfil está encriptado con protocolos SSL y resguardado bajo control de acceso de roles del Instituto Colombiano Agropecuario (ICA).</p>
         </div>
       </div>
     </Card>
@@ -421,9 +421,9 @@ export function GeneralInfoCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      <Card className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-md font-black italic tracking-widest text-slate-400 uppercase flex items-center gap-2">
+      <Card className="bg-card/40 border-2 border-border rounded-3xl overflow-hidden shadow-xl">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h3 className="text-md font-black italic tracking-widest text-muted-foreground uppercase flex items-center gap-2">
             <User className="w-5 h-5 text-teal-500" /> Información Personal
           </h3>
         </div>
@@ -432,7 +432,7 @@ export function GeneralInfoCard({
             <p className="text-[10px] text-teal-500 font-black uppercase tracking-widest flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" /> Nombre Completo
             </p>
-            <p className="text-white font-bold text-sm bg-slate-950/40 border border-slate-800/80 p-3 rounded-2xl">
+            <p className="text-foreground font-bold text-sm bg-background/40 border border-border/80 p-3 rounded-2xl">
               {displayName}
             </p>
           </div>
@@ -441,7 +441,7 @@ export function GeneralInfoCard({
             <p className="text-[10px] text-teal-500 font-black uppercase tracking-widest flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Número de Documento (Cédula)
             </p>
-            <p className="text-white font-bold text-sm bg-slate-950/40 border border-slate-800/80 p-3 rounded-2xl">
+            <p className="text-foreground font-bold text-sm bg-background/40 border border-border/80 p-3 rounded-2xl">
               {displayDocument}
             </p>
           </div>
@@ -450,7 +450,7 @@ export function GeneralInfoCard({
             <p className="text-[10px] text-teal-500 font-black uppercase tracking-widest flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> Correo Electrónico
             </p>
-            <p className="text-white font-bold text-sm bg-slate-950/40 border border-slate-800/80 p-3 rounded-2xl font-mono">
+            <p className="text-foreground font-bold text-sm bg-background/40 border border-border/80 p-3 rounded-2xl font-mono">
               {displayEmail}
             </p>
           </div>
@@ -492,11 +492,11 @@ export function TecnicoStatsSection({ tecnicoStats, profileData }: { tecnicoStat
       </div>
 
       <div className="space-y-4 text-left">
-        <h3 className="text-xs font-black italic tracking-widest text-slate-500 uppercase flex items-center gap-2 mt-6">
+        <h3 className="text-xs font-black italic tracking-widest text-muted-foreground uppercase flex items-center gap-2 mt-6">
           <MapPin className="w-4 h-4 text-teal-500" /> Area Geográfica de Control ICA
         </h3>
 
-        <Card className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
+        <Card className="bg-card/40 border-2 border-border rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
           <PanelHeader icon={<MapPin className="w-5 h-5" />} title="Región de Asignación Fitosanitaria" badge="Técnico Oficial ICA" badgeClassName="text-teal-400 border-teal-500/20" />
           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <InfoBlock label="Departamento" value={profileData?.region?.departamento} />
@@ -523,18 +523,18 @@ export function AdminStatsSection({ adminStats }: { adminStats: AdminStats }) {
       </div>
 
       <div className="space-y-4 text-left">
-        <h3 className="text-xs font-black italic tracking-widest text-slate-500 uppercase flex items-center gap-2 mt-6">
+        <h3 className="text-xs font-black italic tracking-widest text-muted-foreground uppercase flex items-center gap-2 mt-6">
           <Shield className="w-4 h-4 text-teal-500" /> Panel de Control de Seguridad del Sistema
         </h3>
 
-        <Card className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
+        <Card className="bg-card/40 border-2 border-border rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
           <PanelHeader icon={<Shield className="w-5 h-5" />} title="Autorización del Sistema (Nivel Root)" badge="Administrador Global" badgeClassName="text-rose-400 border-rose-500/20" />
           <CardContent className="p-6 space-y-4">
             <InfoBlock label="Nivel de Acceso" value="Administración del Sistema ICA - Control Total del Registro de Predios, Usuarios e Inspecciones Fitosanitarias." textClassName="text-xs" />
 
             <div>
               <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">Funciones del Rol</h5>
-              <ul className="text-slate-400 text-xs font-semibold bg-slate-950/30 p-4 rounded-2xl border border-slate-800/50 space-y-1.5 list-disc list-inside">
+              <ul className="text-muted-foreground text-xs font-semibold bg-background/30 p-4 rounded-2xl border border-border/50 space-y-1.5 list-disc list-inside">
                 <li>Aprobación y denegación de cuentas de técnicos y productores.</li>
                 <li>Auditoría forense de todas las operaciones realizadas en el sistema.</li>
                 <li>Configuración geográfica global de regiones y municipios de control.</li>
@@ -566,15 +566,15 @@ export function ProductionPlacesSection({
       transition={{ duration: 0.3, delay: 0.3 }}
       className="space-y-4 text-left"
     >
-      <h3 className="text-xs font-black italic tracking-widest text-slate-500 uppercase flex items-center gap-2 mt-4">
+      <h3 className="text-xs font-black italic tracking-widest text-muted-foreground uppercase flex items-center gap-2 mt-4">
         <Building2 className="w-4 h-4 text-teal-500" /> Lugar de Producción / Empresa Registrada
       </h3>
 
       {lugares.length === 0 ? (
-        <Card className="bg-slate-900/20 border border-slate-800/80 rounded-2xl p-6 text-center">
-          <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <p className="text-sm font-bold text-slate-400">No tienes lugares de producción registrados.</p>
-          <p className="text-xs text-slate-600 mt-1">Registra tu empresa o finca en la sección de Predios para verla aquí.</p>
+        <Card className="bg-card/20 border border-border/80 rounded-2xl p-6 text-center">
+          <Building2 className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+          <p className="text-sm font-bold text-muted-foreground">No tienes lugares de producción registrados.</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Registra tu empresa o finca en la sección de Predios para verla aquí.</p>
         </Card>
       ) : (
         <div className="space-y-6">
@@ -583,7 +583,7 @@ export function ProductionPlacesSection({
             const totalHectareas = linkedPredios.reduce((sum, p) => sum + (Number(p.area_hectareas) || 0), 0)
 
             return (
-              <Card key={lugar.id_lugar_produccion} className="bg-slate-900/40 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
+              <Card key={lugar.id_lugar_produccion} className="bg-card/40 border-2 border-border rounded-3xl overflow-hidden shadow-lg hover:border-slate-700/80 transition-all text-left">
                 <PanelHeader icon={<Building2 className="w-5 h-5" />} title={lugar.nombre_lugar} badge={`Registro ICA: ${lugar.numero_registro || "Pendiente Asignación"}`} badgeClassName="text-teal-400 border-teal-500/20" />
 
                 <CardContent className="p-6 space-y-6">
@@ -637,15 +637,15 @@ function StatCard({
   }[tone].split(" ")
 
   return (
-    <Card className={`bg-slate-900/30 border border-slate-800/80 rounded-2xl ${toneClasses[0]} transition-all`}>
+    <Card className={`bg-card/30 border border-border/80 rounded-2xl ${toneClasses[0]} transition-all`}>
       <CardContent className="p-5 flex items-center gap-4">
         <div className={`p-3.5 ${toneClasses[1]} rounded-2xl ${toneClasses[2]} relative`}>
           {icon}
           {showPulse && <span className={`absolute top-1 right-1 w-2.5 h-2.5 ${toneClasses[3]} rounded-full border-2 border-slate-950`} />}
         </div>
         <div>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">{label}</p>
-          <h4 className="text-2xl font-black italic tracking-tight text-white">{value} <span className="text-xs font-bold not-italic text-slate-500">{suffix}</span></h4>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">{label}</p>
+          <h4 className="text-2xl font-black italic tracking-tight text-foreground">{value} <span className="text-xs font-bold not-italic text-muted-foreground">{suffix}</span></h4>
         </div>
       </CardContent>
     </Card>
@@ -664,16 +664,16 @@ function PanelHeader({
   badgeClassName: string
 }) {
   return (
-    <div className="bg-gradient-to-r from-teal-600/10 to-indigo-600/10 px-6 py-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+    <div className="bg-gradient-to-r from-teal-600/10 to-indigo-600/10 px-6 py-4 border-b border-border/80 flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <div className="p-2.5 bg-teal-500/10 rounded-xl text-teal-400">
           {icon}
         </div>
         <div>
-          <h4 className="text-lg font-black italic tracking-tight text-white uppercase">{title}</h4>
+          <h4 className="text-lg font-black italic tracking-tight text-foreground uppercase">{title}</h4>
         </div>
       </div>
-      <Badge className={`bg-slate-950/80 border font-mono text-xs px-3 py-1 rounded-full ${badgeClassName}`}>
+      <Badge className={`bg-background/80 border font-mono text-xs px-3 py-1 rounded-full ${badgeClassName}`}>
         {badge}
       </Badge>
     </div>
@@ -684,7 +684,7 @@ function InfoBlock({ label, value, textClassName = "text-sm" }: { label: string;
   return (
     <div>
       <h5 className="text-[10px] text-teal-500 font-black uppercase tracking-widest mb-1">{label}</h5>
-      <p className={`text-white ${textClassName} font-bold bg-slate-950/30 p-3 rounded-2xl border border-slate-800/50`}>
+      <p className={`text-foreground ${textClassName} font-bold bg-background/30 p-3 rounded-2xl border border-border/50`}>
         {value}
       </p>
     </div>
@@ -694,7 +694,7 @@ function InfoBlock({ label, value, textClassName = "text-sm" }: { label: string;
 function LinkedPredios({ predios, profileData }: { predios: PredioInfo[]; profileData: FullUserProfile | null }) {
   return (
     <div className="space-y-3 pt-2">
-      <h5 className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Predios de Terreno Vinculados a esta Empresa</h5>
+      <h5 className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Predios de Terreno Vinculados a esta Empresa</h5>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {predios.map((predio) => {
           const veredaName = predio.region?.vereda?.trim() || profileData?.region?.vereda?.trim() || "Vereda General"
@@ -702,18 +702,18 @@ function LinkedPredios({ predios, profileData }: { predios: PredioInfo[]; profil
           const departamentoName = predio.region?.departamento || profileData?.region?.departamento || "Caldas"
 
           return (
-            <div key={predio.id_predio} className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl hover:border-slate-700/60 transition-all space-y-2">
+            <div key={predio.id_predio} className="bg-background/40 border border-border p-4 rounded-2xl hover:border-slate-700/60 transition-all space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase italic tracking-tight text-white">{predio.nombre_predio}</span>
+                <span className="text-xs font-black uppercase italic tracking-tight text-foreground">{predio.nombre_predio}</span>
                 <Badge className="bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[9px] font-black uppercase">
                   {predio.area_hectareas} Ha
                 </Badge>
               </div>
-              <div className="text-[11px] text-slate-500 space-y-1">
-                <p className="flex items-center gap-1"><FileText className="w-3.5 h-3.5 font-bold inline" /> Numero Predial: <span className="font-mono text-slate-400 font-semibold">{predio.numero_predial || "No registrado"}</span></p>
+              <div className="text-[11px] text-muted-foreground space-y-1">
+                <p className="flex items-center gap-1"><FileText className="w-3.5 h-3.5 font-bold inline" /> Numero Predial: <span className="font-mono text-muted-foreground font-semibold">{predio.numero_predial || "No registrado"}</span></p>
                 <p className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 inline" />
-                  Ubicación: <span className="text-slate-400 font-semibold">{veredaName} ({municipioName} - {departamentoName})</span>
+                  Ubicación: <span className="text-muted-foreground font-semibold">{veredaName} ({municipioName} - {departamentoName})</span>
                 </p>
               </div>
             </div>

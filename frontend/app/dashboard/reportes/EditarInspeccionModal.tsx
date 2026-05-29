@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { motion } from "framer-motion"
@@ -143,13 +143,13 @@ export function EditarInspeccionModal({
                 Editar Inspección Fitosanitaria
               </h3>
               <p className="text-xs text-muted-foreground">
-                Predio: <span className="text-white font-bold">{inspection.predio_nombre}</span>
+                Predio: <span className="text-foreground font-bold">{inspection.predio_nombre}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-900 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -169,18 +169,18 @@ export function EditarInspeccionModal({
               value={generalObs}
               onChange={(e) => setGeneralObs(e.target.value)}
               placeholder="Escribe las observaciones generales sobre la visita..."
-              className="w-full bg-slate-950 border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-3 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
+              className="w-full bg-background border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-3 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
             />
           </div>
 
           {/* Evaluaciones por Lote */}
           <div className="space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-border/20 pb-2">
+            <h4 className="text-xs font-black uppercase tracking-wider text-foreground border-b border-border/20 pb-2">
               Evaluaciones por Lote ({detalles.length})
             </h4>
 
             {detalles.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic text-center py-4 bg-slate-950 rounded-xl border border-border/30">
+              <p className="text-xs text-muted-foreground italic text-center py-4 bg-background rounded-xl border border-border/30">
                 Esta inspección no tiene lotes evaluados registrados.
               </p>
             ) : (
@@ -190,12 +190,12 @@ export function EditarInspeccionModal({
                 return (
                   <div
                     key={det.id_detalle || index}
-                    className="bg-slate-950/40 border border-border/40 rounded-xl p-5 space-y-4 hover:border-sky-500/20 transition-colors"
+                    className="bg-background/40 border border-border/40 rounded-xl p-5 space-y-4 hover:border-sky-500/20 transition-colors"
                   >
                     {/* Cabecera del detalle: lote + indicadores en vivo */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/20 pb-3">
                       <div>
-                        <p className="text-xs font-black text-white uppercase tracking-wide">
+                        <p className="text-xs font-black text-foreground uppercase tracking-wide">
                           Lote: {det.lote_nombre}
                         </p>
                         <p className="text-[10px] font-bold text-sky-400 uppercase mt-0.5">
@@ -206,7 +206,7 @@ export function EditarInspeccionModal({
                       <div className="flex items-center gap-2.5">
                         <span className="text-[10px] text-muted-foreground font-bold">
                           Incidencia:{" "}
-                          <span className="text-white font-black">
+                          <span className="text-foreground font-black">
                             {det.porcentaje_infestacion.toFixed(1)}%
                           </span>
                         </span>
@@ -228,7 +228,7 @@ export function EditarInspeccionModal({
                         <select
                           value={det.plaga_id}
                           onChange={(e) => handleDetailChange(index, "plaga_id", e.target.value)}
-                          className="w-full bg-slate-950 border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                          className="w-full bg-background border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                         >
                           <option value="">-- Seleccionar Plaga --</option>
                           {plagas.map(p => (
@@ -249,7 +249,7 @@ export function EditarInspeccionModal({
                           min={0}
                           value={det.cantidad_plantas_afectadas}
                           onChange={(e) => handleDetailChange(index, "cantidad_plantas_afectadas", parseInt(e.target.value) || 0)}
-                          className="w-full bg-slate-950 border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                          className="w-full bg-background border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                         />
                       </div>
 
@@ -263,7 +263,7 @@ export function EditarInspeccionModal({
                           min={1}
                           value={det.plantas_totales}
                           onChange={(e) => handleDetailChange(index, "plantas_totales", parseInt(e.target.value) || 1)}
-                          className="w-full bg-slate-950 border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                          className="w-full bg-background border border-border focus:border-sky-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                         />
                       </div>
 
@@ -277,7 +277,7 @@ export function EditarInspeccionModal({
                           value={det.recomendacion}
                           onChange={(e) => handleDetailChange(index, "recomendacion", e.target.value)}
                           placeholder="Recomendaciones fitosanitarias para este lote..."
-                          className="w-full bg-slate-950 border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
+                          className="w-full bg-background border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
                         />
                       </div>
 
@@ -291,7 +291,7 @@ export function EditarInspeccionModal({
                           value={det.nota}
                           onChange={(e) => handleDetailChange(index, "nota", e.target.value)}
                           placeholder="Detalles u observaciones específicas del lote..."
-                          className="w-full bg-slate-950 border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
+                          className="w-full bg-background border border-border hover:border-sky-500/30 focus:border-sky-500/80 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
                         />
                       </div>
 
@@ -316,7 +316,7 @@ export function EditarInspeccionModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 border border-border text-sm font-black uppercase tracking-wider text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-card border border-border text-sm font-black uppercase tracking-wider text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
           >
             Cancelar
           </button>

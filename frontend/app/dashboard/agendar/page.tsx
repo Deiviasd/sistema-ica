@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 // Force rebuild
 
 import { useEffect, useState, useMemo, Suspense } from "react"
@@ -169,31 +169,31 @@ function AgendarForm() {
   return (
     <div className="max-w-4xl mx-auto space-y-10 pb-20 font-sans" style={{ fontFamily: 'Outfit, sans-serif' }}>
 
-      <div className="flex flex-col gap-2 border-b-2 border-slate-800 pb-8">
+      <div className="flex flex-col gap-2 border-b-2 border-border pb-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center">
             <Calendar className="text-teal-500 w-7 h-7" />
           </div>
-          <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase">Agendar Inspección Técnico-Sanitaria</h1>
+          <h1 className="text-4xl font-black text-foreground italic tracking-tighter uppercase">Agendar Inspección Técnico-Sanitaria</h1>
         </div>
-        <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.3em] ml-16">Sistema de Asignación Automática • Protocolo ICA</p>
+        <p className="text-muted-foreground font-bold text-xs uppercase tracking-[0.3em] ml-16">Sistema de Asignación Automática • Protocolo ICA</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
         <div className="md:col-span-2">
           <form onSubmit={handleInitialSubmit} className="space-y-8">
-            <Card className="bg-slate-900/40 border-slate-800 rounded-[2.5rem] overflow-hidden backdrop-blur-xl">
+            <Card className="bg-card/40 border-border rounded-[2.5rem] overflow-hidden backdrop-blur-xl">
               <CardContent className="p-10 space-y-10">
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 bg-teal-500 text-slate-950 font-black rounded-lg flex items-center justify-center text-xs italic">01</span>
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Lugar de Producción</label>
+                    <label className="text-xs font-black text-muted-foreground uppercase tracking-widest italic">Lugar de Producción</label>
                   </div>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500 w-5 h-5 pointer-events-none" />
-                    <div className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl py-5 pl-12 pr-4 text-teal-400 font-black text-lg italic flex items-center">
+                    <div className="w-full bg-background border-2 border-border rounded-2xl py-5 pl-12 pr-4 text-teal-400 font-black text-lg italic flex items-center">
                       {lugares.find(l => l.id_lugar_produccion.toString() === formData.id_lugar_produccion)?.nombre_lugar || 'Cargando lugar...'}
                     </div>
                   </div>
@@ -209,7 +209,7 @@ function AgendarForm() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <span className="w-8 h-8 bg-teal-500 text-slate-950 font-black rounded-lg flex items-center justify-center text-xs italic">02</span>
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Fecha de Visita</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest italic">Fecha de Visita</label>
                     </div>
                     <div className="relative">
                       <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500 w-5 h-5 pointer-events-none" />
@@ -217,7 +217,7 @@ function AgendarForm() {
                         required
                         type="date"
                         min={getMinDateString()}
-                        className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl py-5 pl-12 pr-4 text-white font-bold outline-none focus:border-teal-500 transition-all"
+                        className="w-full bg-background border-2 border-border rounded-2xl py-5 pl-12 pr-4 text-foreground font-bold outline-none focus:border-teal-500 transition-all"
                         value={formData.fecha}
                         onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                       />
@@ -227,12 +227,12 @@ function AgendarForm() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <span className="w-8 h-8 bg-teal-500 text-slate-950 font-black rounded-lg flex items-center justify-center text-xs italic">03</span>
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Bloque Horario</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest italic">Bloque Horario</label>
                     </div>
                     <div className="relative">
                       <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500 w-5 h-5 pointer-events-none" />
                       <select
-                        className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl py-5 pl-12 pr-4 text-white font-bold outline-none focus:border-teal-500 transition-all appearance-none"
+                        className="w-full bg-background border-2 border-border rounded-2xl py-5 pl-12 pr-4 text-foreground font-bold outline-none focus:border-teal-500 transition-all appearance-none"
                         value={formData.hora}
                         onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
                       >
@@ -250,7 +250,7 @@ function AgendarForm() {
 
             <Button
               disabled={isSubmitting || hasActive}
-              className={`w-full h-20 text-white font-black text-xl rounded-3xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 ${hasActive ? 'bg-rose-600/50 cursor-not-allowed border-rose-500/20 shadow-rose-900/10' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-900/40'}`}
+              className={`w-full h-20 text-foreground font-black text-xl rounded-3xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 ${hasActive ? 'bg-rose-600/50 cursor-not-allowed border-rose-500/20 shadow-rose-900/10' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-900/40'}`}
             >
               {isSubmitting ? <Loader2 className="animate-spin w-8 h-8" /> : hasActive ? (
                 <> LUGAR CON INSPECCIÓN ACTIVA </>
@@ -269,10 +269,10 @@ function AgendarForm() {
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-slate-900/20 border-slate-800 border-dashed rounded-[2rem] p-8 text-center">
+          <Card className="bg-card/20 border-border border-dashed rounded-[2rem] p-8 text-center">
             <ShieldCheck className="w-12 h-12 text-teal-500 opacity-20 mx-auto mb-4" />
-            <h3 className="text-white font-black italic uppercase tracking-tighter mb-2">Protocolo de Asignación</h3>
-            <p className="text-slate-500 text-xs font-medium leading-relaxed">
+            <h3 className="text-foreground font-black italic uppercase tracking-tighter mb-2">Protocolo de Asignación</h3>
+            <p className="text-muted-foreground text-xs font-medium leading-relaxed">
               El sistema detectará automáticamente al inspector con menor carga de trabajo para garantizar una respuesta rápida en terreno.
             </p>
           </Card>
@@ -284,7 +284,7 @@ function AgendarForm() {
             </div>
             <ul className="space-y-3">
               {['Tener registro de predio activo', 'Contar con siembra reportada', 'Persona responsable en el sitio'].map((item, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs text-slate-400 font-bold italic">
+                <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground font-bold italic">
                   <CheckCircle2 className="w-3 h-3 text-emerald-500" /> {item}
                 </li>
               ))}
@@ -295,22 +295,22 @@ function AgendarForm() {
       </div>
 
       {/* 📊 SECCIÓN DE MONITOREO DE ESTADOS */}
-      <div className="space-y-8 pt-10 border-t-2 border-slate-900">
+      <div className="space-y-8 pt-10 border-t-2 border-border">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-teal-500/10 rounded-xl flex items-center justify-center">
             <ClipboardCheck className="text-teal-500 w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Estado de mis Inspecciones</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Monitoreo en tiempo real • Protocolo de cumplimiento</p>
+            <h2 className="text-2xl font-black text-foreground italic tracking-tighter uppercase">Estado de mis Inspecciones</h2>
+            <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Monitoreo en tiempo real • Protocolo de cumplimiento</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnimatePresence mode="popLayout">
             {filteredInspecciones.length === 0 ? (
-              <div className="col-span-full p-12 bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-[2.5rem] text-center">
-                <p className="text-slate-500 font-bold italic">No tienes inspecciones programadas actualmente para este lugar de producción.</p>
+              <div className="col-span-full p-12 bg-card/20 border-2 border-dashed border-border rounded-[2.5rem] text-center">
+                <p className="text-muted-foreground font-bold italic">No tienes inspecciones programadas actualmente para este lugar de producción.</p>
               </div>
             ) : (
               filteredInspecciones.map((ins) => (
@@ -321,15 +321,15 @@ function AgendarForm() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                 >
-                  <Card className={`bg-slate-900/40 border-slate-800 rounded-[2rem] overflow-hidden backdrop-blur-xl relative transition-all hover:border-teal-500/50 ${ins.estado === 'cancelada' ? 'opacity-60 grayscale' : ''}`}>
+                  <Card className={`bg-card/40 border-border rounded-[2rem] overflow-hidden backdrop-blur-xl relative transition-all hover:border-teal-500/50 ${ins.estado === 'cancelada' ? 'opacity-60 grayscale' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-6">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Estado Actual</p>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Estado Actual</p>
                           <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase italic ${ins.estado === 'programada' ? 'bg-blue-500/10 text-blue-500' :
                             ins.estado === 'en_proceso' ? 'bg-amber-500/10 text-amber-500' :
                               ins.estado === 'finalizada' ? 'bg-emerald-500/10 text-emerald-500' :
-                                'bg-slate-500/10 text-slate-400'
+                                'bg-slate-500/10 text-muted-foreground'
                             }`}>
                             <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${ins.estado === 'programada' ? 'bg-blue-500' :
                               ins.estado === 'en_proceso' ? 'bg-amber-500' :
@@ -353,7 +353,7 @@ function AgendarForm() {
                             <Button
                               variant="ghost"
                               onClick={() => handleArchivar(ins.id_inspeccion)}
-                              className="h-8 w-8 p-0 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg flex items-center justify-center transition-colors"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg flex items-center justify-center transition-colors"
                               title="Archivar de la vista"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -365,13 +365,13 @@ function AgendarForm() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-3">
                           <Calendar className="w-4 h-4 text-teal-500" />
-                          <span className="text-sm font-bold text-white">{new Date(ins.fecha_programada).toLocaleDateString()}</span>
+                          <span className="text-sm font-bold text-foreground">{new Date(ins.fecha_programada).toLocaleDateString()}</span>
                           <Clock className="w-4 h-4 text-teal-500 ml-2" />
-                          <span className="text-sm font-bold text-white">{new Date(ins.fecha_programada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-sm font-bold text-foreground">{new Date(ins.fecha_programada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
 
-                        <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
-                          <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Técnico Asignado</p>
+                        <div className="p-4 bg-background rounded-2xl border border-border">
+                          <p className="text-[8px] font-black text-muted-foreground/70 uppercase tracking-widest mb-1">Técnico Asignado</p>
                           <p className="text-xs font-black text-teal-400 uppercase italic">{ins.tecnico_nombre || 'Por asignar'}</p>
                         </div>
                       </div>
@@ -387,20 +387,20 @@ function AgendarForm() {
       <AnimatePresence>
         {assignedTech && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl" onClick={() => setAssignedTech(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[3rem] p-12 text-center shadow-4xl z-10">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-background/95 backdrop-blur-xl" onClick={() => setAssignedTech(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative w-full max-w-lg bg-card border border-border rounded-[3rem] p-12 text-center shadow-4xl z-10">
               <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-emerald-500/20 ring-8 ring-emerald-500/5">
                 <UserCheck className="text-emerald-500 w-12 h-12" />
               </div>
-              <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-4">Solicitud Registrada</h2>
-              <p className="text-slate-400 font-medium mb-10 leading-relaxed px-6">
+              <h2 className="text-3xl font-black text-foreground italic tracking-tighter uppercase mb-4">Solicitud Registrada</h2>
+              <p className="text-muted-foreground font-medium mb-10 leading-relaxed px-6">
                 Tu inspección ha sido programada exitosamente bajo el protocolo de cumplimiento.
                 <br />
                 <span className="text-teal-500 font-black italic">Técnico Asignado:</span>
               </p>
 
-              <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 mb-10 group transition-all">
-                <p className="text-xs text-slate-500 font-black uppercase tracking-[0.3em] mb-2">Inspector Encargado</p>
+              <div className="bg-background p-8 rounded-3xl border border-border mb-10 group transition-all">
+                <p className="text-xs text-muted-foreground font-black uppercase tracking-[0.3em] mb-2">Inspector Encargado</p>
                 <p className="text-2xl font-black text-teal-400 uppercase italic tracking-tighter group-hover:scale-105 transition-transform">{assignedTech}</p>
               </div>
 
@@ -420,7 +420,7 @@ function AgendarForm() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
               onClick={() => setShowConfirmModal(false)}
             />
             <motion.div
@@ -476,7 +476,7 @@ function AgendarForm() {
 
               <div className="space-y-3">
                 <Button
-                  className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-black text-lg rounded-2xl transition-all active:scale-95"
+                  className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-foreground font-black text-lg rounded-2xl transition-all active:scale-95"
                   onClick={() => confirmSubmit()}
                 >
                   CONFIRMAR AGENDAMIENTO

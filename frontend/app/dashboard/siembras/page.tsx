@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -698,10 +698,10 @@ export default function SiembrasPage() {
       {/* Lightbox de previsualización de imágenes */}
       <AnimatePresence>
         {previewImage && (
-          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden text-center" onClick={() => setPreviewImage(null)}>
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden text-center" onClick={() => setPreviewImage(null)}>
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute top-5 right-5 w-12 h-12 bg-slate-900/50 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
+              className="absolute top-5 right-5 w-12 h-12 bg-card/50 hover:bg-muted rounded-full flex items-center justify-center text-foreground transition-all border border-slate-700/50 z-10"
             >
               <X className="w-6 h-6" />
             </button>
@@ -709,7 +709,7 @@ export default function SiembrasPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 flex items-center justify-center"
+              className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-border bg-background flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -720,7 +720,7 @@ export default function SiembrasPage() {
               />
             </motion.div>
             <div className="mt-4 text-center max-w-[90vw]">
-              <p className="text-sm md:text-base font-black text-white/90 drop-shadow-lg">{previewImage.title}</p>
+              <p className="text-sm md:text-base font-black text-foreground/90 drop-shadow-lg">{previewImage.title}</p>
             </div>
           </div>
         )}

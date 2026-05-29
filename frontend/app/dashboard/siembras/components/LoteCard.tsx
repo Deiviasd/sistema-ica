@@ -1,4 +1,4 @@
-import { motion } from "framer-motion"
+﻿import { motion } from "framer-motion"
 import { Layers, MapPin, ExternalLink, Trash2, Sprout, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -133,7 +133,7 @@ export function LoteCard({
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end justify-between min-h-[84px]">
                     <div>
-                      <p className="text-[10px] md:text-xs text-slate-400 font-black uppercase mb-1">
+                      <p className="text-[10px] md:text-xs text-muted-foreground font-black uppercase mb-1">
                         Siembra
                       </p>
                       <p className="text-foreground font-bold text-sm md:text-base">
@@ -167,7 +167,7 @@ export function LoteCard({
                     <p className="text-xl md:text-2xl font-black text-foreground italic leading-none mb-1 drop-shadow-md">
                       {lote.area || 0} m²
                     </p>
-                    <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">
+                    <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-widest">
                       Área lote
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export function LoteCard({
                     <p className="text-xl md:text-2xl font-black text-foreground italic leading-none mb-1 drop-shadow-md">
                       {siembra?.cantidad_plantas || 0}
                     </p>
-                    <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">
+                    <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-widest">
                       Plantas
                     </p>
                   </div>
@@ -203,7 +203,7 @@ export function LoteCard({
                   e.stopPropagation()
                   onAssignSiembra(lote)
                 }}
-                className={`w-full bg-muted hover:bg-emerald-600 text-muted-foreground hover:text-white font-black text-xs tracking-widest h-12 md:h-14 rounded-xl md:rounded-2xl transition-all border border-border uppercase shadow-md ${isLocked ? 'opacity-40 cursor-not-allowed' : ''
+                className={`w-full bg-muted hover:bg-emerald-600 text-muted-foreground hover:text-foreground font-black text-xs tracking-widest h-12 md:h-14 rounded-xl md:rounded-2xl transition-all border border-border uppercase shadow-md ${isLocked ? 'opacity-40 cursor-not-allowed' : ''
                   }`}
               >
                 {isLocked ? '🔒 Asignación Bloqueada' : 'Asignar Nueva Siembra'}

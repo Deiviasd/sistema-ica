@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -118,7 +118,7 @@ export default function ReportesTecnicosPage() {
               placeholder="Buscar por predio, lugar u observaciones..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-border hover:border-emerald-500/30 focus:border-emerald-500/80 rounded-xl pl-10 pr-4 py-2.5 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
+              className="w-full bg-background border border-border hover:border-emerald-500/30 focus:border-emerald-500/80 rounded-xl pl-10 pr-4 py-2.5 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
             />
           </div>
 
@@ -127,7 +127,7 @@ export default function ReportesTecnicosPage() {
               onClick={() => setShowFiltersPanel(p => !p)}
               className={`flex items-center gap-2 font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl border transition-all ${showFiltersPanel || hasActiveFilters
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : "bg-slate-950 border-border text-foreground hover:bg-slate-900"
+                : "bg-background border-border text-foreground hover:bg-card"
                 }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -140,7 +140,7 @@ export default function ReportesTecnicosPage() {
             <button
               onClick={clearFilters}
               disabled={!hasActiveFilters}
-              className="flex items-center gap-2 bg-slate-950 border border-border text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all"
+              className="flex items-center gap-2 bg-background border border-border text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all"
             >
               <X className="w-3.5 h-3.5" />
               <span>Limpiar</span>
@@ -162,7 +162,7 @@ export default function ReportesTecnicosPage() {
                 <select
                   value={selectedPredio}
                   onChange={(e) => { setSelectedPredio(e.target.value); setSelectedLote("all") }}
-                  className="w-full bg-slate-950 border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                  className="w-full bg-background border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                 >
                   <option value="all">Todos los predios</option>
                   {filterOptions.predios.map(p => (
@@ -176,7 +176,7 @@ export default function ReportesTecnicosPage() {
                 <select
                   value={selectedLugar}
                   onChange={(e) => setSelectedLugar(e.target.value)}
-                  className="w-full bg-slate-950 border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                  className="w-full bg-background border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                 >
                   <option value="all">Todos los lugares</option>
                   {filterOptions.lugares.map(l => (
@@ -190,7 +190,7 @@ export default function ReportesTecnicosPage() {
                 <select
                   value={selectedLote}
                   onChange={(e) => setSelectedLote(e.target.value)}
-                  className="w-full bg-slate-950 border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
+                  className="w-full bg-background border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all"
                 >
                   <option value="all">Todos los lotes</option>
                   {filterOptions.lotes.map(l => (
@@ -205,7 +205,7 @@ export default function ReportesTecnicosPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all [color-scheme:dark]"
+                  className="w-full bg-background border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all [color-scheme:dark]"
                 />
               </div>
 
@@ -215,7 +215,7 @@ export default function ReportesTecnicosPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all [color-scheme:dark]"
+                  className="w-full bg-background border border-border focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-xs md:text-sm focus:outline-none text-foreground transition-all [color-scheme:dark]"
                 />
               </div>
             </motion.div>
@@ -233,7 +233,7 @@ export default function ReportesTecnicosPage() {
         </div>
       ) : filteredInspecciones.length === 0 ? (
         <div className="bg-card border border-border/50 rounded-2xl p-16 text-center flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 bg-slate-950 rounded-2xl border border-border flex items-center justify-center">
+          <div className="w-16 h-16 bg-background rounded-2xl border border-border flex items-center justify-center">
             <ClipboardList className="w-8 h-8 text-muted-foreground" />
           </div>
           <div>
@@ -274,7 +274,7 @@ export default function ReportesTecnicosPage() {
                   <div className="grid grid-cols-2 gap-4 pt-1">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Predio</p>
-                      <p className="text-sm text-white truncate font-bold">{ins.predio_nombre}</p>
+                      <p className="text-sm text-foreground truncate font-bold">{ins.predio_nombre}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Lugar</p>
@@ -285,7 +285,7 @@ export default function ReportesTecnicosPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Lotes</p>
-                      <p className="text-sm text-white truncate font-bold">
+                      <p className="text-sm text-foreground truncate font-bold">
                         {ins.lotes_inspeccionados.join(", ") || "Ninguno"}
                       </p>
                     </div>
@@ -352,7 +352,7 @@ export default function ReportesTecnicosPage() {
           <div className="hidden md:block bg-card border border-border/50 rounded-2xl overflow-hidden shadow-xl">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-900/60 border-b border-border/30 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                <tr className="bg-card/60 border-b border-border/30 text-xs font-black uppercase tracking-widest text-muted-foreground">
                   <th className="py-4 px-5">Fecha</th>
                   <th className="py-4 px-5">Lugar De Producion / Predio</th>
                   <th className="py-4 px-5">Lotes / Cultivos</th>
@@ -364,7 +364,7 @@ export default function ReportesTecnicosPage() {
                 {filteredInspecciones.map(ins => (
                   <tr
                     key={ins.id_inspeccion}
-                    className="hover:bg-slate-900/30 transition-colors group"
+                    className="hover:bg-card/30 transition-colors group"
                   >
                     <td className="py-5 px-5 whitespace-nowrap">
                       <div className="flex items-center gap-2.5 font-bold">
@@ -375,7 +375,7 @@ export default function ReportesTecnicosPage() {
 
                     <td className="py-5 px-5">
                       <div className="space-y-0.5">
-                        <p className="font-black text-white truncate max-w-[180px]" title={ins.lugar_nombre}>
+                        <p className="font-black text-foreground truncate max-w-[180px]" title={ins.lugar_nombre}>
                           {ins.lugar_nombre}
                         </p>
                         <div className="flex items-center gap-1.5">
@@ -392,7 +392,7 @@ export default function ReportesTecnicosPage() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
                           <span
-                            className="font-black text-white max-w-[200px] truncate"
+                            className="font-black text-foreground max-w-[200px] truncate"
                             title={ins.lotes_inspeccionados.join(", ")}
                           >
                             {ins.lotes_inspeccionados.join(", ") || "Sin registrar"}
@@ -421,7 +421,7 @@ export default function ReportesTecnicosPage() {
                             </span>
                           ))}
                           {ins.plagas_identificadas.length > 2 && (
-                            <span className="text-[11px] font-black px-2.5 py-1 rounded bg-slate-900 border border-border text-muted-foreground">
+                            <span className="text-[11px] font-black px-2.5 py-1 rounded bg-card border border-border text-muted-foreground">
                               +{ins.plagas_identificadas.length - 2}
                             </span>
                           )}
@@ -502,11 +502,11 @@ export default function ReportesTecnicosPage() {
                   </h3>
                   <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
                     ¿Estás seguro de que deseas eliminar la inspección del{" "}
-                    <span className="text-white font-bold">
+                    <span className="text-foreground font-bold">
                       {formatFecha(selectedModal.inspection.fecha_programada, true)}
                     </span>{" "}
                     en el predio{" "}
-                    <span className="text-white font-bold">
+                    <span className="text-foreground font-bold">
                       {selectedModal.inspection.predio_nombre}
                     </span>
                     ? Esta acción no se puede deshacer.
@@ -523,7 +523,7 @@ export default function ReportesTecnicosPage() {
                 <button
                   onClick={() => setSelectedModal(null)}
                   disabled={deleteLoading}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 border border-border text-sm font-black uppercase tracking-wider text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-card border border-border text-sm font-black uppercase tracking-wider text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
                 >
                   Cancelar
                 </button>

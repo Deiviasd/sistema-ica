@@ -15,7 +15,7 @@ interface Props {
 
 function TruncatedValue({ value, tone = "white" }: { value: string; tone?: "white" | "emerald" }) {
   const needsTooltip = value.length > 14
-  const textClass = tone === "emerald" ? "text-emerald-400" : "text-white"
+  const textClass = tone === "emerald" ? "text-emerald-400" : "text-foreground"
 
   if (!needsTooltip) {
     return <p className={`text-[13px] font-black uppercase leading-tight ${textClass}`}>{value}</p>
@@ -29,7 +29,7 @@ function TruncatedValue({ value, tone = "white" }: { value: string; tone?: "whit
       onClick={(e) => e.stopPropagation()}
     >
       <span className={`block truncate text-[13px] font-black uppercase leading-tight ${textClass}`}>{value}</span>
-      <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2 text-[11px] font-bold normal-case leading-snug text-white opacity-0 shadow-2xl shadow-slate-950/60 transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
+      <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-popover px-3 py-2 text-[11px] font-bold normal-case leading-snug text-popover-foreground opacity-0 shadow-2xl transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
         {value}
       </span>
     </button>
@@ -170,7 +170,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
   }, [lugarInspeccion, filterPredioId])
 
   if (loading) return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md">
       <Loader2 className="w-12 h-12 text-teal-500 animate-spin" />
     </div>
   )
@@ -195,7 +195,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+        className="absolute inset-0 bg-background/80 backdrop-blur-md"
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -217,7 +217,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="relative z-10 w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-white transition-all">
+          <button onClick={onClose} className="relative z-10 w-10 h-10 bg-muted hover:bg-muted/80 rounded-full flex items-center justify-center text-foreground transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -278,21 +278,21 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="bg-slate-950/80 border border-emerald-500/20 rounded-xl p-3 space-y-2 overflow-hidden"
+                  className="bg-background/80 border border-emerald-500/20 rounded-xl p-3 space-y-2 overflow-hidden"
                 >
                   {prediosDelLugar.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic text-center py-2">No hay predios registrados.</p>
+                    <p className="text-xs text-muted-foreground italic text-center py-2">No hay predios registrados.</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {prediosDelLugar.map((p) => (
-                        <div key={p.id_predio} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                          <p className="text-sm font-black text-white uppercase tracking-wide leading-tight">{p.nombre_predio}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            <span className="font-bold text-slate-500">N° Predial: </span>
+                        <div key={p.id_predio} className="rounded-lg border border-border bg-card/60 p-3">
+                          <p className="text-sm font-black text-foreground uppercase tracking-wide leading-tight">{p.nombre_predio}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span className="font-bold text-muted-foreground/70">N° Predial: </span>
                             {p.numero_predial || 'N/A'}
                           </p>
                           <p className="text-sm font-black text-emerald-400 mt-1.5">
-                            {p.area_hectareas || 0} <span className="text-xs font-bold text-slate-400">Ha</span>
+                            {p.area_hectareas || 0} <span className="text-xs font-bold text-muted-foreground">Ha</span>
                           </p>
                         </div>
                       ))}
@@ -323,7 +323,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                 }
 
                 if (filteredTodosLotes.length === 0) return (
-                  <p className="col-span-full text-slate-500 italic text-sm text-center py-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                  <p className="col-span-full text-muted-foreground italic text-sm text-center py-4 bg-card/50 border border-border rounded-xl">
                     No hay lotes registrados para el filtro seleccionado.
                   </p>
                 )
@@ -331,31 +331,31 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                   const isOpen = selectedDossierLote === lote.id_lote
 
                   return (
-                    <div key={lote.id_lote} className={`self-start rounded-xl border transition-all overflow-hidden ${isOpen ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-slate-900 border-slate-800/80 hover:border-slate-700'
+                    <div key={lote.id_lote} className={`self-start rounded-xl border transition-all overflow-hidden ${isOpen ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-card border-border/80 hover:border-muted-foreground/40'
                       }`}>
                       <div onClick={() => setSelectedDossierLote(isOpen ? null : lote.id_lote)} className="flex items-center gap-3 p-3 cursor-pointer">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${lote.siembra_activa ? 'bg-emerald-500/10' : 'bg-slate-800'}`}>
-                          <Leaf className={`w-4.5 h-4.5 ${lote.siembra_activa ? 'text-emerald-500' : 'text-slate-600'}`} />
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${lote.siembra_activa ? 'bg-emerald-500/10' : 'bg-muted'}`}>
+                          <Leaf className={`w-4.5 h-4.5 ${lote.siembra_activa ? 'text-emerald-500' : 'text-muted-foreground/70'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black text-white italic uppercase tracking-tight truncate">{lote.nombre_lote}</p>
+                          <p className="text-xs font-black text-foreground italic uppercase tracking-tight truncate">{lote.nombre_lote}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-[9px] text-slate-500 font-bold uppercase">{lote.predio_nombre}</span>
-                            <span className="text-slate-700">·</span>
-                            <span className="text-[9px] text-slate-500 font-bold">{lote.area} m²</span>
+                            <span className="text-[9px] text-muted-foreground font-bold uppercase">{lote.predio_nombre}</span>
+                            <span className="text-muted-foreground/70">·</span>
+                            <span className="text-[9px] text-muted-foreground font-bold">{lote.area} m²</span>
                             <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${lote.siembra_activa
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-slate-700/50 text-slate-500 border border-slate-700'
+                              : 'bg-muted text-muted-foreground border border-border'
                               }`}>
                               {lote.siembra_activa?.especie ?? 'Sin siembra'}
                             </span>
                           </div>
                         </div>
-                        <ChevronRight className={`w-4 h-4 text-slate-600 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90 text-emerald-500' : ''}`} />
+                        <ChevronRight className={`w-4 h-4 text-muted-foreground/70 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90 text-emerald-500' : ''}`} />
                       </div>
 
                       {isOpen && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="border-t border-emerald-500/20 bg-slate-950/50">
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="border-t border-emerald-500/20 bg-background/50">
                           {lote.siembra_activa ? (
                             <div className="p-3 grid grid-cols-3 gap-3">
                               {[
@@ -367,24 +367,24 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                                 { label: 'Área', value: `${lote.area} m²` },
                               ].map(({ label, value, isBadge, isGreen }) => (
                                 <div key={label} className="min-w-0">
-                                  <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-0.5">{label}</p>
+                                  <p className="text-[8px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">{label}</p>
                                   {isBadge ? (
                                     <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase block w-fit ${value === 'ANUAL' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'}`}>{value}</span>
                                   ) : (
-                                    <p className={`text-xs font-bold italic truncate ${isGreen ? 'text-emerald-400' : 'text-white'}`}>{value}</p>
+                                    <p className={`text-xs font-bold italic truncate ${isGreen ? 'text-emerald-400' : 'text-foreground'}`}>{value}</p>
                                   )}
                                 </div>
                               ))}
                               {lote.siembra_activa.edad_dias && (
                                 <div className="col-span-full bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2.5 flex items-center justify-between">
                                   <p className="text-[8px] text-emerald-500 font-black uppercase tracking-widest">Edad del Cultivo</p>
-                                  <p className="text-sm text-white font-black italic">{lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-xs font-normal">días en campo</span></p>
+                                  <p className="text-sm text-foreground font-black italic">{lote.siembra_activa.edad_dias} <span className="text-emerald-500 text-xs font-normal">días en campo</span></p>
                                 </div>
                               )}
                             </div>
                           ) : (
                             <div className="p-3 text-center">
-                              <p className="text-slate-550 italic text-[11px]">Sin siembra activa registrada.</p>
+                              <p className="text-muted-foreground italic text-[11px]">Sin siembra activa registrada.</p>
                             </div>
                           )}
                         </motion.div>
@@ -396,11 +396,11 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
             </div>
           </div>
           {/* Observaciones generales */}
-          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2.5 flex items-center gap-2">
+          <div className="bg-card p-4 rounded-xl border border-border">
+            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2.5 flex items-center gap-2">
               <ClipboardList className="w-3.5 h-3.5 text-emerald-500" /> Observaciones Generales
             </p>
-            <p className="text-xs text-slate-355 italic bg-slate-950 p-3 rounded-lg border border-slate-850">
+            <p className="text-xs text-muted-foreground italic bg-background p-3 rounded-lg border border-border">
               {genObs || "Sin observaciones generales registradas."}
             </p>
           </div>
@@ -411,19 +411,19 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
               <Bug className="w-3.5 h-3.5" /> Detalles de la Inspección (Hallazgos y Afectaciones)
             </h3>
             {Object.keys(groupedEvals).length === 0 ? (
-              <div className="bg-slate-900 border border-dashed border-slate-700 p-6 rounded-xl text-center">
-                <p className="text-slate-500 italic text-xs">No hay evaluación técnica registrada aún.</p>
+              <div className="bg-card border border-dashed border-border p-6 rounded-xl text-center">
+                <p className="text-muted-foreground italic text-xs">No hay evaluación técnica registrada aún.</p>
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-800 overflow-hidden">
+              <div className="rounded-xl border border-border overflow-hidden">
                 {/* Cabecera de tabla */}
-                <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800">
-                  <p className="col-span-3 text-[11px] font-black text-slate-400 uppercase tracking-widest">Lote / Cultivo</p>
-                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Plaga</p>
-                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Afectadas / Total</p>
-                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Incidencia</p>
-                  <p className="col-span-2 text-[11px] font-black text-slate-400 uppercase tracking-widest">Severidad</p>
-                  <p className="col-span-1 text-[11px] font-black text-slate-400 uppercase tracking-widest"></p>
+                <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-card border-b border-border">
+                  <p className="col-span-3 text-[11px] font-black text-muted-foreground uppercase tracking-widest">Lote / Cultivo</p>
+                  <p className="col-span-2 text-[11px] font-black text-muted-foreground uppercase tracking-widest">Plaga</p>
+                  <p className="col-span-2 text-[11px] font-black text-muted-foreground uppercase tracking-widest">Afectadas / Total</p>
+                  <p className="col-span-2 text-[11px] font-black text-muted-foreground uppercase tracking-widest">Incidencia</p>
+                  <p className="col-span-2 text-[11px] font-black text-muted-foreground uppercase tracking-widest">Severidad</p>
+                  <p className="col-span-1 text-[11px] font-black text-muted-foreground uppercase tracking-widest"></p>
                 </div>
 
                 {/* Filas */}
@@ -463,7 +463,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                       }
 
                       return (
-                        <div key={rowId} className={`border-b border-slate-800/60 last:border-0 transition-colors ${isOpen ? 'bg-slate-900/80' : 'bg-slate-950 hover:bg-slate-900/40'}`}>
+                        <div key={rowId} className={`border-b border-border/60 last:border-0 transition-colors ${isOpen ? 'bg-card/80' : 'bg-background hover:bg-card/40'}`}>
                           {/* Fila principal clickeable */}
                           <div
                             onClick={() => setSelectedDossierLugar(isOpen ? null : rowId)}
@@ -471,9 +471,9 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                           >
                             {/* Lote / Cultivo */}
                             <div className="col-span-3">
-                              <p className="text-sm font-black text-white uppercase tracking-wide truncate">{loteKey.split(' (')[0]}</p>
+                              <p className="text-sm font-black text-foreground uppercase tracking-wide truncate">{loteKey.split(' (')[0]}</p>
                               {loteInfo?.siembra_activa && (
-                                <p className="text-[11px] text-slate-400 font-bold mt-0.5 truncate">
+                                <p className="text-[11px] text-muted-foreground font-bold mt-0.5 truncate">
                                   {loteInfo.siembra_activa.especie}
                                   {loteInfo.siembra_activa.variedad ? ` · ${getVariedadNombre(loteInfo.siembra_activa)}` : ''}
                                 </p>
@@ -484,8 +484,8 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                             <div className="col-span-2 flex items-center gap-1.5">
                               <Bug className={`w-3.5 h-3.5 flex-shrink-0 ${themeColor}`} />
                               <span className="group relative flex items-center min-w-0">
-                                <span className="block text-sm font-black text-white uppercase truncate">{ev.plaga}</span>
-                                <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2 text-[11px] font-bold normal-case leading-snug text-white opacity-0 shadow-2xl shadow-slate-950/60 transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
+                                <span className="block text-sm font-black text-foreground uppercase truncate">{ev.plaga}</span>
+                                <span className="pointer-events-none absolute left-0 top-full z-30 mt-2 max-w-[260px] rounded-lg border border-emerald-500/30 bg-popover px-3 py-2 text-[11px] font-bold normal-case leading-snug text-popover-foreground opacity-0 shadow-2xl transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100">
                                   {ev.plaga}
                                 </span>
                               </span>
@@ -493,17 +493,17 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
 
                             {/* Afectadas / Total */}
                             <div className="col-span-2">
-                              <p className="text-sm font-black text-white">
+                              <p className="text-sm font-black text-foreground">
                                 <span className={themeColor}>{ev.afectadas}</span>
-                                <span className="text-slate-600"> / {ev.totales}</span>
+                                <span className="text-muted-foreground/70"> / {ev.totales}</span>
                               </p>
-                              <p className="text-[10px] text-slate-500 font-bold uppercase">plantas</p>
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase">plantas</p>
                             </div>
 
                             {/* Barra + % */}
                             <div className="col-span-2 space-y-1">
                               <p className={`text-sm font-black italic ${themeColor}`}>{pct.toFixed(1)}%</p>
-                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                               </div>
                             </div>
@@ -517,7 +517,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
 
                             {/* Chevron */}
                             <div className="col-span-1 flex justify-end">
-                              <ChevronRight className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-90 text-emerald-500' : ''}`} />
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-90 text-emerald-500' : ''}`} />
                             </div>
                           </div>
 
@@ -526,7 +526,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
-                          className="border-t border-slate-800/60 bg-slate-950/60 px-4 py-4"
+                          className="border-t border-border/60 bg-background/60 px-4 py-4"
                           onAnimationStart={() => {
                             const idDetalle = (ev as EvalItem).id_detalle
                             if (idDetalle) fetchEvidenciasDetalle(idDetalle, rowId)
@@ -535,15 +535,15 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {loteInfo?.siembra_activa && (
                                   <div className="space-y-2.5">
-                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Datos del Cultivo</p>
+                                    <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Datos del Cultivo</p>
                                     <div className="grid grid-cols-3 gap-2">
                                       {[
                                         { label: 'Especie', value: loteInfo.siembra_activa.especie || 'N/A' },
                                         { label: 'Variedad', value: getVariedadNombre(loteInfo.siembra_activa) },
                                         { label: 'Ciclo', value: loteInfo.siembra_activa.ciclo || 'N/A' },
                                       ].map(({ label, value }) => (
-                                        <div key={label} className="bg-slate-900 rounded-lg p-2.5 border border-slate-800/40 min-w-0">
-                                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                                        <div key={label} className="bg-card rounded-lg p-2.5 border border-border/40 min-w-0">
+                                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
                                           <TruncatedValue value={String(value)} />
                                         </div>
                                       ))}
@@ -553,8 +553,8 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                                         { label: 'Plantas Totales', value: loteInfo.siembra_activa.cantidad_plantas ? `${loteInfo.siembra_activa.cantidad_plantas} plantas` : '0 plantas' },
                                         { label: 'Área del Lote', value: `${loteInfo.area || 0} m²` },
                                       ].map(({ label, value }) => (
-                                        <div key={label} className="bg-slate-900 rounded-lg p-2.5 border border-slate-800/40 min-w-0">
-                                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                                        <div key={label} className="bg-card rounded-lg p-2.5 border border-border/40 min-w-0">
+                                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
                                           <TruncatedValue value={String(value)} tone="emerald" />
                                         </div>
                                       ))}
@@ -564,37 +564,37 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
 
                                 {/* Recomendación + Observaciones */}
                                 <div className="space-y-2.5">
-                                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Recomendación de Intervención</p>
-                                  <div className="bg-slate-900 border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
+                                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Recomendación de Intervención</p>
+                                  <div className="bg-card border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
                                     <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest mb-1">Recomendación Técnica</p>
-                                    <p className="text-sm text-slate-200 leading-relaxed">{ev.recomendacion}</p>
+                                    <p className="text-sm text-foreground leading-relaxed">{ev.recomendacion}</p>
                                   </div>
                                   {ev.nota && ev.nota !== ev.recomendacion && (
-                                    <div className="bg-slate-900 border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
+                                    <div className="bg-card border-l-2 border-emerald-500/60 pl-3 pr-2 py-2.5 rounded-r-lg">
                                       <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest mb-1">Observaciones</p>
-                                      <p className="text-sm text-slate-200 leading-relaxed">{ev.nota}</p>
+                                      <p className="text-sm text-foreground leading-relaxed">{ev.nota}</p>
                                     </div>
                                   )}
                                 </div>
                               </div>
 
                               {/* Evidencias Fotográficas del Lote */}
-                              <div className="mt-6 pt-4 border-t border-slate-800/40">
+                              <div className="mt-6 pt-4 border-t border-border/40">
                                 <div className="flex items-center justify-between mb-4">
-                                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <ImageIcon className="w-4 h-4" /> Evidencias Fotográficas — {loteInfo?.nombre_lote || loteKey.split(' (')[0]}
                                   </p>
                                   {evidenciasPorDetalle[rowId] && (
-                                    <span className="text-[10px] font-black text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                                    <span className="text-[10px] font-black text-muted-foreground bg-card px-3 py-1 rounded-full border border-border">
                                       {evidenciasPorDetalle[rowId].length} foto{evidenciasPorDetalle[rowId].length !== 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>
                                 {loadingEvidencias[rowId] ? (
-                                  <div className="flex items-center justify-center py-8 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                                  <div className="flex items-center justify-center py-8 bg-card/30 rounded-xl border border-dashed border-border">
                                     <div className="flex items-center gap-3">
                                       <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
-                                      <span className="text-xs text-slate-500 font-bold">Cargando evidencias...</span>
+                                      <span className="text-xs text-muted-foreground font-bold">Cargando evidencias...</span>
                                     </div>
                                   </div>
                                 ) : evidenciasPorDetalle[rowId]?.length ? (
@@ -603,7 +603,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                                       <div
                                         key={idx}
                                         onClick={() => setPreviewImage({ url: evFoto.imagen_url, title: `${loteInfo?.nombre_lote || loteKey.split(' (')[0]} — Evidencia ${idx + 1}` })}
-                                        className="group relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-slate-800 bg-slate-900 cursor-pointer hover:border-emerald-500/50 transition-all duration-300 shadow-lg hover:shadow-emerald-950/30"
+                                        className="group relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-border bg-card cursor-pointer hover:border-emerald-500/50 transition-all duration-300 shadow-lg hover:shadow-emerald-950/30"
                                       >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
@@ -611,15 +611,15 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                                           alt={`Evidencia ${idx + 1}`}
                                           className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
                                         <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                                           <div className="flex items-center justify-between">
-                                            <p className="text-xs font-black text-white drop-shadow-lg truncate">{loteInfo?.nombre_lote || loteKey.split(' (')[0]}</p>
+                                            <p className="text-xs font-black text-foreground drop-shadow-lg truncate">{loteInfo?.nombre_lote || loteKey.split(' (')[0]}</p>
                                             <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">Ver foto</span>
                                           </div>
                                         </div>
                                         <div className="absolute top-3 left-3">
-                                          <span className="text-[9px] font-black text-white bg-slate-950/60 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-slate-700/50">
+                                          <span className="text-[9px] font-black text-foreground bg-background/60 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-border/50">
                                             #{idx + 1}
                                           </span>
                                         </div>
@@ -627,9 +627,9 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col items-center justify-center py-8 bg-slate-900/20 rounded-xl border border-dashed border-slate-800 gap-2">
-                                    <ImageIcon className="w-8 h-8 text-slate-700" />
-                                    <p className="text-xs text-slate-500 italic">Sin evidencias fotográficas registradas para este lote.</p>
+                                  <div className="flex flex-col items-center justify-center py-8 bg-card/20 rounded-xl border border-dashed border-border gap-2">
+                                    <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
+                                    <p className="text-xs text-muted-foreground italic">Sin evidencias fotográficas registradas para este lote.</p>
                                   </div>
                                 )}
                               </div>
@@ -653,11 +653,11 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden"
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background/95 backdrop-blur-2xl p-4 md:p-8 cursor-pointer overflow-hidden"
         >
           <button
             onClick={() => setPreviewImage(null)}
-            className="absolute top-5 right-5 w-12 h-12 bg-slate-900/50 hover:bg-slate-800 rounded-full flex items-center justify-center text-white transition-all border border-slate-700/50 z-10"
+            className="absolute top-5 right-5 w-12 h-12 bg-card/50 hover:bg-muted rounded-full flex items-center justify-center text-foreground transition-all border border-border/50 z-10"
           >
             <X className="w-6 h-6" />
           </button>
@@ -665,7 +665,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 flex items-center justify-center"
+            className="relative w-full max-w-[95vw] sm:max-w-[85vw] md:max-w-[70vw] lg:max-w-[55vw] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-border bg-background flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -676,7 +676,7 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
             />
           </motion.div>
           <div className="mt-4 text-center max-w-[90vw]">
-            <p className="text-sm md:text-base font-black text-white/90 drop-shadow-lg">{previewImage.title}</p>
+            <p className="text-sm md:text-base font-black text-foreground/90 drop-shadow-lg">{previewImage.title}</p>
           </div>
         </motion.div>
       )}
