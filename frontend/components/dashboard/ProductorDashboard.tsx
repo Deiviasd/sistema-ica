@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Link from "next/link"
 import {
   Leaf,
   MapPin,
@@ -111,6 +112,53 @@ export default function ProductorDashboard() {
     }
   }
 
+  // 🚨 Calcular Alertas Fitosanitarias (incidencia o infestación > 30%)
+  const alertasFitosanitarias = useMemo(() => {
+    const listaAlertas: {
+      id_inspeccion: number
+      id_lote: number
+      lote_nombre: string
+      predio_nombre: string
+      plaga_nombre?: string
+      porcentaje: number
+      fecha: string
+    }[] = []
+
+    inspecciones.forEach((ins: any) => {
+      if (selectedPredioId) {
+        const predioObj = predios.find(p => p.id_predio === selectedPredioId)
+        if (Number(ins.id_predio) !== selectedPredioId && Number(ins.id_lugar_produccion) !== predioObj?.id_lugar_produccion) {
+          return
+        }
+      }
+
+      if (ins.estado === "finalizada" && Array.isArray(ins.detalle_inspeccion)) {
+        ins.detalle_inspeccion.forEach((det: any) => {
+          const porcentaje = Number(det.porcentaje_infestacion) || 0
+          if (porcentaje > 30) {
+            const siembra = siembras.find(s => s.id_siembra === det.siembra_id)
+            if (siembra) {
+              const loteId = siembra.id_lote
+              const predio = predios.find(p => p.lote?.some(l => l.id_lote === loteId))
+              const lote = predio?.lote?.find(l => l.id_lote === loteId)
+              listaAlertas.push({
+                id_inspeccion: ins.id_inspeccion,
+                id_lote: loteId,
+                lote_nombre: lote?.nombre_lote || `Lote #${loteId}`,
+                predio_nombre: predio?.nombre_predio || "Sin predio",
+                plaga_nombre: det.plaga || "Incidencia alta",
+                porcentaje,
+                fecha: ins.fecha_programada
+              })
+            }
+          }
+        })
+      }
+    })
+
+    return listaAlertas
+  }, [inspecciones, siembras, predios, selectedPredioId])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -216,27 +264,61 @@ export default function ProductorDashboard() {
         )}
       </AnimatePresence>
       <div className={`grid gap-6 ${selectedPredioId ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'} items-stretch`}>
-        {/* 1. Alertas (Siempre visible) */}
-        <StatCard
-          title="Alertas"
-          value="0"
-          icon={<AlertTriangle className="w-6 h-6 text-rose-500" />}
-          trend="Sin riesgos"
-          color="rose"
-        />
+        {/* 1. Alertas (Configuradas con lógica de umbral > 30%) */}
+        <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+          <Card className={`bg-card border-2 shadow-md overflow-hidden relative group transition-all h-full w-full text-left flex flex-col justify-between ${alertasFitosanitarias.length > 0 ? 'border-rose-500/50 shadow-rose-900/10' : 'border-border'}`}>
+            <div className={`absolute inset-0 bg-gradient-to-br ${alertasFitosanitarias.length > 0 ? 'from-rose-500/10 to-transparent' : 'from-muted/50 to-transparent'} opacity-50`} />
+            <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-1.5 rounded-lg border ${alertasFitosanitarias.length > 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-muted border-border'}`}>
+                    <AlertTriangle className={`w-5 h-5 ${alertasFitosanitarias.length > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-500'}`} />
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${alertasFitosanitarias.length > 0 ? 'text-rose-500' : 'text-slate-500'}`}>
+                    {alertasFitosanitarias.length > 0 ? '¡URGENTE!' : 'SIN RIESGOS'}
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-2xl font-bold tracking-tight">{alertasFitosanitarias.length}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tighter">Alertas Fitosanitarias</p>
+                </div>
+              </div>
+
+              {alertasFitosanitarias.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-rose-500/10 max-h-[100px] overflow-y-auto custom-scrollbar pr-2 space-y-1.5">
+                  {alertasFitosanitarias.map((alerta, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 bg-rose-500/5 p-1.5 rounded-lg border border-rose-500/10">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-rose-500 truncate">{alerta.lote_nombre}</p>
+                        <p className="text-[9px] text-muted-foreground font-bold">{alerta.porcentaje}% infestación</p>
+                      </div>
+                      <Link
+                        href={`/dashboard/historial-registros?inspeccion=${alerta.id_inspeccion}&lote=${alerta.id_lote}`}
+                        className="shrink-0 p-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 rounded-md transition-colors"
+                        title="Ver inspección"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* 2. Lotes (Siempre visible) */}
         <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
           <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/20 to-transparent border-teal-500/20 opacity-50" />
-            <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+            <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-muted rounded-lg border border-border">
-                    <Sprout className="w-6 h-6 text-teal-500" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-1.5 bg-muted rounded-lg border border-border">
+                    <Sprout className="w-5 h-5 text-teal-500" />
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-tighter leading-none">Lotes</p>
                   {lotesFiltrados.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 pt-1">
@@ -262,23 +344,58 @@ export default function ProductorDashboard() {
 
         {/* 3. Inspecciones Realizadas (Sin predio) o Cultivos Activos (Con predio) */}
         {!selectedPredioId ? (
-          <StatCard
-            title="Inspecciones Realizadas"
-            value={inspeccionesFiltradas.length.toString()}
-            icon={<ClipboardCheck className="w-6 h-6 text-blue-500" />}
-            trend="Historial total"
-            color="blue"
-          />
+          <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
+            <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-50" />
+              <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-1.5 bg-muted rounded-lg border border-border">
+                      <ClipboardCheck className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Historial total</span>
+                  </div>
+                  <div className="space-y-0.5 mb-2">
+                    <p className="text-2xl font-bold tracking-tight">{inspeccionesFiltradas.length}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tighter">Inspecciones Realizadas</p>
+                  </div>
+                  {/* Top técnicos */}
+                  {(() => {
+                    const conteo: Record<string, number> = {}
+                    inspeccionesFiltradas.forEach((ins: any) => {
+                      if (ins.tecnico_nombre) {
+                        conteo[ins.tecnico_nombre] = (conteo[ins.tecnico_nombre] || 0) + 1
+                      }
+                    })
+                    const topTecnicos = Object.entries(conteo)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 3)
+                    if (topTecnicos.length === 0) return null
+                    return (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {topTecnicos.map(([nombre, count]) => (
+                          <span key={nombre} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 max-w-[120px] truncate" title={nombre}>
+                            {nombre.split(' ')[0]}
+                            <span className="text-blue-300 font-black">{count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
           /* Card personalizada: Cultivos en el predio */
           <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
             <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-50" />
-              <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+              <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-muted rounded-lg border border-border">
-                      <TrendingUp className="w-6 h-6 text-primary" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-1.5 bg-muted rounded-lg border border-border">
+                      <TrendingUp className="w-5 h-5 text-primary" />
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate max-w-[120px]">
                       En {selectedPredio?.nombre_predio}
@@ -318,11 +435,11 @@ export default function ProductorDashboard() {
           <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
             <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full text-left flex flex-col justify-between">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent border-emerald-500/20 opacity-50" />
-              <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+              <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-muted rounded-lg border border-border">
-                      <MapPin className="w-6 h-6 text-emerald-500" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-1.5 bg-muted rounded-lg border border-border">
+                      <MapPin className="w-5 h-5 text-emerald-500" />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       {`+${prediosEsteMes} este mes`}
@@ -543,17 +660,17 @@ function StatCard({ title, value, icon, trend, color }: any) {
     <motion.div className="h-full flex" variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}>
       <Card className="bg-card border-border shadow-md overflow-hidden relative group transition-all hover:shadow-lg h-full w-full flex flex-col justify-between">
         <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[color]} opacity-50`} />
-        <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full w-full">
+        <CardContent className="p-4 relative z-10 flex flex-col justify-between h-full w-full">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-muted rounded-lg border border-border">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-1.5 bg-muted rounded-lg border border-border">
                 {icon}
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{trend}</span>
             </div>
-            <div className="space-y-1">
-              <p className="text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
-              <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-tighter">{title}</p>
+            <div className="space-y-0.5">
+              <p className="text-2xl font-bold tracking-tight">{value}</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tighter">{title}</p>
             </div>
           </div>
         </CardContent>

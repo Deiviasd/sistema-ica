@@ -77,6 +77,29 @@ export default function HistorialRegistrosPage() {
     }
   }, [user, router])
 
+  // Procesar parámetros de URL (?inspeccion=xxx&lote=yyy) para abrir automáticamente la inspección y filtrar por lote
+  useEffect(() => {
+    if (!loading && inspecciones.length > 0) {
+      const params = new URLSearchParams(window.location.search)
+      const urlInspeccionId = params.get("inspeccion")
+      const urlLoteId = params.get("lote")
+
+      if (urlInspeccionId) {
+        const found = inspecciones.find(ins => String(ins.id_inspeccion) === urlInspeccionId)
+        if (found) {
+          setSelectedInspection(found)
+          if (urlLoteId) {
+            const predWithLote = predios.find(p => p.lote?.some(l => String(l.id_lote) === String(urlLoteId)))
+            if (predWithLote) {
+              setSelectedPredio(String(predWithLote.id_predio))
+            }
+            setSelectedLote(String(urlLoteId))
+          }
+        }
+      }
+    }
+  }, [loading, inspecciones, predios])
+
   const fetchData = async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true)

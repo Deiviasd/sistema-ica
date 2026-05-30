@@ -30,13 +30,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const initials = user.email.substring(0, 2).toUpperCase()
 
   return (
-    <header className="flex items-center justify-end px-3 py-2 fixed top-0 right-0 z-50">
+    <header className="flex items-center justify-end px-4 pt-3 md:pt-4 pb-0">
 
 
       <div className="flex items-center gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger className="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-border hover:ring-offset-2">
-            <Avatar className="h-10 w-10 border-2 border-primary/50 shadow-sm">
+            <Avatar className="h-12 w-12 border-2 border-primary/50 shadow-sm">
               <AvatarImage src={(user as any).foto_perfil} className="object-cover" />
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-medium">{initials}</AvatarFallback>
             </Avatar>

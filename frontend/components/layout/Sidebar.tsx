@@ -48,14 +48,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
       >
         <div className="mb-8 mt-2 px-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/20">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20">
               ICA
             </div>
             <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-500">
               ICA Hub
             </h2>
-          </div>
+          </Link>
           {/* Botón cerrar para móvil */}
           <button onClick={onClose} className="p-2 md:hidden text-muted-foreground hover:bg-muted rounded-lg transition-colors">
              <X className="w-5 h-5" />
