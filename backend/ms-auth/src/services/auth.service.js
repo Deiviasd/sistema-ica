@@ -69,8 +69,8 @@ const loginService = async ({ email, password }) => {
     const userRole = roleMap[user.id_rol] || 'guest'
 
     // ✨ Extraemos la información del predio asociado (si existe)
-    const predio = user.usuario_predio && user.usuario_predio.length > 0 
-        ? user.usuario_predio[0] 
+    const predio = user.usuario_predio && user.usuario_predio.length > 0
+        ? user.usuario_predio[0]
         : null;
 
     const token = jwt.sign(
@@ -90,19 +90,19 @@ const loginService = async ({ email, password }) => {
         { expiresIn: '24h' }
     )
 
-    const loginResult = { 
-        token, 
-        user: { 
+    const loginResult = {
+        token,
+        user: {
             id: user.id_usuario,
-            email: user.correo, 
-            role: userRole, 
+            email: user.correo,
+            role: userRole,
             nombre: user.nombre,
             documento: user.documento,
             identificacion: user.documento,
             numero_documento: user.documento,
             nombre_predio: predio?.nombre_predio || '',
             numero_predial: predio?.numero_predial || ''
-        } 
+        }
     }
 
     // 📣 Notificar a Auditoría (Login exitoso)
@@ -135,12 +135,12 @@ const updateUserService = async (adminId, userId, updateData) => {
     if (updateData.foto_perfil && updateData.foto_perfil.startsWith('data:image')) {
         try {
             console.log(`🚀 Procesando subida de foto para usuario ${userId} a Supabase Storage...`)
-            
+
             // 1. Extraer los datos puros del Base64
             const base64Data = updateData.foto_perfil.split(';base64,').pop()
             const buffer = Buffer.from(base64Data, 'base64')
             const contentType = updateData.foto_perfil.split(';')[0].split(':')[1] || 'image/webp'
-            
+
             // 2. Ruta estandarizada: carpeta-usuario/perfil.webp
             const filePath = `${userId}/perfil.webp`
 
@@ -162,7 +162,7 @@ const updateUserService = async (adminId, userId, updateData) => {
             // Agregamos timestamp para evitar caché agresivo
             updateData.foto_perfil = `${publicUrl}?t=${Date.now()}`
             console.log(`✅ Foto subida exitosamente: ${updateData.foto_perfil}`)
-            
+
         } catch (storageError) {
             console.error('❌ Error crítico subiendo a Supabase Storage:', storageError.message)
         }
@@ -191,13 +191,13 @@ const updateUserService = async (adminId, userId, updateData) => {
     try {
         const p = await findUserById(adminId || userId);
         if (p) {
-            performer = { 
-                nombre: p.nombre, 
-                email: p.correo, 
-                rol: roleMap[p.id_rol] || 'authenticated' 
+            performer = {
+                nombre: p.nombre,
+                email: p.correo,
+                rol: roleMap[p.id_rol] || 'authenticated'
             };
         }
-    } catch (e) {}
+    } catch (e) { }
 
     eventBus.publish('audit_queue', {
         modulo: 'seguridad',
@@ -237,13 +237,13 @@ const deleteUserService = async (adminId, userId) => {
         const p = await findUserById(adminId);
         if (p) {
             const roleMap = { 'ADMIN_ICA': 'admin', 'TECNICO': 'tecnico', 'PRODUCTOR': 'productor' };
-            performer = { 
-                nombre: p.nombre, 
-                email: p.correo, 
-                rol: roleMap[p.id_rol] || 'admin' 
+            performer = {
+                nombre: p.nombre,
+                email: p.correo,
+                rol: roleMap[p.id_rol] || 'admin'
             };
         }
-    } catch (e) {}
+    } catch (e) { }
 
     eventBus.publish('audit_queue', {
         modulo: 'seguridad',

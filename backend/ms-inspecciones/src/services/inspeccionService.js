@@ -333,7 +333,7 @@ const generarReporte = async (reqUser, filters = {}) => {
                 municipio: lugar?.region?.municipio || predioInfo?.region?.municipio,
                 region: lugar?.region?.departamento || predioInfo?.region?.departamento
             };
-        } catch {}
+        } catch { }
 
         if (!ins.tecnico_id) return base;
         try {
@@ -705,7 +705,7 @@ const eliminarInspeccion = async (id) => {
         .from('detalle_inspeccion')
         .select('id_detalle')
         .eq('id_inspeccion', id);
-    
+
     // 2. Si hay detalles, borrar evidencias y luego los detalles
     if (detalles && detalles.length > 0) {
         const idsDetalle = detalles.map(d => d.id_detalle);
@@ -722,7 +722,7 @@ const eliminarInspeccion = async (id) => {
         .from('inspeccion')
         .delete()
         .eq('id_inspeccion', id);
-        
+
     if (inspErr) throw inspErr;
     return { message: 'Inspección eliminada con éxito' };
 };

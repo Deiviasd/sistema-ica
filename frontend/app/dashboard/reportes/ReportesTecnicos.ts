@@ -62,7 +62,8 @@ export function useReportesTecnicos() {
 
             setPredios(resResumen.data?.predios || [])
             setSiembras(resResumen.data?.siembras || [])
-            setInspecciones(resResumen.data?.inspecciones || [])
+            const uniqueInspecciones = Array.from(new Map((resResumen.data?.inspecciones || []).map((i: any) => [i.id_inspeccion, i])).values())
+            setInspecciones(uniqueInspecciones as Inspection[])
             setPlagas(resPlagas.data || [])
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Error desconocido"

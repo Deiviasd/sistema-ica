@@ -329,7 +329,7 @@ export default function ProductorDashboard() {
                     </span>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-tighter leading-none">pp Pred</p>
+                    <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-tighter leading-none">Predio</p>
                     {predios.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {predios.slice(0, 3).map((p, idx) => (

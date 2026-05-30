@@ -314,6 +314,23 @@ export function useInspectionWizard(inspection: Inspection, onClose: () => void)
         } catch (err) {
           console.error("Error al asociar fotos:", err)
         }
+
+        // Actualizar estados locales para evitar doble inserción al finalizar
+        const updatedEval = { ...currentEval, id_detalle: newIdDetalle }
+        setCurrentEval(updatedEval)
+
+        setFormData(prev => {
+          const filtered = prev.evaluations.filter(ev => String(ev.id_lote) !== String(currentEval.id_lote))
+          return {
+            ...prev,
+            evaluations: [...filtered, updatedEval]
+          }
+        })
+
+        setInitialEvaluations(prev => {
+          const filtered = prev.filter(ev => String(ev.id_lote) !== String(currentEval.id_lote))
+          return [...filtered, JSON.parse(JSON.stringify(updatedEval))]
+        })
       }
     } catch (err) {
       console.error("Error guardando:", err)

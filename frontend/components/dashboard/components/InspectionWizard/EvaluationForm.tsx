@@ -61,6 +61,8 @@ export function EvaluationForm({
 
   const selectedPlagaData = catalogPlagas.find(p => p.nombre_comun === currentEval.plaga)
 
+  const [isSaving, setIsSaving] = useState(false)
+
   const closeCamera = () => {
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = null
@@ -476,17 +478,32 @@ export function EvaluationForm({
           <div className="pt-6 border-t border-slate-800/60 flex justify-end">
             <Button
               type="button"
+              disabled={isSaving}
               onClick={async () => {
-                const res = await handleSaveLoteEvaluation(activeLotes)
-                if (!res.success) {
-                  showToast(res.error || "Error al guardar", "error", 3000)
-                  return
+                if (isSaving) return
+                setIsSaving(true)
+                try {
+                  const res = await handleSaveLoteEvaluation(activeLotes)
+                  if (!res.success) {
+                    showToast(res.error || "Error al guardar", "error", 3000)
+                    return
+                  }
+                  showToast(res.isUnchanged ? "Lote sin cambios, pasando al siguiente" : "Inspección del lote registrada", "success", 2000)
+                } catch (err) {
+                  console.error("Error saving evaluation:", err)
+                  showToast("Error inesperado al guardar", "error", 3000)
+                } finally {
+                  setIsSaving(false)
                 }
-                showToast(res.isUnchanged ? "Lote sin cambios, pasando al siguiente" : "Inspección del lote registrada", "success", 2000)
               }}
-              className="h-12 px-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black italic rounded-xl transition-all uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-950/30"
+              className="h-12 px-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black italic rounded-xl transition-all uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Check className="w-4 h-4" /> Confirmar Evaluación del Lote
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {isSaving ? "Guardando..." : "Confirmar Evaluación del Lote"}
             </Button>
           </div>
         )}
