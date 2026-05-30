@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { MapPin, Calendar, Play } from "lucide-react"
+import { MapPin, Calendar, Play, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Inspection } from "../types/inspection"
 
@@ -42,15 +42,29 @@ export function InspectionCard({ inspection, onStart }: Props) {
 
   const isFinalizada = inspection.estado === 'finalizada';
 
+  // Obtener fecha de hoy sin horas para comparación
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Obtener fecha programada sin horas
+  const scheduledDate = new Date(dateObj);
+  scheduledDate.setHours(0, 0, 0, 0);
+
+  // Bloquear solo si está PENDIENTE y la fecha es estrictamente en el futuro
+  const isFuture = scheduledDate.getTime() > today.getTime();
+  const isLocked = inspection.estado === 'programada' && isFuture;
+
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={isLocked ? {} : { scale: 1.02 }}
       className={`bg-card backdrop-blur-2xl border rounded-[2.5rem] p-8 transition-all group relative overflow-hidden shadow-sm ${isFinalizada
         ? 'border-slate-800 opacity-80 hover:border-slate-600 grayscale-[0.2]'
-        : 'border-border hover:border-emerald-500/50'
+        : isLocked
+          ? 'border-slate-800/80 opacity-70'
+          : 'border-border hover:border-emerald-500/50'
         }`}
     >
-      <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full ${isFinalizada ? 'bg-slate-500/5' : 'bg-emerald-500/5'}`} />
+      <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full ${isFinalizada ? 'bg-slate-500/5' : isLocked ? 'bg-slate-500/2' : 'bg-emerald-500/5'}`} />
 
       <div className="flex justify-between items-center mb-8 relative">
         <div className="group/map relative flex flex-col items-start z-20">
@@ -75,46 +89,53 @@ export function InspectionCard({ inspection, onStart }: Props) {
           </div>
         </div>
         <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${inspection.estado === 'programada'
-          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+          ? isLocked
+            ? 'bg-slate-800 text-slate-400 border border-slate-700/50'
+            : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
           : inspection.estado === 'en_proceso'
             ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
             : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
           }`}>
-          {inspection.estado === 'programada' ? 'PENDIENTE'
-            : inspection.estado === 'en_proceso' ? 'EN TRABAJO'
+          {inspection.estado === 'programada'
+            ? (isLocked ? 'BLOQUEADO' : 'PENDIENTE')
+            : inspection.estado === 'en_proceso'
+              ? 'EN TRABAJO'
               : 'FINALIZADA'}
         </div>
       </div>
 
       <div className="mb-4">
         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Lugar de Producción:</p>
-        <h3 className={`text-2xl font-black italic tracking-tight transition-colors uppercase ${isFinalizada ? 'text-muted-foreground/60' : 'group-hover:text-emerald-500'}`}>
+        <h3 className={`text-2xl font-black italic tracking-tight transition-colors uppercase ${isFinalizada ? 'text-muted-foreground/60' : isLocked ? 'text-slate-400' : 'group-hover:text-emerald-500'}`}>
           {inspection.lugar_produccion?.nombre_lugar}
         </h3>
       </div>
 
       <div className="space-y-4 mb-10">
         <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-muted/50 border-border/50' : 'bg-muted border-border'}`}>
-          <Calendar className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : 'text-emerald-500'}`} />
+          <Calendar className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : isLocked ? 'text-slate-500' : 'text-emerald-500'}`} />
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">FECHA PROGRAMADA</span>
-            <span className={`text-sm font-bold capitalize ${isFinalizada ? 'text-muted-foreground' : ''}`}>{date} {time ? `• ${time}` : ''}</span>
+            <span className={`text-sm font-bold capitalize ${isFinalizada ? 'text-muted-foreground' : isLocked ? 'text-slate-400' : ''}`}>{date} {time ? `• ${time}` : ''}</span>
           </div>
         </div>
         <div className={`flex items-center gap-4 p-4 rounded-2xl border ${isFinalizada ? 'bg-muted/50 border-border/50' : 'bg-muted border-border'}`}>
-          <MapPin className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : 'text-emerald-500'}`} />
+          <MapPin className={`w-5 h-5 ${isFinalizada ? 'text-muted-foreground' : isLocked ? 'text-slate-500' : 'text-emerald-500'}`} />
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">LOCALIZACIÓN / REGIÓN</span>
-            <span className={`text-sm font-bold ${isFinalizada ? 'text-muted-foreground' : ''}`}>{inspection.lugar_produccion?.ubicacion}</span>
+            <span className={`text-sm font-bold ${isFinalizada ? 'text-muted-foreground' : isLocked ? 'text-slate-400' : ''}`}>{inspection.lugar_produccion?.ubicacion}</span>
           </div>
         </div>
       </div>
 
       <Button
-        onClick={onStart}
+        onClick={isLocked ? undefined : onStart}
+        disabled={isLocked}
         className={`w-full h-16 text-white font-black text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 ${inspection.estado === 'finalizada'
           ? 'bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm'
-          : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
+          : isLocked
+            ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50 shadow-none'
+            : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
           }`}
       >
         {inspection.estado === 'finalizada' ? (
@@ -123,6 +144,11 @@ export function InspectionCard({ inspection, onStart }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
             VER INSPECCIÓN FINALIZADA
+          </>
+        ) : isLocked ? (
+          <>
+            <Lock className="w-5 h-5 text-slate-500" />
+            BLOQUEADO HASTA EL {dateObj.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}
           </>
         ) : (
           <>

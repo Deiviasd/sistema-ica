@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ClipboardList, Loader2, History, Search } from "lucide-react"
+import { ClipboardList, Loader2, History, Search, Filter, XCircle } from "lucide-react"
 import {
   DndContext,
   closestCenter,
@@ -91,6 +91,26 @@ export default function TecnicoDashboard() {
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null)
   const [viewingReport, setViewingReport] = useState<Inspection | null>(null)
   const [activeId, setActiveId] = useState<number | string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string>("")
+
+  // Filtrado por fecha
+  const filteredInspecciones = useMemo(() => {
+    if (!selectedDate) return inspecciones
+    return inspecciones.filter(ins => {
+      if (!ins.fecha_programada) return false
+      const datePart = new Date(ins.fecha_programada).toISOString().split('T')[0]
+      return datePart === selectedDate
+    })
+  }, [inspecciones, selectedDate])
+
+  // Solo citas activas (excluye finalizadas)
+  const activeEstados = ['programada', 'en_proceso']
+  const totalActivasCount = useMemo(() =>
+    inspecciones.filter(ins => activeEstados.includes(ins.estado)).length
+  , [inspecciones])
+  const filteredActivasCount = useMemo(() =>
+    filteredInspecciones.filter(ins => activeEstados.includes(ins.estado)).length
+  , [filteredInspecciones])
 
   // 🔔 Estado para la alerta de cancelación en tiempo real
   const [cancellationAlerts, setCancellationAlerts] = useState<{
@@ -284,7 +304,7 @@ export default function TecnicoDashboard() {
             className="space-y-8"
           >
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-left -mt-6">
               <div className="flex items-center gap-5">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl md:rounded-3xl flex items-center justify-center border border-primary/20">
                   <History className="text-primary w-6 h-6 md:w-8 md:h-8" />
@@ -300,9 +320,39 @@ export default function TecnicoDashboard() {
               </div>
               <div className="flex bg-card p-1.5 md:p-2 rounded-2xl border border-border self-start md:self-auto">
                 <div className="px-4 py-2 md:px-6 md:py-3 bg-primary text-primary-foreground rounded-xl font-black italic uppercase tracking-tighter shadow-lg shadow-primary/20 text-sm md:text-base">
-                  {inspecciones.length} CITAS HOY
+                  {selectedDate
+                    ? `${filteredActivasCount} CITAS — ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }).toUpperCase()}`
+                    : `${totalActivasCount} CITAS ACTIVAS`
+                  }
                 </div>
               </div>
+            </div>
+
+            {/* Filtro por fecha */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex items-center gap-2 bg-card border border-border rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-primary/50 transition-colors">
+                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+                <label htmlFor="date-filter" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap">Filtrar por día</label>
+                <input
+                  id="date-filter"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-foreground font-bold text-sm outline-none cursor-pointer"
+                />
+              </div>
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate("")}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Borrar filtro
+                </button>
+              )}
+              {selectedDate && filteredInspecciones.length === 0 && (
+                <span className="text-muted-foreground text-xs font-bold italic">Sin inspecciones para esta fecha</span>
+              )}
             </div>
 
             {/* Grid de cards con DND-KIT */}
@@ -313,22 +363,25 @@ export default function TecnicoDashboard() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={inspecciones.map(i => i.id_inspeccion)}
+                items={filteredInspecciones.map(i => i.id_inspeccion)}
                 strategy={rectSortingStrategy}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {inspecciones.length === 0 ? (
+                  {filteredInspecciones.length === 0 ? (
                     <div className="col-span-full py-32 text-center bg-muted/20 border-2 border-dashed border-border rounded-[3rem]">
                       <Search className="w-20 h-20 text-muted-foreground mx-auto mb-6 opacity-20" />
                       <p className="text-muted-foreground text-2xl font-black italic tracking-tighter uppercase opacity-50">
-                        Sin asignaciones pendientes
+                        {selectedDate ? 'Sin inspecciones para esta fecha' : 'Sin asignaciones pendientes'}
                       </p>
                       <p className="text-muted-foreground font-bold mt-2 opacity-40">
-                        Todo el equipo está al día con las verificaciones agrícolas.
+                        {selectedDate
+                          ? `No hay inspecciones programadas para el ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}.`
+                          : 'Todo el equipo está al día con las verificaciones agrícolas.'
+                        }
                       </p>
                     </div>
                   ) : (
-                    inspecciones.map((insp) => (
+                    filteredInspecciones.map((insp) => (
                       <SortableInspection
                         key={insp.id_inspeccion}
                         inspection={insp}
@@ -348,7 +401,7 @@ export default function TecnicoDashboard() {
               {/* Overlay mientras se arrastra */}
               <DragOverlay adjustScale={true}>
                 {activeId ? (() => {
-                  const activeInsp = inspecciones.find(i => String(i.id_inspeccion) === String(activeId));
+                  const activeInsp = filteredInspecciones.find(i => String(i.id_inspeccion) === String(activeId));
                   if (!activeInsp) return null;
                   return (
                     <div className="scale-105 opacity-80 cursor-grabbing">

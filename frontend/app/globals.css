@@ -119,7 +119,51 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* ─── Responsive Scale ─── */
+  /* Reduce la escala base en pantallas normales para que los componentes 
+   diseñados para pantallas grandes se vean bien a 100% de zoom */
+  @layer base {
+    html {
+      font-size: 14px;
+      /* Por defecto Tailwind usa 16px, esto escala TODO proporcionalmente */
+    }
+
+    @media (min-width: 1536px) {
+
+      /* 2xl: pantallas muy grandes */
+      html {
+        font-size: 16px;
+      }
+    }
+
+    /* Evita scrollbar cuando el contenido no lo necesita */
+    body {
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      /* evita el salto de layout cuando aparece/desaparece */
+    }
+
+    /* Scrollbar más discreta */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: oklch(0.3 0.02 260 / 0.4);
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: oklch(0.4 0.02 260 / 0.6);
+    }
   }
 }

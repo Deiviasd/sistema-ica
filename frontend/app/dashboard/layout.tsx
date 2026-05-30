@@ -23,8 +23,8 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               scale: [1, 1.2, 1],
               opacity: [0.5, 1, 0.5]
             }}
@@ -47,7 +47,7 @@ export default function DashboardLayout({
       {/* Overlay para móvil */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -58,16 +58,16 @@ export default function DashboardLayout({
       </AnimatePresence>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
-      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 md:pl-64 overflow-y-auto">
-        <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+
+      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 md:pl-64">        <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
         <AnimatePresence mode="wait">
-          <motion.main 
+          <motion.main
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 p-4 md:p-8"
+            className="flex-1 pt-3 px-4 pb-4 md:pt-4 md:px-6 md:pb-6"
           >
             {children}
           </motion.main>

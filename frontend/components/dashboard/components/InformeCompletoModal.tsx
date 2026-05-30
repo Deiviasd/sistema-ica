@@ -241,18 +241,41 @@ export function InformeCompletoModal({ inspection, liveFormData, onClose, filter
             </div>
             {/* Técnico asignado + Predios — sección II del informe ICA */}
             <div className="md:col-span-2 space-y-2">
-              {/* Fila: N° Registro ICA | Técnico Asignado | Predios (collapsible) */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Fila: N° Registro ICA | Técnico Asignado | Fecha Reporte | Predios (collapsible) */}
+              <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'N° Registro ICA', value: context?.lugares_produccion?.find((l) => l.es_lugar_inspeccion)?.numero_registro || context?.lugares_produccion?.[0]?.numero_registro || 'Pendiente' },
                   { label: 'Técnico Asignado', value: inspection.tecnico_nombre || context?.tecnico_nombre || 'No asignado' },
+                  { 
+                    label: 'Fecha Reporte', 
+                    value: (() => {
+                      if (!inspection.fecha_programada) return 'Sin fecha'
+                      const dateOnly = inspection.fecha_programada.split('T')[0]
+                      const parts = dateOnly.split('-')
+                      if (parts.length === 3) {
+                        const year = parseInt(parts[0], 10)
+                        const month = parseInt(parts[1], 10) - 1
+                        const day = parseInt(parts[2], 10)
+                        return new Date(year, month, day).toLocaleDateString("es-ES", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })
+                      }
+                      return new Date(inspection.fecha_programada).toLocaleDateString("es-ES", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                      })
+                    })()
+                  }
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-muted/30 border border-border rounded-xl p-3.5">
                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">{label}</p>
                     <p className="text-xs font-black text-foreground italic truncate" title={value}>{value}</p>
                   </div>
                 ))}
-
+ 
                 {/* Predios — botón desplegable */}
                 <button
                   type="button"

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,6 +26,32 @@ import { RawPredia, RawLote, RawSiembra, RawPlaga, DetalleEnriquecido, EnrichedI
 export default function HistorialRegistrosPage() {
   const { user } = useUserStore()
   const router = useRouter()
+
+  const formatLocalDateString = (dateStr: string, monthStyle: "long" | "short") => {
+    if (!dateStr) return ""
+    try {
+      const dateOnly = dateStr.split("T")[0]
+      const parts = dateOnly.split("-")
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10) - 1
+        const day = parseInt(parts[2], 10)
+        return new Date(year, month, day).toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: monthStyle,
+          day: "numeric"
+        })
+      }
+      return new Date(dateStr).toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: monthStyle,
+        day: "numeric"
+      })
+    } catch (e) {
+      console.error(e)
+      return dateStr
+    }
+  }
 
   const [inspecciones, setInspecciones] = useState<Inspection[]>([])
   const [predios, setPredios] = useState<RawPredia[]>([])
@@ -462,9 +488,7 @@ export default function HistorialRegistrosPage() {
                   <div className="flex items-center gap-2 text-muted-foreground text-sm font-semibold">
                     <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span>
-                      {new Date(ins.fecha_programada).toLocaleDateString("es-ES", {
-                        year: "numeric", month: "short", day: "numeric"
-                      })}
+                      {formatLocalDateString(ins.fecha_programada, "short")}
                     </span>
                   </div>
 
@@ -544,9 +568,7 @@ export default function HistorialRegistrosPage() {
                       <div className="flex items-center gap-2.5 font-bold">
                         <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
                         <span>
-                          {new Date(ins.fecha_programada).toLocaleDateString("es-ES", {
-                            year: "numeric", month: "long", day: "numeric"
-                          })}
+                          {formatLocalDateString(ins.fecha_programada, "long")}
                         </span>
                       </div>
                     </td>

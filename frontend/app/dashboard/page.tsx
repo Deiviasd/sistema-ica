@@ -69,18 +69,18 @@ function AlertasSistema() {
 
         // 🟡 ADVERTENCIA: Técnicos sin inspecciones en 30 días
         techs.forEach(t => {
-          const hasRecent = inspections.some(ins => 
-            ins.tecnico_id === Number(t.id_usuario) && 
+          const hasRecent = inspections.some(ins =>
+            ins.tecnico_id === Number(t.id_usuario) &&
             (now.getTime() - new Date(ins.fecha_programada).getTime()) / (1000 * 3600 * 24) < 30
           )
           if (!hasRecent) {
-             newAlerts.push({
-               severity: "advertencia",
-               title: "Técnico Inactivo",
-               desc: "Sin actividad en los últimos 30 días",
-               entity: t.nombre,
-               href: "/dashboard/usuarios/directorio"
-             })
+            newAlerts.push({
+              severity: "advertencia",
+              title: "Técnico Inactivo",
+              desc: "Sin actividad en los últimos 30 días",
+              entity: t.nombre,
+              href: "/dashboard/usuarios/directorio"
+            })
           }
         })
 
@@ -88,10 +88,10 @@ function AlertasSistema() {
         const canceledByPredio: Record<string, number> = {}
         inspections.forEach(ins => {
           if (ins.estado === "cancelada") {
-             const days = (now.getTime() - new Date(ins.fecha_programada).getTime()) / (1000 * 3600 * 24)
-             if (days < 60) {
-               canceledByPredio[ins.predio_nombre] = (canceledByPredio[ins.predio_nombre] || 0) + 1
-             }
+            const days = (now.getTime() - new Date(ins.fecha_programada).getTime()) / (1000 * 3600 * 24)
+            if (days < 60) {
+              canceledByPredio[ins.predio_nombre] = (canceledByPredio[ins.predio_nombre] || 0) + 1
+            }
           }
         })
 
@@ -107,7 +107,7 @@ function AlertasSistema() {
           }
         })
 
-        setAlertas(newAlerts.slice(0, 3)) // Mostrar top 3
+        setAlertas(newAlerts.slice(0, 3))
       } catch (e) {
         console.error("Error cargando alertas", e)
       } finally {
@@ -123,21 +123,20 @@ function AlertasSistema() {
     <Card className="bg-card border-border rounded-3xl overflow-hidden shadow-sm mb-6">
       <CardContent className="p-0">
         <div className="p-5 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
-               <ShieldAlert className="w-5 h-5 text-primary" />
-               <h2 className="text-xl font-black tracking-tight text-foreground uppercase italic">Alertas del Sistema</h2>
-            </div>
-            {!alertas.length && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Normal</Badge>}
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-black tracking-tight text-foreground uppercase italic">Alertas del Sistema</h2>
+          </div>
+          {!alertas.length && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Normal</Badge>}
         </div>
-        
+
         <div className="divide-y divide-border">
           {alertas.length > 0 ? alertas.map((alert, i) => (
             <div key={i} className="p-4 flex items-center gap-4 hover:bg-background transition-colors">
-              <div className={`p-2.5 rounded-xl border ${
-                alert.severity === 'critico' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
-                alert.severity === 'advertencia' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
-                'bg-orange-500/10 border-orange-500/20 text-orange-500'
-              }`}>
+              <div className={`p-2.5 rounded-xl border ${alert.severity === 'critico' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
+                  alert.severity === 'advertencia' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                    'bg-orange-500/10 border-orange-500/20 text-orange-500'
+                }`}>
                 {alert.severity === 'critico' ? <ShieldAlert className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
               </div>
               <div className="flex-1">
@@ -151,13 +150,13 @@ function AlertasSistema() {
             </div>
           )) : (
             <div className="p-10 flex flex-col items-center justify-center text-center space-y-3">
-               <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
-                  <CheckCircle2 className="w-6 h-6" />
-               </div>
-               <div>
-                  <p className="font-black text-xs uppercase tracking-widest text-foreground">Sistema operando con normalidad</p>
-                  <p className="text-xs text-muted-foreground italic">No se detectaron anomalías en el flujo de trabajo.</p>
-               </div>
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="font-black text-xs uppercase tracking-widest text-foreground">Sistema operando con normalidad</p>
+                <p className="text-xs text-muted-foreground italic">No se detectaron anomalías en el flujo de trabajo.</p>
+              </div>
             </div>
           )}
         </div>
@@ -200,52 +199,12 @@ export default function Dashboard() {
 
   if (!user) return null
 
+  // ─── Helpers ───────────────────────────────────────────────
   const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return "Buenos días"
     if (hour < 18) return "Buenas tardes"
     return "Buenas noches"
-  }
-
-  // Si es productor, mostramos el dashboard especializado
-  if (user.role === 'productor') {
-    return (
-      <div className="space-y-4 md:space-y-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="mb-2 text-left"
-        >
-          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
-            {getGreeting()}, <span className="text-primary">{user.nombre}</span>
-          </h1>
-        </motion.div>
-
-        <ProductorDashboard />
-      </div>
-    )
-  }
-
-  // Si es técnico, mostramos su dashboard especializado (Case-insensitive check)
-  if (user.role?.toLowerCase() === 'tecnico') {
-    return (
-      <div className="space-y-4 md:space-y-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: -0 }}
-          className="mb-2 text-left"
-        >
-          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
-            Panel Técnico ICA <span className="text-primary">| {user.nombre}</span>
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Registro y control fitosanitario oficial.
-          </p>
-        </motion.div>
-
-        <TecnicoDashboard />
-      </div>
-    )
   }
 
   const getActionBadge = (action: string) => {
@@ -268,16 +227,56 @@ export default function Dashboard() {
     if (minutes < 1) return "hace unos segundos"
     if (minutes === 1) return "hace 1 minuto"
     if (minutes < 60) return `hace ${minutes} minutos`
-
     const hours = Math.floor(minutes / 60)
     if (hours === 1) return "hace 1 hora"
     if (hours < 24) return `hace ${hours} horas`
-
     const days = Math.floor(hours / 24)
     if (days === 1) return "hace 1 día"
     return `hace ${days} días`
   }
 
+  // ─── Rol: Productor ────────────────────────────────────────
+  if (user.role === 'productor') {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-left"
+        >
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-foreground">
+            {getGreeting()}, <span className="text-primary">{user.nombre}</span>
+          </h1>
+        </motion.div>
+
+        <ProductorDashboard />
+      </div>
+    )
+  }
+
+  // ─── Rol: Técnico ──────────────────────────────────────────
+  if (user.role?.toLowerCase() === 'tecnico') {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-left"
+        >
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-foreground">
+            Panel Técnico ICA <span className="text-primary">| {user.nombre}</span>
+          </h1>
+          <p className="text-muted-foreground text-base md:text-lg">
+            Registro y control fitosanitario oficial.
+          </p>
+        </motion.div>
+
+        <TecnicoDashboard />
+      </div>
+    )
+  }
+
+  // ─── Rol: Admin ────────────────────────────────────────────
   const adminKpis = [
     { label: "Aprobaciones Pendientes", value: pendingCount, icon: ShieldAlert, tone: "bg-background text-primary border-border" },
     { label: "Usuarios Activos", value: activeUsersCount, icon: Users, tone: "bg-primary/10 text-primary border-primary/20" },
@@ -290,16 +289,14 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex mb-8"
+        className="text-left"
       >
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-foreground">
-            {getGreeting()}, <span className="text-primary">{user.nombre}</span>
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Bienvenido a tu panel de control {user.role}.
-          </p>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          {getGreeting()}, <span className="text-primary">{user.nombre}</span>
+        </h1>
+        <p className="text-muted-foreground text-base md:text-lg">
+          Bienvenido a tu panel de control {user.role}.
+        </p>
       </motion.div>
 
       {user.role === 'admin' && (
@@ -334,7 +331,6 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* ⚡ ALERTAS DEL SISTEMA */}
           <AlertasSistema />
 
           <Card className="bg-card border-border rounded-3xl shadow-sm overflow-hidden">

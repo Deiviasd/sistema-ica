@@ -179,7 +179,7 @@ export default function ProductorDashboard() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-8 pb-12"
+      className="space-y-6 pb-12"
     >
       {/* 🚨 Banner global de inspección activa */}
       <AnimatePresence>
