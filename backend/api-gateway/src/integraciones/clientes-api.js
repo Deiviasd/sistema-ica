@@ -1,16 +1,12 @@
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
-/**
- * Servicio para realizar peticiones internas entre microservicios
- * gestionadas por el Orquestador con soporte de Token Exchange.
- */
-console.log("🔍 [INTERNAL_API] Iniciando configuración de microservicios...");
-console.log("🔑 [INTERNAL_API] INTERNAL_API_KEY detectada:", process.env.INTERNAL_API_KEY ? "SÍ" : "NO");
+console.log("🔍 [CLIENTES_API] Iniciando configuración de microservicios...");
+console.log("🔑 [CLIENTES_API] INTERNAL_API_KEY detectada:", process.env.INTERNAL_API_KEY ? "SÍ" : "NO");
 
 const serviceUrl = (value) => (value || '').replace(/\/+$/, '');
 
-const internalApi = {
+const clientesApi = {
     auth: axios.create({ baseURL: `${serviceUrl(process.env.AUTH_SERVICE_URL)}/auth` }),
     predios: axios.create({ baseURL: serviceUrl(process.env.PREDIOS_SERVICE_URL) }),
     cultivo: axios.create({ baseURL: serviceUrl(process.env.CULTIVOS_SERVICE_URL) }),
@@ -74,10 +70,10 @@ const setupInstance = (instance) => {
 };
 
 // Aplicar a todas las instancias
-setupInstance(internalApi.auth);
-setupInstance(internalApi.predios);
-setupInstance(internalApi.cultivo);
-setupInstance(internalApi.inspecciones);
-setupInstance(internalApi.auditoria);
+setupInstance(clientesApi.auth);
+setupInstance(clientesApi.predios);
+setupInstance(clientesApi.cultivo);
+setupInstance(clientesApi.inspecciones);
+setupInstance(clientesApi.auditoria);
 
-module.exports = internalApi;
+module.exports = clientesApi;
