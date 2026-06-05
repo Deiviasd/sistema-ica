@@ -28,10 +28,11 @@ const setupProxy = (path, target, validators = [], protected = true, targetSecre
                 app_metadata: req.user.app_metadata || {}
             };
 
-            // 🆔 INYECCIÓN DE IDENTIDAD: Pasamos datos limpios a los microservicios
+            // 🆔 INYECCIÓN DE IDENTIDAD Y TRAZABILIDAD: Pasamos datos limpios a los microservicios
             proxyReq.setHeader('x-user-id', payload.id_usuario);
             proxyReq.setHeader('x-user-role', payload.role);
             proxyReq.setHeader('x-user-predio-id', payload.numero_predial || '');
+            proxyReq.setHeader('x-correlation-id', req.correlationId || 'N/A');
 
             // 🔄 TOKEN EXCHANGE: Si el destino tiene una llave diferente, re-firmamos
             if (protected && targetSecretEnv && process.env[targetSecretEnv]) {

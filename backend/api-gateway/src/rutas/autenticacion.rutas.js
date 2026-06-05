@@ -2,12 +2,16 @@ const { Router } = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const autenticacionControlador = require('../controladores/autenticacion.controlador');
 const { authenticateToken, restrictTo } = require('../middlewares/autenticacion');
+const { limitadorLogin, limitadorRegistro } = require('../middlewares/limitador');
 
 const router = Router();
 
-// Rutas orquestadas
-router.post('/register', autenticacionControlador.registrar);
+// Rutas orquestadas con Rate Limiting
+router.post('/register', limitadorRegistro, autenticacionControlador.registrar);
 router.get('/users/by-status', authenticateToken, restrictTo('admin'), autenticacionControlador.obtenerUsuariosPorEstado);
+
+// Rate Limiting para login (antes del proxy)
+router.post('/login', limitadorLogin);
 
 // Proxy para las demás peticiones (/auth/login, etc.)
 router.use('/', (req, res, next) => {

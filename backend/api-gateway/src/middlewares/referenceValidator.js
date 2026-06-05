@@ -1,4 +1,4 @@
-const internalApi = require('../services/internalApi');
+const internalApi = require('../integraciones/clientes-api');
 
 /**
  * Middleware para validar que los IDs referenciados existen en otros microservicios

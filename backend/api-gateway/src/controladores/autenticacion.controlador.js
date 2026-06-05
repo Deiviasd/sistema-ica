@@ -3,8 +3,8 @@ const autenticacionServicio = require('../servicios/autenticacion.servicio');
 class AutenticacionControlador {
     async registrar(req, res, next) {
         try {
-            console.log(`🚀 [ORQUESTADOR] Iniciando registro integral para: ${req.body.email}`);
-            const result = await autenticacionServicio.registrarUsuario(req.body);
+            console.log(`🚀 [ORQUESTADOR] Iniciando registro integral para: ${req.body.email} | ID: ${req.correlationId}`);
+            const result = await autenticacionServicio.registrarUsuario(req.body, req.correlationId);
             return res.status(201).json({
                 success: true,
                 message: 'Registro exitoso. Ahora puedes iniciar sesión.',

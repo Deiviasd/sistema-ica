@@ -1,33 +1,49 @@
 const clientesApi = require('../integraciones/clientes-api');
 const eventBus = require('../configuracion/eventbus');
+const sagaServicio = require('./saga.servicio');
 
 class OrquestadorServicio {
-    async crearLoteIntegral(reqUser, body) {
-        let loteId = null;
-        let siembraId = null;
+    async crearLoteIntegral(req) {
+        const reqUser = req.user;
+        const correlationId = req.correlationId;
+        const body = req.body;
+        
+        const txId = sagaServicio.iniciarTransaccion(`LOTE_INTEGRAL_${correlationId}`);
 
-        const {
-            id_lugar_produccion, nombre_lote, area, especie, variedad, fecha_siembra
-        } = body;
-
-        // 1. Registrar Lote en ms-predios
         try {
+            const {
+                id_lugar_produccion, nombre_lote, area, especie, variedad, fecha_siembra
+            } = body;
+
+            // 1. Registrar Lote en ms-predios
             const loteResponse = await clientesApi.predios.post('/lotes', {
                 id_lugar_produccion, nombre_lote, area
-            }, clientesApi.getAuthHeaders(reqUser, 'JWT_SECRET_PREDIOS'));
+            }, clientesApi.getAuthHeaders(req, 'JWT_SECRET_PREDIOS'));
 
-            loteId = loteResponse.data.id_lote;
+            const loteId = loteResponse.data.id_lote;
             
+            // Registrar paso de compensación
+            sagaServicio.registrarPasoCompletado(txId, 'CREAR_LOTE', async () => {
+                await clientesApi.predios.patch(`/lotes/${loteId}/estado`, { estado: 'disponible' }, {
+                    headers: { 'x-correlation-id': correlationId }
+                });
+            });
+
             // 2. Registrar Siembra en ms-cultivo
             const siembraResponse = await clientesApi.cultivo.post('/siembras', {
                 id_lote: loteId,
                 id_variedad: 1, // Por defecto o mapeado de la variedad del body
                 fecha_siembra
-            }, clientesApi.getAuthHeaders(reqUser, 'JWT_SECRET_CULTIVOS'));
+            }, clientesApi.getAuthHeaders(req, 'JWT_SECRET_CULTIVOS'));
 
-            siembraId = siembraResponse.data.id_siembra;
+            const siembraId = siembraResponse.data.id_siembra;
 
-            // 3. Publicar evento de auditoría
+            sagaServicio.registrarPasoCompletado(txId, 'CREAR_SIEMBRA', async () => {
+                // await clientesApi.cultivo.delete(`/siembras/${siembraId}`);
+                console.warn(`[SAGA COMPENSACION] Borrado de siembra aún no expuesto.`);
+            });
+
+            // 3. Publicar evento de auditoría asíncrono
             eventBus.publish('audit_queue', {
                 modulo: 'registro_agricola',
                 tipo_accion: 'CREATE_LOTE_INTEGRAL',
@@ -36,29 +52,26 @@ class OrquestadorServicio {
                 timestamp: new Date().toISOString()
             });
 
+            sagaServicio.completarTransaccion(txId);
+
             return {
                 lote: loteResponse.data,
                 siembra: siembraResponse.data
             };
         } catch (error) {
-            console.error('❌ Error en Registro Integral:', error.message);
-            // 🔄 Compensación (Rollback): Si creamos el lote pero no la siembra, revertimos el lote
-            if (loteId && !siembraId) {
-                console.log('🔄 Ejecutando rollback para el lote:', loteId);
-                await clientesApi.predios.patch(`/lotes/${loteId}/estado`, { estado: 'disponible' })
-                    .catch((e) => console.error('⚠️ Falló rollback de lote:', e.message));
-            }
+            await sagaServicio.abortarTransaccion(txId, error);
             throw error;
         }
     }
 
-    async obtenerResumenDashboard(reqUser) {
+    async obtenerResumenDashboard(req) {
+        const reqUser = req.user;
         const userRole = reqUser?.app_metadata?.role || reqUser?.role;
 
         // Cabeceras de autenticación re-firmadas para cada microservicio
-        const prediosHeaders = clientesApi.getAuthHeaders(reqUser, 'JWT_SECRET_PREDIOS');
-        const cultivosHeaders = clientesApi.getAuthHeaders(reqUser, 'JWT_SECRET_CULTIVOS');
-        const inspeccionesHeaders = clientesApi.getAuthHeaders(reqUser, 'JWT_SECRET_INSPECCIONES');
+        const prediosHeaders = clientesApi.getAuthHeaders(req, 'JWT_SECRET_PREDIOS');
+        const cultivosHeaders = clientesApi.getAuthHeaders(req, 'JWT_SECRET_CULTIVOS');
+        const inspeccionesHeaders = clientesApi.getAuthHeaders(req, 'JWT_SECRET_INSPECCIONES');
 
         const injectUserHeaders = (config) => ({
             ...config,

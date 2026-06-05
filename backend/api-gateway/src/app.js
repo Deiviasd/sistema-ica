@@ -4,9 +4,15 @@ const autenticacionRutas = require('./rutas/autenticacion.rutas');
 const orquestadorRutas = require('./rutas/orquestador.rutas');
 const proxiesRutas = require('./rutas/proxies.rutas');
 const errorHandler = require('./middlewares/errorHandler');
+const correlacionMiddleware = require('./middlewares/correlacion');
+const { limitadorGeneral } = require('./middlewares/limitador');
 
 const app = express();
 
+app.set('trust proxy', 1); // Confiar en el primer proxy (Docker/Nginx)
+
+app.use(correlacionMiddleware);
+app.use(limitadorGeneral); // Protección DDoS global
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cors());
